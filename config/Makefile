@@ -10,6 +10,14 @@ bindir  = bin
 # === Command-line switches ===================================================
 debug  ?= 0
 openmp ?= 1
+# Optional VILMA solid-earth backend (solver="vilma"). OFF by default: VILMA is a
+# hand-installed, precompiled library absent on most machines, so it must never
+# become a build dependency of FastEarth3D. With vilma=0 (the default) not one
+# VILMA symbol is referenced, no VILMA include path is needed, and a namelist
+# asking for solver="vilma" aborts with an actionable message from the
+# compiled-in stub (src/fe_vilma.f90, gated on -DVILMA). See doc/vilma-backend.md.
+#   make fastearth vilma=1 VILMAROOT=/path/to/vilma
+vilma  ?= 0
 
 defaulttarget: usage
 

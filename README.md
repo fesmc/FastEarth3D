@@ -14,7 +14,12 @@ coastlines, and rotational feedback. It is built **3D-ready from the start**
 **Documentation:** <https://fesmc.github.io/FastEarth3D/> (physics,
 discretization, benchmarks, install & run), rendered from the Quarto sources
 under [`docs/`](docs/); see [doc/design.md](doc/design.md) for the design
-rationale and method comparison.
+rationale and method comparison, and
+[doc/vilma-backend.md](doc/vilma-backend.md) for the optional VILMA backend
+(`&fe3d solver = "vilma"`), which drives VILMA itself through this model's
+driver, namelist, forcing, remap and output for a like-for-like comparison. It
+is **off by default and is not a dependency**: it needs an explicit
+`make fastearth vilma=1 VILMAROOT=<install>` and a hand-installed VILMA.
 
 ## Status
 

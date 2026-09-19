@@ -1,0 +1,83 @@
+&fe3d
+    ! ====================================================================
+    ! The SAME deglaciation run as examples/deglac_lgm.nml, but driven by the
+    ! optional VILMA backend instead of the native solver — an F-vs-V comparison
+    ! behind one driver, one forcing, one reference, one output layout.
+    !
+    !   make clean
+    !   make fastearth vilma=1 VILMAROOT=/path/to/vilma
+    !   bin/fastearth.x examples/deglac_vilma.nml
+    !
+    ! The default build (make fastearth) aborts at init with an actionable
+    ! message when it sees solver="vilma" — VILMA is NOT a dependency.
+    ! Read doc/vilma-backend.md before running this: there are real constraints
+    ! (netCDF-Fortran ABI, i_eq, no spin-up, no restart) and documented gaps.
+    ! ====================================================================
+    solver       = "vilma"
+
+    lmax         = 32          ! the COUPLING + OUTPUT grid, not VILMA's resolution.
+                               ! Keep it equal to the fe3d run being compared against.
+
+    ! VILMA has its own earth structure, sea-level equation and time stepping, so
+    ! `earth`, `scheme`, `earth_response`, the sle_* / dt_* knobs and `rotation`
+    ! are all IGNORED here. Only the grid above, l_visc_3d and the vilma_* block
+    ! below have any effect.
+    l_visc_3d    = .false.     ! .true. => VILMA reads vilma_visc_3d_file (vg%l_mod=1)
+
+    ! No spin-up: solid_earth_spinup has no VILMA analogue and is refused. VILMA
+    ! always starts from the reference state with zero viscous memory.
+    equil_time_max = 0.0
+    pre_spinup_1d  = .false.
+
+    ! --- VILMA backend ------------------------------------------------------
+    ! jmax and grid_file must describe the same grid: nlon = smallest power of 2
+    ! greater than 3*jmax, nlat = nlon/2 (jmax=170 -> 512 x 256). Checked at init.
+    ! Keep vilma_out_dir SHORT: VILMA stores file names in 120 characters.
+    vilma_jmax         = 170
+    vilma_input_dir    = "~/models/climber-x/input/vilma"
+    vilma_out_dir      = "runs/deglac_vilma/vilma"
+    vilma_grid_file    = "~/models/climber-x/input/vilma/vilma_grid.nc"
+    vilma_visc_1d_file = "visko.inp"
+    vilma_visc_3d_file = "visc3d_Bagge2021.nc"
+/
+
+&ctl
+    ! ====================================================================
+    ! Identical forcing and window to examples/deglac_lgm.nml.
+    !
+    ! i_eq: VILMA REQUIRES its load history to start from the reference state
+    ! (it aborts if the first record does not vanish against the reference ice),
+    ! so with i_eq=1 — a present-day reference and an LGM start — it absorbs the
+    ! whole LGM-vs-present anomaly as a jump in the first interval, and prints a
+    ! WARNING saying so. For a genuinely like-for-like run make the reference BE
+    ! the start state: i_eq=0 if the forcing carries a bed for the start slice,
+    ! or i_eq=2 with h_ice_eq_file set to the start-slice ice.
+    ! ====================================================================
+    file_forcing  = "~/models/climber-x/input/geo_ice_tarasov_deglac.nc"
+    name_ice      = "ice_thickness"
+    name_time     = "time"
+    file_ref      = ""
+    name_zbed_eq  = "z_bed_eq"
+    name_hice_ref = "h_ice_ref"
+    remap_input   = .true.
+    name_lon      = "lon"
+    name_lat      = "lat"
+
+    i_eq           = 1
+    z_bed_ref_file = "data/reference/rtopo_gauss_l128.nc"
+    h_ice_ref_file = "data/reference/rtopo_gauss_l128.nc"
+    z_bed_eq_file  = ""
+    h_ice_eq_file  = ""
+    rsl_restart_file = ""
+    name_z_bed_ref = "bedrock_topography"
+    name_h_ice_ref = "ice_thickness"
+    name_rsl       = "rsl"
+
+    file_out     = "runs/deglac_vilma/out.nc"
+    time_init    = -26000.0
+    time_end     = 0.0
+
+    ! A FastEarth3D restart carries the native solver's memory, which VILMA has
+    ! no counterpart for; restart_in_file is refused with solver="vilma".
+    restart_in_file = ""
+/

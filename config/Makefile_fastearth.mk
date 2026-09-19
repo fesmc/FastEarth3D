@@ -21,6 +21,7 @@ obj_fastearth = \
 	$(objdir)/fe_timestep.o \
 	$(objdir)/fe_rotation.o \
 	$(objdir)/fe_remap.o \
+	$(objdir)/fe_vilma.o \
 	$(objdir)/fe_coupling.o \
 	$(objdir)/fe_io.o \
 	$(objdir)/fe_drive.o \
@@ -55,7 +56,12 @@ $(objdir)/fe_timestep.o:         $(objdir)/fe_response.o $(objdir)/fe_sle.o \
 $(objdir)/fe_rotation.o:         $(objdir)/fe_sht.o $(objdir)/fe_constants.o \
                                  $(objdir)/fe_earth_structure.o $(objdir)/fe_radial_fe.o \
                                  $(objdir)/fe_viscoelastic.o
-$(objdir)/fe_coupling.o:         $(objdir)/fe_response.o $(objdir)/fe_sle.o \
+# Optional VILMA backend. Compiled ALWAYS; with vilma=0 (the default) -DVILMA is
+# absent and this is a pure-Fortran stub that references no VILMA symbol.
+$(objdir)/fe_vilma.o:            $(objdir)/fe_precision.o $(objdir)/fe_constants.o \
+                                 $(objdir)/fe_params.o $(objdir)/fe_sht.o
+$(objdir)/fe_coupling.o:         $(objdir)/fe_vilma.o \
+                                 $(objdir)/fe_response.o $(objdir)/fe_sle.o \
                                  $(objdir)/fe_rotation.o $(objdir)/fe_earth_structure.o \
                                  $(objdir)/fe_sht.o $(objdir)/fe_params.o $(objdir)/fe_remap.o \
                                  $(objdir)/fe_timestep.o $(objdir)/fe_viscoelastic.o
@@ -415,7 +421,11 @@ usage:
 	@echo " make clean            : remove objects and binaries"
 	@echo " make showconfig       : show the active build configuration"
 	@echo ""
-	@echo "   switches:  debug=0|1|2   openmp=0|1"
+	@echo "   switches:  debug=0|1|2   openmp=0|1   vilma=0|1"
+	@echo ""
+	@echo "   vilma=1 additionally links the optional VILMA backend (solver=\"vilma\"):"
+	@echo "     make fastearth vilma=1 VILMAROOT=/path/to/vilma"
+	@echo "   It is OFF by default and is not a dependency; see doc/vilma-backend.md."
 	@echo ""
 
 showconfig:
@@ -426,6 +436,7 @@ showconfig:
 	@echo "host      : $(shell hostname)"
 	@echo "openmp    : $(openmp)"
 	@echo "debug     : $(debug)"
+	@echo "vilma     : $(vilma)   (VILMAROOT=$(VILMAROOT))"
 	@echo "FFLAGS    : $(FFLAGS)"
 	@echo "LFLAGS    : $(LFLAGS)"
 

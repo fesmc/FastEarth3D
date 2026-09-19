@@ -71,12 +71,38 @@ ifeq ($(openmp),1)
 	LIB_SHTNS = -L$(SHTNSROOT)/lib -lshtns_omp
 endif
 
+# --- VILMA backend (make vilma=1 VILMAROOT=...) -------------------------------
+# OPTIONAL and OFF by default. VILMA (Martinec/Klemann; the CLIMBER-X i_geo=2
+# backend) is a hand-installed, precompiled library: a `vega_pism.a` archive plus
+# a directory of `.mod` files. It is absent on most machines, so it must never
+# become a dependency of FastEarth3D.
+#
+# vilma=0 (the default): CPPFLAGS_VILMA / INC_VILMA / LIB_VILMA are all EMPTY, so
+#   the compile line carries no -DVILMA and no VILMAROOT include, and the link line
+#   no archive. src/fe_vilma.f90 then compiles to a pure-Fortran stub referencing
+#   no VILMA symbol, which aborts with an actionable message if solver="vilma" is
+#   selected at runtime. The build is identical to a tree without this switch.
+# vilma=1: -DVILMA activates the real wrapper; VILMAROOT must point at an install
+#   containing include/*.mod and lib/vega_pism.a.
+#
+# Mirrors the vilma= / fastearth= toggles in CLIMBER-X's config/common.mk.
+VILMAROOT ?= vilma
+CPPFLAGS_VILMA =
+INC_VILMA =
+LIB_VILMA =
+ifeq ($(vilma),1)
+	CPPFLAGS_VILMA = -DVILMA
+	INC_VILMA      = -I$(VILMAROOT)/include
+	LIB_VILMA      = $(VILMAROOT)/lib/vega_pism.a
+endif
+
 # --- Final flag sets ---------------------------------------------------------
 # MODFLAGS (-I/-J objdir) and FFLAGS_BASE come from the compiler fragment.
 # INC_SHTNS is what lets `include 'shtns.f03'` in src/fe_sht.f90 be found.
-CPPFLAGS_FE = $(CPPFLAGS_PP)
-FFLAGS_FE   = $(FFLAGS_BASE) $(MODFLAGS) $(INC_NC) $(INC_FESMUTILS) $(INC_FFTW) $(INC_SHTNS) $(INC_LIS)
+CPPFLAGS_FE = $(CPPFLAGS_PP) $(CPPFLAGS_VILMA)
+FFLAGS_FE   = $(FFLAGS_BASE) $(MODFLAGS) $(INC_NC) $(INC_FESMUTILS) $(INC_FFTW) $(INC_SHTNS) $(INC_LIS) $(INC_VILMA)
 
 # Static archives resolve left-to-right, so a library must precede the libraries
 # it depends on: SHTns before FFTW (SHTns calls FFTW), fesm-utils before netCDF.
-LFLAGS_FE   = $(LIB_FESMUTILS) $(LIB_SHTNS) $(LIB_FFTW) $(LIB_LIS) $(LIB_NC) $(LFLAGS_EXTRA)
+# LIB_VILMA is empty unless vilma=1; VILMA calls netCDF, so it precedes LIB_NC.
+LFLAGS_FE   = $(LIB_FESMUTILS) $(LIB_SHTNS) $(LIB_FFTW) $(LIB_LIS) $(LIB_VILMA) $(LIB_NC) $(LFLAGS_EXTRA)

@@ -24,6 +24,23 @@ module fe_params
    integer, parameter :: MAX_LAYER = 16   !! cap on custom earth-structure layers
 
    type :: fe_param_class
+      ! --- solid-earth solver backend --------------------------------------------
+      character(len=16) :: solver = "fe3d"
+         !! which solid-earth solver sits behind the fe_coupling API:
+         !!   "fe3d"  (default) — this model's native Gauss-grid FE/SLE solver.
+         !!   "vilma" — the VILMA library (Martinec/Klemann), driven through the
+         !!             SAME driver, namelist, forcing, remap and output. Available
+         !!             ONLY in a build made with `make fastearth vilma=1
+         !!             VILMAROOT=<install>`; the default build compiles a stub that
+         !!             aborts with an actionable message. See doc/vilma-backend.md.
+         !! Everything below in the &fe3d record that describes the FastEarth3D
+         !! solver (earth structure, scheme, response kind, SLE, adaptive Δt,
+         !! rotation, spin-up) is IGNORED when solver="vilma": VILMA has its own
+         !! earth structure, its own sea-level equation and its own time stepping,
+         !! configured through the vilma_* settings below and its own input files.
+         !! Only lmax/nlat/nphi (the Gauss grid the coupling and the output live on)
+         !! and l_visc_3d are shared.
+
       ! --- spectral grid (fe_sht) ------------------------------------------------
       integer  :: lmax  = 0       !! maximum spherical-harmonic degree (required)
       integer  :: nlat  = 0       !! Gauss latitudes  (0 => SHTns default = lmax+2)
@@ -126,6 +143,30 @@ module fe_params
          !! element is treated as genuinely 3-D (pays the dyadic SHT round-trip); below it the
          !! element collapses to its lateral-mean scalar rate (cheap degree-diagonal path). Raising
          !! it demotes weakly-3-D elements to 1-D and cuts the memory-advance cost (the dominant cost).
+
+      ! --- VILMA backend (solver="vilma" only; fe_vilma) -------------------------
+      ! INERT unless solver="vilma". These mirror the settings CLIMBER-X's VILMA
+      ! wrapper (src/geo/vilma.F90) hard-codes or takes from geo_params, so the two
+      ! wrappers can be configured to agree exactly. VILMA's spectral resolution is a
+      ! RUNTIME setting (vg%jmax written to VILMA's stdin file), not compiled in.
+      integer :: vilma_jmax = 170
+         !! VILMA spectral degree (vg%jmax). CLIMBER-X uses 170. Must be consistent
+         !! with vilma_grid_file, which defines the grid VILMA's fields come back on.
+      character(len=512) :: vilma_input_dir = "input/vilma"
+         !! directory holding VILMA's own static inputs: densi.inp, tint.inp,
+         !! SLI_data.inp and the viscosity files below.
+      character(len=512) :: vilma_out_dir = "vilma"
+         !! scratch/output directory VILMA writes into (io.tmp, vega.lis, rsl.nc,
+         !! dflag.nc, the ice-history NetCDF, restart files, ...). Created if absent.
+      character(len=512) :: vilma_grid_file = "input/vilma/vilma_grid.nc"
+         !! NetCDF file carrying VILMA's own lon/lat axes (its Gauss-Legendre grid at
+         !! vilma_jmax). fe_vilma builds the FastEarth-Gauss <-> VILMA-grid map pair
+         !! from these axes; see doc/vilma-backend.md for which grid each field is on.
+      character(len=128) :: vilma_visc_1d_file = "visko.inp"
+         !! 1-D radial viscosity file, relative to vilma_input_dir (io_visko).
+      character(len=128) :: vilma_visc_3d_file = "visc3d_Bagge2021.nc"
+         !! 3-D viscosity NetCDF, relative to vilma_input_dir (io_nc3in). Read only
+         !! when l_visc_3d = .true. (which sets VILMA's vg%l_mod=1).
    end type fe_param_class
 
 contains
@@ -149,6 +190,9 @@ contains
       g  = "fe3d";      if (present(group))         g  = group
       df = filename;    if (present(defaults_file)) df = defaults_file
       call nml_set_verbose(.false.)             ! fe_par_print echoes a concise summary instead
+
+      ! solver backend ("fe3d" | "vilma"); validated in solid_earth_init
+      call nml_read(filename, g, "solver",    p%solver,    defaults_file=df)
 
       ! grid
       call nml_read(filename, g, "lmax",      p%lmax,      defaults_file=df)
@@ -235,6 +279,17 @@ contains
       call nml_read(filename, g, "f_visc_rel",     p%f_visc_rel,     defaults_file=df)
       call nml_read(filename, g, "visc_log10_min", p%visc_log10_min, defaults_file=df)
       call nml_read(filename, g, "visc_log10_max", p%visc_log10_max, defaults_file=df)
+
+      ! VILMA backend (inert unless solver="vilma")
+      call nml_read(filename, g, "vilma_jmax",         p%vilma_jmax,         defaults_file=df)
+      call nml_read(filename, g, "vilma_input_dir",    p%vilma_input_dir,    defaults_file=df)
+      p%vilma_input_dir = expand_path(p%vilma_input_dir)
+      call nml_read(filename, g, "vilma_out_dir",      p%vilma_out_dir,      defaults_file=df)
+      p%vilma_out_dir = expand_path(p%vilma_out_dir)
+      call nml_read(filename, g, "vilma_grid_file",    p%vilma_grid_file,    defaults_file=df)
+      p%vilma_grid_file = expand_path(p%vilma_grid_file)
+      call nml_read(filename, g, "vilma_visc_1d_file", p%vilma_visc_1d_file, defaults_file=df)
+      call nml_read(filename, g, "vilma_visc_3d_file", p%vilma_visc_3d_file, defaults_file=df)
    end subroutine fe_par_load
 
    function expand_path(path) result(out)
@@ -273,6 +328,7 @@ contains
       u = 6;  if (present(unit)) u = unit
 
       write(u,'(a)')          ' [fe3d] configuration'
+      write(u,'(a,a)')        '   solver: ', trim(p%solver)
       write(u,'(a,i0,a,i0,a,i0)') '   grid:   lmax=', p%lmax, '  nlat=', p%nlat, '  nphi=', p%nphi
       write(u,'(a,a)')        '   earth:  ', trim(p%earth)
       if (trim(p%earth) == "custom") then
@@ -306,6 +362,17 @@ contains
               '            f_visc_sd=', p%f_visc_sd, '  f_visc_rel=', p%f_visc_rel, &
               '  clamp=[', p%visc_log10_min, ',', p%visc_log10_max, ']'
          write(u,'(a,es9.2,a)') '            visc3d_tol=', p%visc3d_tol, ' dex (3-D split)'
+      end if
+      if (trim(p%solver) == "vilma") then
+         write(u,'(a,i0)')  '   vilma:  jmax=', p%vilma_jmax
+         write(u,'(a,a)')   '           input_dir = ', trim(p%vilma_input_dir)
+         write(u,'(a,a)')   '           out_dir   = ', trim(p%vilma_out_dir)
+         write(u,'(a,a)')   '           grid_file = ', trim(p%vilma_grid_file)
+         if (p%l_visc_3d) then
+            write(u,'(a,a)') '           visc (3d) = ', trim(p%vilma_visc_3d_file)
+         else
+            write(u,'(a,a)') '           visc (1d) = ', trim(p%vilma_visc_1d_file)
+         end if
       end if
    end subroutine fe_par_print
 
