@@ -63,6 +63,21 @@ contains
       real(c_double) :: eps
       integer :: mmax_, mres_, nlat_, nphi_
 
+      ! SHTns aborts the process ("nlat is too small!") whenever nlat < 4*VSIZE2,
+      ! where VSIZE2 is the width of the SIMD vector its *build* uses -- a
+      ! property of the machine, not of the transform. It is 1 on a scalar build
+      ! and up to 8 on AVX-512 (shtns_simd.h), so 32 clears the ceiling for every
+      ! build of SHTns 3.7.5. Below that the on-the-fly kernels would index past
+      ! the end of the hemisphere arrays, which is why SHTns refuses rather than
+      ! degrading.
+      !
+      ! The floor is invisible at production resolutions -- nlat = lmax+2 already
+      ! exceeds it for lmax >= 30 -- and costs only a slightly finer grid for the
+      ! small-lmax unit tests. Gauss quadrature stays exact on the finer grid, so
+      ! padding changes no result; it only avoids an abort that otherwise depends
+      ! on which machine the code was compiled for.
+      integer, parameter :: NLAT_MIN = 32
+
       mres_ = 1;          if (present(mres)) mres_ = mres
       mmax_ = lmax/mres_; if (present(mmax)) mmax_ = mmax
       eps   = 1.0e-10_c_double
@@ -70,6 +85,8 @@ contains
 
       nlat_ = lmax + 2;       if (present(nlat)) nlat_ = nlat
       nphi_ = 2*(mmax_ + 1);  if (present(nphi)) nphi_ = nphi
+      nlat_ = max(nlat_, NLAT_MIN)    ! see NLAT_MIN above; applies to an explicit
+                                      ! nlat too, since SHTns would otherwise abort
 
       self%lmax = lmax
       self%mmax = mmax_
