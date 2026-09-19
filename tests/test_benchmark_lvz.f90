@@ -98,6 +98,11 @@ contains
       complex(wp), allocatable :: disc_lm(:), slm(:), ulm(:), nlm(:)
       real(wp),    allocatable :: pert(:,:,:)
       real(wp) :: theta_c, t, H, rmid, depth, uval
+      ! Time series at the load centre, and the final radial profile u(x).
+      integer,  parameter :: NPROF = 241            ! x = 0..600 km in 2.5 km steps
+      real(wp), parameter :: DX_PROF = 2.5e3_wp
+      real(wp) :: series(nint(T_END/DT),2), prof(NPROF,2), colat
+      character(8) :: tag
       integer  :: i, ie, j, nstep
 
       call response_init_ve(ve, e, sht, DT)
@@ -134,10 +139,26 @@ contains
          call response_apply(ve, sht, slm, ulm, nlm)
          call response_commit_step(ve, sht, slm)
          call sht_grid_eval_point(sht, ulm, 0.0_wp, 0.0_wp, uval)   ! pole = load center
+         series(i,:) = [t/YR, uval]
          if (lvz_on .and. (mod(i,8)==0 .or. i==nstep)) &
             write(*,'(a,f7.1,a,f10.4)') '     t=', t/YR, ' yr  U_center=', uval
-         if (i == nstep) u_end = uval
+         if (i == nstep) then
+            u_end = uval
+            ! Final-time profile along a meridian from the load centre outward.
+            ! The load is axisymmetric about the pole, so colatitude maps to
+            ! great-circle distance x = colat * r_earth.
+            do j = 1, NPROF
+               prof(j,1) = real(j-1,wp)*DX_PROF*1.0e-3_wp          ! x [km]
+               colat     = real(j-1,wp)*DX_PROF/e%r_earth
+               call sht_grid_eval_point(sht, ulm, colat, 0.0_wp, prof(j,2))
+            end do
+         end if
       end do
+
+      tag = merge('lvz     ', 'homog   ', lvz_on)
+      call dump_cols('lvz_'//trim(tag)//'_series.txt', 't[yr] u_centre[m]', series)
+      call dump_cols('lvz_'//trim(tag)//'_profile.txt', &
+           'x[km] u_200yr[m]', prof)
 
       deallocate(disc_lm, slm, ulm, nlm)
       call response_destroy(ve)
@@ -166,5 +187,34 @@ contains
             sqpi/sqrt(real(2*l+1,wp))*(p(l-1) - p(l+1)), 0.0_wp, wp)
       end do
    end subroutine cap_coeffs
+
+
+   subroutine dump_cols(name, header, a)
+      !! Write a column table to $FE_BENCH_DUMP/<name> for the analysis scripts.
+      !!
+      !! No-op unless FE_BENCH_DUMP names a directory, so `make check` and any
+      !! plain run behave exactly as before — the dump is opt-in and costs
+      !! nothing when off. `header` names the columns and is written as a leading
+      !! `#` comment line, so the file is self-describing and readable with any
+      !! delimited-text reader.
+      character(*), intent(in) :: name, header
+      real(wp),     intent(in) :: a(:,:)          ! (nrow, ncol)
+      character(512) :: dir, path
+      integer :: u, i, st
+      call get_environment_variable('FE_BENCH_DUMP', dir, status=st)
+      if (st /= 0 .or. len_trim(dir) == 0) return
+      path = trim(dir)//'/'//name
+      open(newunit=u, file=trim(path), status='replace', action='write', iostat=st)
+      if (st /= 0) then
+         write(*,'(3a)') '   WARNING: cannot write ', trim(path), ' (dump skipped)'
+         return
+      end if
+      write(u,'(2a)') '# ', header
+      do i = 1, size(a,1)
+         write(u,'(*(es18.10,1x))') a(i,:)
+      end do
+      close(u)
+      write(*,'(3a,i0,a,i0,a)') '   dumped ', trim(path), ' (', size(a,1), ' x ', size(a,2), ')'
+   end subroutine dump_cols
 
 end program test_benchmark_lvz

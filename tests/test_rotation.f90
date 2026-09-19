@@ -80,6 +80,7 @@ contains
       complex(wp),      intent(in) :: Gref
       complex(wp) :: Gnum
       real(wp) :: t_now, mdeg, relG, relm
+      real(wp), allocatable :: series(:,:)
       integer  :: istep, nsteps, iref
 
       call build_load(name, h, load)
@@ -102,9 +103,14 @@ contains
       write(*,'(3a)') ' (3) ', name, ': polar motion |m(t)| vs Table 14 (Cw=0)'
       write(*,'(a)')  '      t[kyr]   |m| model[deg]   |m| ref[deg]    rel.err'
       nsteps = nint(20.0_wp*kyr/dt)
+      allocate(series(nsteps+1,4))
       do istep = 0, nsteps
          t_now = rot%time
          call rotation_update(rot, sht, load, dt)            ! rot%m is now m(t_now)
+         ! Full trajectory, not just the six epochs the reference tabulates:
+         ! m1 and m2 separately, so the polar-motion path can be plotted.
+         series(istep+1,:) = [t_now/kyr, real(rot%m)*rad2deg, &
+                              aimag(rot%m)*rad2deg, abs(rot%m)*rad2deg]
          iref = ref_index(t_now/kyr)
          if (iref > 0) then
             mdeg = abs(rot%m)*rad2deg
@@ -115,6 +121,9 @@ contains
             end if
          end if
       end do
+      call dump_cols('rotation_'//trim(name)//'_series.txt', &
+           't[kyr] m1[deg] m2[deg] |m|[deg]', series)
+      deallocate(series)
       call rotation_destroy(rot)
    end subroutine run_load
 
@@ -168,5 +177,34 @@ contains
          if (abs(tk - t_ref(i)) < 0.4_wp*dt/kyr) then;  idx = i;  return;  end if
       end do
    end function ref_index
+
+
+   subroutine dump_cols(name, header, a)
+      !! Write a column table to $FE_BENCH_DUMP/<name> for the analysis scripts.
+      !!
+      !! No-op unless FE_BENCH_DUMP names a directory, so `make check` and any
+      !! plain run behave exactly as before — the dump is opt-in and costs
+      !! nothing when off. `header` names the columns and is written as a leading
+      !! `#` comment line, so the file is self-describing and readable with any
+      !! delimited-text reader.
+      character(*), intent(in) :: name, header
+      real(wp),     intent(in) :: a(:,:)          ! (nrow, ncol)
+      character(512) :: dir, path
+      integer :: u, i, st
+      call get_environment_variable('FE_BENCH_DUMP', dir, status=st)
+      if (st /= 0 .or. len_trim(dir) == 0) return
+      path = trim(dir)//'/'//name
+      open(newunit=u, file=trim(path), status='replace', action='write', iostat=st)
+      if (st /= 0) then
+         write(*,'(3a)') '   WARNING: cannot write ', trim(path), ' (dump skipped)'
+         return
+      end if
+      write(u,'(2a)') '# ', header
+      do i = 1, size(a,1)
+         write(u,'(*(es18.10,1x))') a(i,:)
+      end do
+      close(u)
+      write(*,'(3a,i0,a,i0,a)') '   dumped ', trim(path), ' (', size(a,1), ' x ', size(a,2), ')'
+   end subroutine dump_cols
 
 end program test_rotation

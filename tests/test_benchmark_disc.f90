@@ -57,7 +57,7 @@ program test_benchmark_disc
    call response_destroy(el)
 
    ! --- (2) viscoelastic centre transient --------------------------------------
-   call check_ve_centre(em, sig, uref(1,:), ok)
+   call check_ve_centre(em, sig, uref, ok)
 
    write(*,'(a)') ''
    if (ok) then
@@ -107,6 +107,7 @@ contains
       logical,                intent(inout) :: ok
       real(wp) :: cu(size(sig)), cn(size(sig))
       real(wp) :: x, th, us, ns, du, dn, duedge, upk, npk, eu, en, thmax
+      real(wp) :: prof(NTH,5)
       integer  :: i
       ! per-degree synthesis weights c_n = sig_n * gain_n
       do n = 1, size(sig)
@@ -122,6 +123,7 @@ contains
          th = real(i-1,wp)*0.1_wp
          x  = cos(th*pi/180.0_wp)
          us = legsum(cu, x);  ns = legsum(cn, x)
+         prof(i,:) = [th, us, ur(i), ns, nr(i)]
          if (abs(th - ALPHA_DEG) < 1.0_wp) then
             duedge = max(duedge, abs(us - ur(i)))      ! Gibbs band around the edge
          else
@@ -141,30 +143,39 @@ contains
       if (en > TOL_N) then
          write(*,'(a)') '      FAIL: elastic geoid profile off the benchmark';   ok = .false.
       end if
+      call dump_cols('disc_elastic_profile.txt', &
+           'theta[deg] u_model[m] u_ref[m] N_model[m] N_ref[m]', prof)
    end subroutine check_elastic_profile
 
-   subroutine check_ve_centre(em, sig, uc_ref, ok)
+   subroutine check_ve_centre(em, sig, uref, ok)
       !! Centre uplift u(0,t) = Sum_n sig_n U_n(t), via per-degree ve_degree.
       type(earth_model), intent(in)    :: em
-      real(wp),          intent(in)    :: sig(:), uc_ref(:)   ! uc_ref: 6 times
+      real(wp),          intent(in)    :: sig(:), uref(:,:)   ! uref(NTH,NT)
       logical,           intent(inout) :: ok
       type(radial_mesh) :: mm
       type(ve_degree)   :: ve
       integer, parameter :: NTV = 5     ! t = 0,1,2,5,10 kyr (skip 100 kyr: open item)
       integer, parameter :: tsteps(NTV) = [0, 50, 100, 250, 500]   ! @ dt=20 yr
       real(wp) :: dt, uc(NTV), t1, ua, va, fa, rel
-      integer  :: nn, istep, it
+      ! Per-degree amplitudes: at the output times (amp) and at every step (ampt).
+      ! Keeping them lets the Legendre synthesis below produce the spatial profile
+      ! u(theta,t) and a dense centre series, from the same solve the check uses.
+      real(wp) :: amp(NMAX_VE,NTV), ampt(NMAX_VE,0:tsteps(NTV))
+      real(wp) :: prof(NTH,1+2*NTV), cser(tsteps(NTV)+1,2), cu(NMAX_VE), th, x
+      integer  :: nn, istep, it, i
       dt = 0.02_wp*kyr               ! 20 yr explicit step
       call radial_mesh_build(mm, em)
-      uc = 0.0_wp
+      uc = 0.0_wp;  amp = 0.0_wp;  ampt = 0.0_wp
       do nn = 1, NMAX_VE
          if (nn == 1) cycle          ! geocenter: U_1 ~ 0 at centre, dense j=1 skip
          call ve_init(ve, em, mm, nn, dt)
          it = 1
          do istep = 0, tsteps(NTV)
             call ve_step(ve, 1.0_wp, t1, ua, va, fa)
+            ampt(nn,istep) = ua
             if (it <= NTV) then
                if (istep == tsteps(it)) then
+                  amp(nn,it) = ua
                   uc(it) = uc(it) + sig(nn)*ua;  it = it + 1
                end if
             end if
@@ -175,8 +186,8 @@ contains
       write(*,'(a)') ' (2) viscoelastic centre uplift u(0,t)  [dt=20 yr, NMAX=128]'
       write(*,'(a)') '       t[kyr]    mine[m]    Spada[m]    rel'
       do it = 1, NTV
-         rel = abs(uc(it) - uc_ref(it))/abs(uc_ref(it))
-         write(*,'(f9.0,2f12.3,f9.4)') tsteps(it)*dt/kyr, uc(it), uc_ref(it), rel
+         rel = abs(uc(it) - uref(1,it))/abs(uref(1,it))
+         write(*,'(f9.0,2f12.3,f9.4)') tsteps(it)*dt/kyr, uc(it), uref(1,it), rel
          if (it >= 2) then                        ! assert t=1,2,5,10 kyr
             if (rel > TOL_VE) then
                write(*,'(a)') '      FAIL: VE centre uplift off the benchmark';  ok = .false.
@@ -184,6 +195,30 @@ contains
          end if
       end do
       write(*,'(a)') '      (t=100 kyr not run here: slow-mode relaxation open item, see PROVENANCE)'
+
+      ! Spatial profile u(theta) at each output time, model and reference, by
+      ! Legendre synthesis of the stored per-degree amplitudes.
+      do i = 1, NTH
+         th = real(i-1,wp)*0.1_wp
+         x  = cos(th*pi/180.0_wp)
+         prof(i,1) = th
+         do it = 1, NTV
+            cu = sig(1:NMAX_VE)*amp(:,it)
+            prof(i,1+it)     = legsum(cu, x)
+            prof(i,1+NTV+it) = uref(i,it)
+         end do
+      end do
+      call dump_cols('disc_ve_profile.txt', &
+           'theta[deg] '// &
+           'u_model_0kyr u_model_1kyr u_model_2kyr u_model_5kyr u_model_10kyr '// &
+           'u_ref_0kyr u_ref_1kyr u_ref_2kyr u_ref_5kyr u_ref_10kyr   [m]', prof)
+
+      ! Dense centre transient u(0,t) at every 20-yr step (P_n(1) = 1).
+      do istep = 0, tsteps(NTV)
+         cser(istep+1,1) = real(istep,wp)*dt/kyr
+         cser(istep+1,2) = sum(sig(1:NMAX_VE)*ampt(:,istep))
+      end do
+      call dump_cols('disc_ve_centre_series.txt', 't[kyr] u_centre_model[m]', cser)
    end subroutine check_ve_centre
 
    subroutine read_mat(fname, x, okr)
@@ -206,5 +241,34 @@ contains
       write(*,'(3a)') ' FAIL: cannot read benchmark reference ', REF, what
       error stop 1
    end subroutine die
+
+
+   subroutine dump_cols(name, header, a)
+      !! Write a column table to $FE_BENCH_DUMP/<name> for the analysis scripts.
+      !!
+      !! No-op unless FE_BENCH_DUMP names a directory, so `make check` and any
+      !! plain run behave exactly as before — the dump is opt-in and costs
+      !! nothing when off. `header` names the columns and is written as a leading
+      !! `#` comment line, so the file is self-describing and readable with any
+      !! delimited-text reader.
+      character(*), intent(in) :: name, header
+      real(wp),     intent(in) :: a(:,:)          ! (nrow, ncol)
+      character(512) :: dir, path
+      integer :: u, i, st
+      call get_environment_variable('FE_BENCH_DUMP', dir, status=st)
+      if (st /= 0 .or. len_trim(dir) == 0) return
+      path = trim(dir)//'/'//name
+      open(newunit=u, file=trim(path), status='replace', action='write', iostat=st)
+      if (st /= 0) then
+         write(*,'(3a)') '   WARNING: cannot write ', trim(path), ' (dump skipped)'
+         return
+      end if
+      write(u,'(2a)') '# ', header
+      do i = 1, size(a,1)
+         write(u,'(*(es18.10,1x))') a(i,:)
+      end do
+      close(u)
+      write(*,'(3a,i0,a,i0,a)') '   dumped ', trim(path), ' (', size(a,1), ' x ', size(a,2), ')'
+   end subroutine dump_cols
 
 end program test_benchmark_disc

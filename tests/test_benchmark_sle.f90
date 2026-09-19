@@ -252,6 +252,7 @@ contains
       !! final-step fields in rsl, C, ice_now and the diagnostics in res.
       integer :: istep
       real(wp) :: frac, alpha, h
+      real(wp) :: hist(nsteps,5)
       call reset_memory()
       tot_inner = 0;  tot_outer = 0
       do istep = 1, nsteps
@@ -266,6 +267,8 @@ contains
          call sle_solve(sle, sht, resp, ice_now, ice_now, topo0, rsl, C, res)
          tot_inner = tot_inner + res%n_inner_last   ! inner iters in the last outer pass
          tot_outer = tot_outer + res%n_outer_done   ! coastline (outer) passes this step
+         hist(istep,:) = [real(istep,wp), real(istep,wp)*dt/kyr, frac, &
+                          res%esl, res%mass_resid]
          if (mod(istep,250) == 0 .or. istep == nsteps) &
             write(*,'(a,i4,a,f7.4,a,es10.2,a,f9.4,a,i3)') '   step ', istep, '  frac=', frac, &
                '  mass_resid=', res%mass_resid, '  esl=', res%esl, '  n_outer=', res%n_outer_done
@@ -273,6 +276,10 @@ contains
       write(*,'(a,i0,a,i0,a,f5.2,a,f5.2,a)') '   SLE iteration tally over ', nsteps, &
          ' steps: outer=', tot_outer, ' (', real(tot_outer,wp)/real(nsteps,wp), &
          '/step), last-pass inner=', real(tot_inner,wp)/real(nsteps,wp), '/step'
+      ! F1 calls this once per paleotopo spin-up pass; the file is replaced each
+      ! time, so the one left on disk is the final, converged history.
+      call dump_cols('sle_'//trim(casename)//'_history.txt', &
+           'step t[kyr] ice_frac esl[m] mass_resid', hist)
    end subroutine run_history
 
    subroutine reset_memory()
@@ -297,6 +304,7 @@ contains
       real(wp) :: colat, lon, um, nm, ssm, slem, vthm, vphm
       real(wp) :: eu, evth, evph, en, ess, esle
       real(wp) :: pu, pvth, pvph, pn, pss, psle
+      real(wp) :: prof(MAXR,13)
       integer  :: nrow, i
 
       call read_fig(trim(fig(k)), c1, uref, vthref, vphref, nref, ssref, sleref, nrow)
@@ -320,6 +328,8 @@ contains
          call sht_grid_eval_point(sht, rsl_lm, colat, lon, slem)
          call sht_grid_eval_point_horiz(sht, v_lm, colat, lon, vthm, vphm)
          ssm = nm + esl
+         prof(i,:) = [c1(i), um, uref(i), vthm, vthref(i), vphm, vphref(i), &
+                      nm, nref(i), ssm, ssref(i), slem, sleref(i)]
          eu   = max(eu,   abs(um   - uref(i)))
          evth = max(evth, abs(vthm - vthref(i)))
          evph = max(evph, abs(vphm - vphref(i)))
@@ -331,6 +341,11 @@ contains
       en = en/pn;  ess = ess/pss;  esle = esle/psle
       write(*,'(3x,a,i7,6f8.2)') fig(k), nrow, 100*eu, 100*evth, 100*evph, &
                                  100*en, 100*ess, 100*esle
+      ! The profile behind that error row: col1 is colatitude (ptype 'Z') or
+      ! 180+longitude, matching the Martinec/SBK reference file convention.
+      call dump_cols('sle_'//trim(casename)//'_'//trim(fig(k))//'_profile.txt', &
+           'col1[deg] u_model u_ref vth_model vth_ref vph_model vph_ref '// &
+           'N_model N_ref ss_model ss_ref sle_model sle_ref   [m]', prof(1:nrow,:))
       if (eu   > TOL_U)   ok = .false.
       if (evth > TOL_H)   ok = .false.
       if (evph > TOL_H)   ok = .false.
@@ -375,5 +390,34 @@ contains
       end do
       close(u)
    end subroutine read_fig
+
+
+   subroutine dump_cols(name, header, a)
+      !! Write a column table to $FE_BENCH_DUMP/<name> for the analysis scripts.
+      !!
+      !! No-op unless FE_BENCH_DUMP names a directory, so `make check` and any
+      !! plain run behave exactly as before — the dump is opt-in and costs
+      !! nothing when off. `header` names the columns and is written as a leading
+      !! `#` comment line, so the file is self-describing and readable with any
+      !! delimited-text reader.
+      character(*), intent(in) :: name, header
+      real(wp),     intent(in) :: a(:,:)          ! (nrow, ncol)
+      character(512) :: dir, path
+      integer :: u, i, st
+      call get_environment_variable('FE_BENCH_DUMP', dir, status=st)
+      if (st /= 0 .or. len_trim(dir) == 0) return
+      path = trim(dir)//'/'//name
+      open(newunit=u, file=trim(path), status='replace', action='write', iostat=st)
+      if (st /= 0) then
+         write(*,'(3a)') '   WARNING: cannot write ', trim(path), ' (dump skipped)'
+         return
+      end if
+      write(u,'(2a)') '# ', header
+      do i = 1, size(a,1)
+         write(u,'(*(es18.10,1x))') a(i,:)
+      end do
+      close(u)
+      write(*,'(3a,i0,a,i0,a)') '   dumped ', trim(path), ' (', size(a,1), ' x ', size(a,2), ')'
+   end subroutine dump_cols
 
 end program test_benchmark_sle
