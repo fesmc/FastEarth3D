@@ -87,6 +87,12 @@ module fe_coupling
       logical                  :: remap = .false.  !! host grid /= Gauss grid?
       type(remap_ll_gauss)     :: map               !! conservative-in / bilinear-out map pair
 
+      !! PROFILE: wall-clock [s] for the two pieces of solid_earth_update that are
+      !! neither the solver nor the SLE, and so otherwise vanish into the driver's
+      !! residual bucket. See sle_solver's accumulators for the SLE's own split.
+      real(wp)                 :: t_remap = 0.0_wp  !! host<->Gauss remap, in and out
+      real(wp)                 :: t_rot   = 0.0_wp  !! polar motion: s_rot + sub-stepped update
+
       ! host-grid I/O fields (== the gg fields when passthrough); the host reads these
       real(wp), allocatable    :: z_bed_eq(:,:)  !! relaxed bedrock [m], host grid (kept at full host resolution)
       real(wp), allocatable    :: h_ice_eq(:,:)  !! reference grounded ice [m], host grid
@@ -265,6 +271,7 @@ contains
       complex(wp), allocatable :: sigma_lm(:)
       real(wp) :: dt, t0, t1, dt_sub
       integer  :: n_sub, k, np, nl
+      integer(kind=8) :: pc0, pc1, prate            ! PROFILE: see %t_remap, %t_rot
 
       np = self%sht%nphi;  nl = self%sht%nlat
       dt = dt_yr*sec_per_year                       ! interface is years; integrator is seconds
@@ -272,14 +279,18 @@ contains
 
       ! ice load on the Gauss grid (conservative remap in, or passthrough)
       allocate(ice_new(np,nl))
+      call system_clock(pc0, prate)
       call to_gauss(self, h_ice, ice_new, conserve_mass=.true.)
+      call system_clock(pc1);  self%t_remap = self%t_remap + real(pc1-pc0,wp)/prate
 
       if (self%rotation%enabled) then
          ! Rotational feedback, coupled at the interval level (polar motion relaxes on
          ! ~kyr ≫ the coupling interval; s_rot is held across the interval from the
          ! entering polar motion and refreshed at the end — a predictor coupling).
+         call system_clock(pc0)
          call rotation_begin_step(self%rotation, self%sht, dt)
          call rotation_s_rot(self%rotation, self%sht, self%gg%s_rot)
+         call system_clock(pc1);  self%t_rot = self%t_rot + real(pc1-pc0,wp)/prate
          allocate(sigma_lm(self%sht%nlm))
          call stepper_advance(self%stepper, self%sht, self%resp, self%sle, self%gg%z_bed_eq, &
                                    self%gg%h_ice, ice_new, self%gg%h_ice_eq, t0, t1, &
@@ -287,12 +298,14 @@ contains
          ! Advance the polar motion to the end of the interval under the end-of-interval
          ! load (held), sub-stepped to respect the Maxwell stability ceiling dt_fe_max.
          allocate(load(np, nl))
+         call system_clock(pc0)
          call sht_grid_synthesis(self%sht, sigma_lm, load)
          n_sub  = max(1, ceiling(dt/self%rotation%dt_fe_max))
          dt_sub = dt/real(n_sub, wp)
          do k = 1, n_sub
             call rotation_update(self%rotation, self%sht, load, dt_sub)
          end do
+         call system_clock(pc1);  self%t_rot = self%t_rot + real(pc1-pc0,wp)/prate
       else
          call stepper_advance(self%stepper, self%sht, self%resp, self%sle, self%gg%z_bed_eq, &
                                    self%gg%h_ice, ice_new, self%gg%h_ice_eq, t0, t1, &
@@ -306,7 +319,9 @@ contains
       call update_bsl(self)
 
       self%h_ice = h_ice
+      call system_clock(pc0)
       call solid_earth_sync_host(self)
+      call system_clock(pc1);  self%t_remap = self%t_remap + real(pc1-pc0,wp)/prate
    end subroutine solid_earth_update
 
    subroutine solid_earth_sync_host(self)
