@@ -11,9 +11,10 @@ explicitly in time, a self-consistent sea-level equation with migrating
 coastlines, and rotational feedback. It is built **3D-ready from the start**
 (laterally varying viscosity) and validated against the published GIA benchmarks.
 
-Full documentation (physics, discretization, benchmarks, install & run) is the
-Quarto site under [`docs/`](docs/); see [doc/design.md](doc/design.md) for the
-design rationale and method comparison.
+**Documentation:** <https://fesmc.github.io/FastEarth3D/> (physics,
+discretization, benchmarks, install & run), rendered from the Quarto sources
+under [`docs/`](docs/); see [doc/design.md](doc/design.md) for the design
+rationale and method comparison.
 
 ## Status
 
