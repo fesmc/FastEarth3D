@@ -9,7 +9,7 @@ website:
   description: >-
     An open-source, time-domain spectral–finite-element solid-Earth (GIA)
     model with a self-consistent sea-level equation.
-  repo-url: https://github.com/alex-robinson/FastEarth3D
+  repo-url: https://github.com/fesmc/FastEarth3D
   repo-actions: [source, issue]
   page-navigation: true
   back-to-top-navigation: true
@@ -41,7 +41,7 @@ website:
         file: references.qmd
     right:
       - icon: github
-        href: https://github.com/alex-robinson/FastEarth3D
+        href: https://github.com/fesmc/FastEarth3D
         aria-label: GitHub
   sidebar:
     style: floating

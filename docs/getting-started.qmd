@@ -65,7 +65,7 @@ production resolutions fast — build `openmp=1` (see [Solver](discretization/so
 ## Configuration: the `&fe3d` namelist
 
 All runtime parameters live in a single namelist group **`&fe3d`**.
-[`fastearth.nml`](https://github.com/alex-robinson/FastEarth3D/blob/main/fastearth.nml)
+[`fastearth.nml`](https://github.com/fesmc/FastEarth3D/blob/main/fastearth.nml)
 is the canonical, fully documented defaults set — *every* parameter is present.
 A run can pass a **sparse overlay** that sets only what it overrides (the yelmo
 `defaults_file` convention):
@@ -102,7 +102,7 @@ A few conventions worth knowing:
 
 A complete worked configuration — an LGM → present-day deglaciation forced by
 the Tarasov ice/bed reconstruction — is in
-[`examples/deglac_lgm.nml`](https://github.com/alex-robinson/FastEarth3D/blob/main/examples/deglac_lgm.nml).
+[`examples/deglac_lgm.nml`](https://github.com/fesmc/FastEarth3D/blob/main/examples/deglac_lgm.nml).
 
 ## Running with runme
 
