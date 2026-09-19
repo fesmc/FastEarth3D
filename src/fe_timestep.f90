@@ -66,6 +66,12 @@ module fe_timestep
       integer  :: n_floor   = 0           !! steps accepted at dt_min over tolerance
       integer  :: n_solve   = 0           !! SLE solves issued (the dominant cost unit)
       real(wp) :: worst_mass_resid = 0.0_wp  !! worst SLE mass residual over the LAST advance()
+      !! PROFILE: wall-clock [s] of the rollback bookkeeping — response_save_state /
+      !! _restore_state (a full copy of the (NLAM,ne,nk) memory arrays) and the
+      !! response_memory_norm scans that feed the guards. This is paid on EVERY
+      !! sub-step, outside sle_solve, so without a timer it lands in the driver's
+      !! residual bucket and reads as SLE cost.
+      real(wp) :: t_guard = 0.0_wp
    end type adaptive_stepper
 
 contains
@@ -105,6 +111,7 @@ contains
       real(wp) :: rate, dt_stab, tau0, tau_run, scale
       integer  :: p, np, nl, n_sub
       logical  :: at_floor, accept, finite
+      integer(kind=8) :: gc0, gc1, grate          ! PROFILE: see %t_guard
 
       span = t1 - t0
       ! Capture the converged load on every SLE solve; after the run sig_last holds
@@ -158,16 +165,22 @@ contains
          n_sub = max(1, ceiling(span/dt_stab - 1.0e-9_wp))
          dt    = span/real(n_sub, wp)                 ! nominal (equal) sub-step
          t = t0
+         call system_clock(gc0, grate)
          tau_run = response_memory_norm(resp)                ! established memory scale at entry
+         call system_clock(gc1);  self%t_guard = self%t_guard + real(gc1-gc0,wp)/grate
          do
             if (t >= t1 - 1.0e-9_wp*span) exit
             dt   = min(dt, t1 - t)
             rsl_n = rsl
+            call system_clock(gc0, grate)
             tau0 = response_memory_norm(resp)                ! entering memory ∞-norm
             call response_save_state(resp)
+            call system_clock(gc1);  self%t_guard = self%t_guard + real(gc1-gc0,wp)/grate
             call response_set_dt(resp, dt)
             call solve_at(t + dt)                     ! advances memory by dt
+            call system_clock(gc0, grate)
             err_inf = response_memory_norm(resp)
+            call system_clock(gc1);  self%t_guard = self%t_guard + real(gc1-gc0,wp)/grate
             finite  = (err_inf <= huge(1.0_wp))      ! .false. for NaN / +Inf
             scale   = max(tau0, tau_run)             ! established memory magnitude
             if (scale <= 0.0_wp) then
@@ -180,7 +193,9 @@ contains
                t = t + dt;  self%n_accept = self%n_accept + 1
                dt = min(span/real(n_sub, wp), 2.0_wp*dt)   ! recover toward nominal
             else
+               call system_clock(gc0, grate)
                call response_restore_state(resp);  rsl = rsl_n
+               call system_clock(gc1);  self%t_guard = self%t_guard + real(gc1-gc0,wp)/grate
                self%n_reject = self%n_reject + 1
                dt = 0.5_wp*dt
                if (dt <= 1.0e-12_wp*span) error stop &
@@ -222,15 +237,23 @@ contains
 
          ! --- field step-doubling around [t, t+dt] -------------------------------
          rsl_n = rsl
+         call system_clock(gc0, grate)
          call response_save_state(resp)                   ! buffer A = τ_n
+         call system_clock(gc1);  self%t_guard = self%t_guard + real(gc1-gc0,wp)/grate
          call response_set_dt(resp, dt)
          call solve_at(t + dt)                     ! coarse: one Δt
+         call system_clock(gc0, grate)
          call response_stash_coarse(resp)                  ! buffer B = τ_coarse
+         call system_clock(gc1);  self%t_guard = self%t_guard + real(gc1-gc0,wp)/grate
+         call system_clock(gc0, grate)
          call response_restore_state(resp);  rsl = rsl_n   ! back to τ_n (and its rsl seed)
+         call system_clock(gc1);  self%t_guard = self%t_guard + real(gc1-gc0,wp)/grate
          call response_set_dt(resp, 0.5_wp*dt)
          call solve_at(t + 0.5_wp*dt)              ! fine sub-step 1
          call solve_at(t + dt)                     ! fine sub-step 2 → τ_fine
+         call system_clock(gc0, grate)
          call response_coarse_fine_error(resp, err_inf, tau_inf)
+         call system_clock(gc1);  self%t_guard = self%t_guard + real(gc1-gc0,wp)/grate
          call response_set_dt(resp, dt)                       ! leave resp%dt at the step size
          errsc = (err_inf/ricfac) / (self%atol + self%rtol*tau_inf)
 
@@ -240,7 +263,9 @@ contains
             t = t + dt;  self%n_accept = self%n_accept + 1
             if (at_floor .and. errsc > 1.0_wp) self%n_floor = self%n_floor + 1
          else
+            call system_clock(gc0, grate)
             call response_restore_state(resp);  rsl = rsl_n
+            call system_clock(gc1);  self%t_guard = self%t_guard + real(gc1-gc0,wp)/grate
             self%n_reject = self%n_reject + 1
          end if
 

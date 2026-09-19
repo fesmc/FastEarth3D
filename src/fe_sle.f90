@@ -88,6 +88,27 @@ module fe_sle
       !! to tolerance — only the iteration count drops. The caller must keep rsl
       !! alive across calls (the coupling driver does; it turns this on at init).
       logical  :: warm_start = .false.
+
+      !! --- PROFILE: wall-clock accumulators [s], and iteration counters ------
+      !! The driver reports solid_earth_update as drift + memory + a RESIDUAL
+      !! "SLE + coupling (rest)" bucket. These decompose the SLE's share of that
+      !! bucket, so the split between harmonic transforms and grid-space work is
+      !! measured rather than inferred:
+      !!
+      !!     t_total = t_sht + t_apply + t_resp + (grid-space remainder)
+      !!
+      !! t_resp is the nested response lifecycle (begin/prepare/advance/finalize)
+      !! and is ALSO accumulated in response%t_drift / %t_mem — it is the overlap
+      !! with the driver's breakdown, so subtract it before comparing. Everything
+      !! else here is work no other timer sees. Cost is one system_clock pair per
+      !! region (~25 ns); negligible against a transform.
+      real(wp) :: t_total = 0.0_wp  !! whole sle_solve
+      real(wp) :: t_sht   = 0.0_wp  !! sht_grid_analysis + sht_grid_synthesis
+      real(wp) :: t_apply = 0.0_wp  !! response_apply (spectral load -> u, N)
+      real(wp) :: t_resp  = 0.0_wp  !! response lifecycle (overlaps t_drift/t_mem)
+      integer  :: n_solve     = 0   !! sle_solve calls
+      integer  :: n_outer_tot = 0   !! coastline passes, summed over calls
+      integer  :: n_inner_tot = 0   !! inner water-load iterations, summed
    end type sle_solver
 
 contains
@@ -150,6 +171,10 @@ contains
       real(wp) :: rho_ratio, ice_int, dphi, C_int, Cs_int, zeta_int, smax, dmax
       integer  :: im, io, ii, np, nl, n_mem
       logical  :: ronly
+      integer(kind=8) :: pc0, pc1, pca, pcb, prate   ! PROFILE: see %t_total
+
+      call system_clock(pc0, prate)
+      self%n_solve = self%n_solve + 1
 
       np = sht%nphi;  nl = sht%nlat
       allocate(load(np,nl), u(np,nl), N(np,nl), Sraw(np,nl), rsl_new(np,nl))
@@ -177,6 +202,7 @@ contains
 
       ! Freeze the response's relaxation drift for this time step; for elastic /
       ! null responses this is a no-op.
+      call system_clock(pca)
       call response_begin_step(resp, sht)
       ! Open the SLE<->memory co-convergence (§3c 3b): snapshot τ_n. The im loop
       ! re-converges the water load against the latest end-of-step memory estimate
@@ -185,6 +211,7 @@ contains
       ! report converged after a single advance). In report-only mode there is no
       ! memory advance, so a single load-convergence pass against τ_n suffices.
       if (.not. ronly) call response_prepare_endpoint(resp, sht)
+      call system_clock(pcb);  self%t_resp = self%t_resp + real(pcb-pca,wp)/prate
       n_mem = self%max_mem_iter;  if (ronly) n_mem = 1
 
       do im = 1, n_mem
@@ -230,10 +257,14 @@ contains
             ! (C=0). Without it, ice overhanging a deep basin over-loads the bed.
             ! wcorr is the subgrid sloping-coast term (zero unless self%subgrid).
             load = rho_ice*d_ice*(1.0_wp - C) + rho_water*(C*rsl) + wcorr
+            call system_clock(pca)
             call sht_grid_analysis(sht, load, load_lm)            ! analysis overwrites load
+            call system_clock(pcb);  self%t_sht = self%t_sht + real(pcb-pca,wp)/prate
             call response_apply(resp, sht, load_lm, u_lm, N_lm)
+            call system_clock(pca);  self%t_apply = self%t_apply + real(pca-pcb,wp)/prate
             call sht_grid_synthesis(sht, u_lm, u)
             call sht_grid_synthesis(sht, N_lm, N)
+            call system_clock(pcb);  self%t_sht = self%t_sht + real(pcb-pca,wp)/prate
 
             Sraw = N - u
             if (present(s_rot)) Sraw = Sraw + s_rot     ! rotational feedback (held)
@@ -249,6 +280,8 @@ contains
          end do
 
          res%n_outer_done = io
+         self%n_outer_tot = self%n_outer_tot + 1
+         self%n_inner_tot = self%n_inner_tot + res%n_inner_last
          if (self%fixed_ocean) exit         ! C is fixed: one coastline pass converges
       end do
 
@@ -259,16 +292,21 @@ contains
       ! the report drift to the new τ_{n+1}, so the next im pass's σ-convergence and
       ! coastline migration see the advanced memory.
       load = rho_ice*d_ice*(1.0_wp - C) + rho_water*(C*rsl) + wcorr
+      call system_clock(pca)
       call sht_grid_analysis(sht, load, load_lm)
+      call system_clock(pcb);  self%t_sht = self%t_sht + real(pcb-pca,wp)/prate
       if (ronly) exit                    ! report only: do NOT advance the memory/time
       call response_advance_endpoint(resp, sht, load_lm)
+      call system_clock(pca);  self%t_resp = self%t_resp + real(pca-pcb,wp)/prate
       res%n_couple_done = im
       ! Converged when the report drift has settled (the σ<->τ fixed point); 1st-order
       ! / stateless responses report converged after a single pass.
       if (response_endpoint_converged(resp)) exit
       end do
 
+      call system_clock(pca)
       if (.not. ronly) call response_finalize_step(resp, sht)
+      call system_clock(pcb);  self%t_resp = self%t_resp + real(pcb-pca,wp)/prate
       if (present(sigma_lm)) sigma_lm = load_lm   ! converged spectral surface load
 
       ! diagnostics. The conserved ocean-water volume is ∫s dΩ = ∫C·rsl − ζ̄⁽⁰⁾
@@ -282,6 +320,8 @@ contains
          res%mass_resid = abs(Cs_int)
       end if
       res%u = u;  res%N = N;  res%esl = dphi             ! converged fields + offset
+
+      call system_clock(pc1);  self%t_total = self%t_total + real(pc1-pc0,wp)/prate
    end subroutine sle_solve
 
    subroutine ocean_function(topo, ice, C)
