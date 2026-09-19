@@ -1151,8 +1151,20 @@ contains
       allocate(self%Are(NLAM,self%ne,self%nk), self%Aim(NLAM,self%ne,self%nk))
       allocate(self%Bre(NLAM,self%ne,self%nk), self%Bim(NLAM,self%ne,self%nk))
       allocate(self%Cre(NLAM,self%ne,self%nk), self%Cim(NLAM,self%ne,self%nk))
-      self%Are = 0.0_wp; self%Aim = 0.0_wp; self%Bre = 0.0_wp
-      self%Bim = 0.0_wp; self%Cre = 0.0_wp; self%Cim = 0.0_wp
+      ! Zeroed in PARALLEL, on the same schedule(static) partition over k that
+      ! every consumer of these arrays uses (fe_advance, trapezoid_advance_all,
+      ! response_memory_norm, the save/restore buffers). This is the first touch,
+      ! so it is what maps the pages onto NUMA domains: zeroing serially puts all
+      ! ~6 x NLAM x ne x nk of it on the master thread's domain, and every threaded
+      ! loop over it then reads across the socket interconnect. On a 2-socket EPYC
+      ! 7763 that is the difference between local and remote bandwidth for the
+      ! single largest array set in the model.
+      !$omp parallel do default(shared) private(k) schedule(static)
+      do k = 1, self%nk
+         self%Are(:,:,k) = 0.0_wp;  self%Aim(:,:,k) = 0.0_wp
+         self%Bre(:,:,k) = 0.0_wp;  self%Bim(:,:,k) = 0.0_wp
+         self%Cre(:,:,k) = 0.0_wp;  self%Cim(:,:,k) = 0.0_wp
+      end do
       allocate(self%dUa(self%nk), self%dFa(self%nk), self%dVa(self%nk))
       allocate(self%dUn_re(self%nr,self%nk), self%dUn_im(self%nr,self%nk))
       allocate(self%dVn_re(self%nr,self%nk), self%dVn_im(self%nr,self%nk))
@@ -2051,15 +2063,29 @@ contains
       !! Snapshot the entering prognostic state (memory τ_n + time + σ_n) into buffer A.
       !! A rejected step or the fine sub-step path restores to this with restore_state.
       type(response), intent(inout) :: self
+      integer :: k
       if (self%kind == RESP_MODAL) then
          if (.not. allocated(self%phi_s)) allocate(self%phi_s(size(self%phi)))
          self%phi_s = self%phi;  self%time_s = self%time
          return
       end if
       call ensure_state_scratch(self)
-      self%Are_s = self%Are;  self%Aim_s = self%Aim
-      self%Bre_s = self%Bre;  self%Bim_s = self%Bim
-      self%Cre_s = self%Cre;  self%Cim_s = self%Cim
+      ! Threaded on the same schedule(static) partition over k as every other loop
+      ! that touches these arrays, so a thread copies the slices it already owns
+      ! (and, on the first call, first-touches the destination pages onto its own
+      ! NUMA domain). This snapshot is taken on EVERY sub-step and was the single
+      ! largest phase of the driver's residual cost bucket -- ~61 % of it -- purely
+      ! because it ran serially. Slices of the last dimension are contiguous, so
+      ! these are plain memcpys with no temporaries.
+      !$omp parallel do default(shared) private(k) schedule(static)
+      do k = 1, self%nk
+         self%Are_s(:,:,k) = self%Are(:,:,k)
+         self%Aim_s(:,:,k) = self%Aim(:,:,k)
+         self%Bre_s(:,:,k) = self%Bre(:,:,k)
+         self%Bim_s(:,:,k) = self%Bim(:,:,k)
+         self%Cre_s(:,:,k) = self%Cre(:,:,k)
+         self%Cim_s(:,:,k) = self%Cim(:,:,k)
+      end do
       self%time_s = self%time
       if (allocated(self%sigma_n)) self%sigma_n_s = self%sigma_n
       self%sigma_primed_s = self%sigma_primed
@@ -2068,13 +2094,20 @@ contains
    subroutine response_restore_state(self)
       !! Restore the prognostic state saved by save_state (buffer A).
       type(response), intent(inout) :: self
+      integer :: k
       if (self%kind == RESP_MODAL) then
          self%phi = self%phi_s;  self%time = self%time_s
          return
       end if
-      self%Are = self%Are_s;  self%Aim = self%Aim_s
-      self%Bre = self%Bre_s;  self%Bim = self%Bim_s
-      self%Cre = self%Cre_s;  self%Cim = self%Cim_s
+      !$omp parallel do default(shared) private(k) schedule(static)
+      do k = 1, self%nk
+         self%Are(:,:,k) = self%Are_s(:,:,k)
+         self%Aim(:,:,k) = self%Aim_s(:,:,k)
+         self%Bre(:,:,k) = self%Bre_s(:,:,k)
+         self%Bim(:,:,k) = self%Bim_s(:,:,k)
+         self%Cre(:,:,k) = self%Cre_s(:,:,k)
+         self%Cim(:,:,k) = self%Cim_s(:,:,k)
+      end do
       self%time = self%time_s
       if (allocated(self%sigma_n)) self%sigma_n = self%sigma_n_s
       self%sigma_primed = self%sigma_primed_s
@@ -2084,15 +2117,22 @@ contains
       !! Snapshot the current memory (the coarse one-Δt τ_{n+1}) into buffer B for the
       !! step-doubling error estimate, to be compared against the fine result.
       type(response), intent(inout) :: self
+      integer :: k
       if (self%kind == RESP_MODAL) then
          if (.not. allocated(self%phi_c)) allocate(self%phi_c(size(self%phi)))
          self%phi_c = self%phi
          return
       end if
       call ensure_state_scratch(self)
-      self%Are_c = self%Are;  self%Aim_c = self%Aim
-      self%Bre_c = self%Bre;  self%Bim_c = self%Bim
-      self%Cre_c = self%Cre;  self%Cim_c = self%Cim
+      !$omp parallel do default(shared) private(k) schedule(static)
+      do k = 1, self%nk
+         self%Are_c(:,:,k) = self%Are(:,:,k)
+         self%Aim_c(:,:,k) = self%Aim(:,:,k)
+         self%Bre_c(:,:,k) = self%Bre(:,:,k)
+         self%Bim_c(:,:,k) = self%Bim(:,:,k)
+         self%Cre_c(:,:,k) = self%Cre(:,:,k)
+         self%Cim_c(:,:,k) = self%Cim(:,:,k)
+      end do
    end subroutine response_stash_coarse
 
    subroutine response_coarse_fine_error(self, err_inf, tau_inf)
@@ -2101,17 +2141,35 @@ contains
       !! for the controller's scaled local-error estimate.
       type(response), intent(in)  :: self
       real(wp),           intent(out) :: err_inf, tau_inf
+      integer  :: k, e, m
+      real(wp) :: d, t
       if (self%kind == RESP_MODAL) then
          err_inf = maxval(abs(self%phi - self%phi_c))   ! ‖φ_fine − φ_coarse‖∞
          tau_inf = maxval(abs(self%phi))
          return
       end if
-      err_inf = max(maxval(abs(self%Are - self%Are_c)), maxval(abs(self%Aim - self%Aim_c)), &
-                    maxval(abs(self%Bre - self%Bre_c)), maxval(abs(self%Bim - self%Bim_c)), &
-                    maxval(abs(self%Cre - self%Cre_c)), maxval(abs(self%Cim - self%Cim_c)))
-      tau_inf = max(maxval(abs(self%Are)), maxval(abs(self%Aim)), &
-                    maxval(abs(self%Bre)), maxval(abs(self%Bim)), &
-                    maxval(abs(self%Cre)), maxval(abs(self%Cim)))
+      ! Explicit threaded loop for the same reason response_memory_norm uses one:
+      ! the maxval(abs(A - B)) form this replaced built TWELVE full (NLAM,ne,nk)
+      ! heap temporaries per call, one per term, and ran serially.
+      err_inf = 0.0_wp;  tau_inf = 0.0_wp
+      !$omp parallel do default(shared) private(k,e,m,d,t) schedule(static) &
+      !$omp   reduction(max:err_inf,tau_inf)
+      do k = 1, self%nk
+         do e = 1, self%ne
+            do m = 1, NLAM
+               d = max(abs(self%Are(m,e,k) - self%Are_c(m,e,k)), &
+                       abs(self%Aim(m,e,k) - self%Aim_c(m,e,k)), &
+                       abs(self%Bre(m,e,k) - self%Bre_c(m,e,k)), &
+                       abs(self%Bim(m,e,k) - self%Bim_c(m,e,k)), &
+                       abs(self%Cre(m,e,k) - self%Cre_c(m,e,k)), &
+                       abs(self%Cim(m,e,k) - self%Cim_c(m,e,k)))
+               t = max(abs(self%Are(m,e,k)), abs(self%Aim(m,e,k)), &
+                       abs(self%Bre(m,e,k)), abs(self%Bim(m,e,k)), &
+                       abs(self%Cre(m,e,k)), abs(self%Cim(m,e,k)))
+               err_inf = max(err_inf, d);  tau_inf = max(tau_inf, t)
+            end do
+         end do
+      end do
    end subroutine response_coarse_fine_error
 
    real(wp) function response_max_rate(self) result(rate)
