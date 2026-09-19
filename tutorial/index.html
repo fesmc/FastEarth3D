@@ -1,0 +1,2247 @@
+<title>The Deforming Earth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500&display=swap">
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      processEscapes: true,
+      packages: {'[+]': ['ams']}
+    },
+    svg: { fontCache: 'global', scale: 1.05 },
+    startup: {
+      typeset: true
+    },
+    options: {
+      renderActions: {
+        addMenu: []
+      }
+    }
+  };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+
+<style>
+  :root {
+    --paper: #f8f5ef;
+    --paper-2: #f0ebe0;
+    --paper-3: #e6dfd1;
+    --ink: #1a1815;
+    --ink-2: #3a3630;
+    --rule: #d9d2c2;
+    --muted: #726b5c;
+    --accent: #0e6b6a;
+    --accent-2: #0a4c4b;
+    --elastic: #3f4d8f;
+    --viscous: #a05a1f;
+    --warn: #b8471f;
+    --ok: #4a7d2a;
+    --shadow: 0 1px 2px rgba(26,24,21,.04), 0 4px 20px rgba(26,24,21,.06);
+    color-scheme: light;
+  }
+  :root:not([data-theme="light"]) { }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14120e;
+      --paper-2: #1c1a15;
+      --paper-3: #26221c;
+      --ink: #ede6d8;
+      --ink-2: #c6bfaf;
+      --rule: #2f2b23;
+      --muted: #a29888;
+      --accent: #4ec5be;
+      --accent-2: #7ad6d0;
+      --elastic: #8f9ee0;
+      --viscous: #d19457;
+      --warn: #e0794a;
+      --ok: #8fc464;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 24px rgba(0,0,0,.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14120e;
+    --paper-2: #1c1a15;
+    --paper-3: #26221c;
+    --ink: #ede6d8;
+    --ink-2: #c6bfaf;
+    --rule: #2f2b23;
+    --muted: #a29888;
+    --accent: #4ec5be;
+    --accent-2: #7ad6d0;
+    --elastic: #8f9ee0;
+    --viscous: #d19457;
+    --warn: #e0794a;
+    --ok: #8fc464;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 24px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+    font-optical-sizing: auto;
+  }
+
+  .page {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding-inline: 24px;
+    padding-block: 0;
+  }
+
+  /* Hero */
+  .hero {
+    padding-block: clamp(48px, 8vw, 96px) 40px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 16px;
+  }
+  .eyebrow .dot {
+    display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    margin: 0 8px 1px 0;
+    vertical-align: middle;
+  }
+  h1.title {
+    font-family: 'Fraunces', 'Times New Roman', serif;
+    font-weight: 400;
+    font-variation-settings: 'opsz' 144, 'SOFT' 30, 'WONK' 0;
+    font-size: clamp(44px, 7vw, 76px);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+  h1.title em {
+    font-style: italic;
+    font-variation-settings: 'opsz' 144, 'SOFT' 100, 'WONK' 1;
+    color: var(--accent);
+  }
+  .deck {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 36, 'SOFT' 40;
+    font-size: clamp(19px, 2.3vw, 23px);
+    line-height: 1.45;
+    color: var(--ink-2);
+    max-width: 620px;
+    margin: 0 0 28px;
+  }
+  .mode-help {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding: 16px 20px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--paper-2);
+    font-size: 15px;
+    color: var(--ink-2);
+    max-width: 720px;
+  }
+  .mode-help > div { flex: 1; min-width: 220px; }
+  .mode-help b { color: var(--ink); font-weight: 600; }
+  .mode-help .tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-right: 8px;
+    vertical-align: 2px;
+  }
+  .tag.intuition { background: color-mix(in oklab, var(--accent) 15%, transparent); color: var(--accent-2); }
+  .tag.fe3d { background: color-mix(in oklab, var(--viscous) 18%, transparent); color: var(--viscous); }
+  :root[data-theme="dark"] .tag.fe3d,
+  :root:not([data-theme="light"]) .tag.fe3d {
+    color: var(--viscous);
+  }
+
+  /* Preliminaries (collapsible refreshers + name origins) */
+  section.preliminaries {
+    padding-block: 40px 56px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .prelim-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
+  .prelim-title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 80, 'SOFT' 30;
+    font-weight: 500;
+    font-size: clamp(26px, 3.5vw, 34px);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    margin: 0 0 12px;
+    color: var(--ink);
+    text-wrap: balance;
+    max-width: 640px;
+  }
+  .prelim-lead {
+    color: var(--ink-2);
+    max-width: 620px;
+    margin: 0 0 24px;
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 20;
+    font-size: 17px;
+    line-height: 1.5;
+  }
+  .prelim-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    max-width: 960px;
+  }
+  @media (max-width: 720px) {
+    .prelim-grid { grid-template-columns: 1fr; }
+  }
+  details.prelim {
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--paper-2);
+    transition: background .15s;
+  }
+  details.prelim[open] { background: var(--paper-3); }
+  details.prelim summary {
+    cursor: pointer;
+    padding: 12px 16px;
+    list-style: none;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 24;
+    font-weight: 500;
+    font-size: 16px;
+    color: var(--ink);
+  }
+  details.prelim summary::-webkit-details-marker,
+  details.prelim summary::marker { display: none; content: none; }
+  details.prelim summary::before {
+    content: '+';
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    width: 12px;
+    display: inline-block;
+    flex-shrink: 0;
+    text-align: center;
+  }
+  details.prelim[open] summary::before { content: '−'; }
+  details.prelim summary .kind {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: var(--paper);
+    margin-left: auto;
+    flex-shrink: 0;
+    align-self: center;
+  }
+  details.prelim summary .kind.origin { color: var(--viscous); }
+  details.prelim summary:hover { color: var(--accent-2); }
+  details.prelim .prelim-body {
+    padding: 0 20px 18px 40px;
+    color: var(--ink-2);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  details.prelim .prelim-body p { margin: 0 0 0.8em; }
+  details.prelim .prelim-body em.name {
+    font-style: normal;
+    color: var(--ink);
+    font-weight: 600;
+    font-family: 'Fraunces', serif;
+  }
+  details.prelim .prelim-body p.eqn { text-align: center; padding: 8px 0 4px; margin: 4px 0; }
+
+  /* Sticky nav */
+  nav.toc {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 20;
+    background: color-mix(in oklab, var(--paper) 92%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--rule);
+    margin: 0 -24px;
+    padding: 12px 24px;
+    overflow-x: auto;
+  }
+  nav.toc ol {
+    display: flex;
+    gap: 4px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+  }
+  nav.toc li a {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 6px 10px;
+    color: var(--muted);
+    text-decoration: none;
+    border-radius: 3px;
+    white-space: nowrap;
+    transition: color .15s, background .15s;
+  }
+  nav.toc li a:hover { color: var(--ink); background: var(--paper-2); }
+  nav.toc li a.active { color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, transparent); }
+  nav.toc li a .n { color: var(--rule); }
+  nav.toc li a.active .n { color: var(--accent); }
+
+  /* Sections */
+  section.chapter {
+    padding-block: 72px 8px;
+    border-bottom: 1px solid var(--rule);
+    scroll-margin-top: 60px;
+  }
+  section.chapter:last-of-type { border-bottom: none; }
+  .chnum {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 144, 'SOFT' 0, 'WONK' 1;
+    font-weight: 400;
+    font-size: 14px;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin: 0 0 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  h2.chtitle {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 80, 'SOFT' 30;
+    font-weight: 500;
+    font-size: clamp(30px, 4.5vw, 42px);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+    max-width: 720px;
+  }
+  .chlead {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 24, 'SOFT' 40;
+    font-size: 20px;
+    line-height: 1.5;
+    color: var(--ink-2);
+    max-width: 620px;
+    margin: 0 0 32px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 28px;
+    max-width: 720px;
+  }
+  .tabs button {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 4px;
+    margin-right: 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .tabs button .swatch {
+    display: inline-block; width: 8px; height: 8px; border-radius: 2px;
+    margin-right: 8px; vertical-align: 1px;
+    background: var(--rule);
+  }
+  .tabs button[data-tab="intuition"] .swatch { background: var(--accent); }
+  .tabs button[data-tab="fe3d"] .swatch { background: var(--viscous); }
+  .tabs button:hover { color: var(--ink); }
+  .tabs button.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+  /* Body prose */
+  .prose { max-width: 620px; }
+  .prose p { margin: 0 0 1em; }
+  .prose p + p { margin-top: 0; }
+  .prose h3 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 30;
+    font-weight: 600;
+    font-size: 20px;
+    line-height: 1.3;
+    margin: 32px 0 12px;
+    color: var(--ink);
+  }
+  .prose ul, .prose ol { padding-left: 22px; margin: 0 0 1em; }
+  .prose li { margin-bottom: 4px; }
+  .prose code, code.mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86em;
+    background: var(--paper-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+  .prose a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .aside {
+    border-left: 2px solid var(--viscous);
+    padding: 6px 0 6px 16px;
+    margin: 20px 0;
+    color: var(--ink-2);
+    font-size: 15.5px;
+    font-style: italic;
+  }
+  .aside .aside-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-style: normal;
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--viscous);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* Equations */
+  .eqn {
+    display: block;
+    text-align: center;
+    padding: 18px 12px 22px;
+    margin: 0;
+    color: var(--ink);
+    overflow-x: auto;
+  }
+  .eqn.numbered {
+    position: relative;
+  }
+  .eqn .tag {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  mjx-container[jax="SVG"] { color: var(--ink); }
+  mjx-container[jax="SVG"][display="true"] {
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+  }
+  mjx-container[jax="SVG"] svg { max-width: 100%; height: auto; }
+  .eqn-caption {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  /* Widgets */
+  .widget {
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 20px;
+    margin: 28px 0;
+    box-shadow: var(--shadow);
+    max-width: 960px;
+  }
+  .widget-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 4px;
+  }
+  .widget-heading {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 30;
+    font-weight: 500;
+    font-size: 20px;
+    line-height: 1.3;
+    color: var(--ink);
+    margin: 0 0 18px;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 22px;
+    margin-bottom: 18px;
+    align-items: flex-end;
+  }
+  .ctl {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 140px;
+  }
+  .ctl label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .ctl label .val {
+    color: var(--ink);
+    margin-left: 6px;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 12px;
+  }
+  .ctl input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    background: transparent;
+    cursor: pointer;
+  }
+  .ctl select, .ctl button.opt {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 6px 8px;
+    cursor: pointer;
+  }
+  .ctl select { min-width: 140px; }
+  .btn-group {
+    display: inline-flex;
+    gap: 0;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .btn-group button {
+    background: var(--paper);
+    color: var(--muted);
+    border: none;
+    padding: 6px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-right: 1px solid var(--rule);
+  }
+  .btn-group button:last-child { border-right: none; }
+  .btn-group button.on { background: var(--accent); color: var(--paper); }
+  .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .toggle input { accent-color: var(--accent); }
+
+  /* Widget canvas / svg containers */
+  .canvas-wrap {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 720px) {
+    .grid2 { grid-template-columns: 1fr; }
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  .legend .lg {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend .sw {
+    display: inline-block;
+    width: 14px; height: 3px;
+    background: var(--ink);
+    border-radius: 1px;
+  }
+  .readout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-2);
+    border-top: 1px dashed var(--rule);
+    margin-top: 12px;
+  }
+  .readout b { color: var(--ink); font-weight: 500; }
+
+  /* Section footer */
+  .code-pointer {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 6px 10px;
+    margin: 4px 6px 4px 0;
+  }
+  .code-pointer::before {
+    content: '›';
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  footer.foot {
+    padding: 64px 0 80px;
+    border-top: 1px solid var(--rule);
+    margin-top: 40px;
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 720px;
+  }
+  footer.foot h3 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: 'opsz' 30;
+    color: var(--ink);
+    font-size: 18px;
+    margin: 0 0 8px;
+  }
+  footer.foot code { font-family: 'JetBrains Mono', monospace; color: var(--ink-2); }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    right: 12px;
+    z-index: 30;
+    background: var(--paper-2);
+    color: var(--muted);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    width: 36px; height: 36px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .theme-toggle:hover { color: var(--ink); }
+
+  /* Focus */
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+
+<button class="theme-toggle" id="themeToggle" title="Toggle theme">◐</button>
+
+<div class="page">
+
+<header class="hero">
+  <p class="eyebrow"><span class="dot"></span>FastEarth3D · Interactive tutorial</p>
+  <h1 class="title">The <em>deforming</em> Earth, in six equations.</h1>
+  <p class="deck">FastEarth3D solves the coupled viscoelastic and sea-level response of a rotating Earth to a time-varying surface load. This tutorial walks through the six equations at the model's core and the numerical choices behind each.</p>
+  <div class="mode-help">
+    <div><span class="tag intuition">Physics</span>The formulation. Governing equations, physical meaning of the terms, and the working assumptions.</div>
+    <div><span class="tag fe3d">Implementation</span>How FastEarth3D discretizes and solves it. Schemes, tolerances, and the modules where each piece lives.</div>
+  </div>
+</header>
+
+<section class="preliminaries" aria-labelledby="prelim-h">
+  <p class="prelim-eyebrow">Preliminaries · Optional</p>
+  <h2 id="prelim-h" class="prelim-title">Refreshers and name origins.</h2>
+  <p class="prelim-lead">Background concepts and the people the terms come from. Expand what you need; skip the rest and continue to § 01.</p>
+  <div class="prelim-grid">
+
+    <details class="prelim">
+      <summary>Diagonalizing a linear operator <span class="kind">Refresher</span></summary>
+      <div class="prelim-body">
+        <p>A linear operator <em>L</em> acting on a function space is <em>diagonal</em> in a basis of its eigenfunctions {<em>φ<sub>k</sub></em>}, meaning <em>L</em> <em>φ<sub>k</sub></em> = <em>λ<sub>k</sub></em> <em>φ<sub>k</sub></em>. Any function expanded in that basis, <em>f</em> = Σ<sub><em>k</em></sub> <em>c<sub>k</sub></em> <em>φ<sub>k</sub></em>, transforms as <em>L f</em> = Σ<sub><em>k</em></sub> <em>λ<sub>k</sub></em> <em>c<sub>k</sub></em> <em>φ<sub>k</sub></em>.</p>
+        <p>The coupled operator equation collapses to independent scalar equations, one per eigenvalue. This is why spherical-harmonic expansion is useful for the load problem: the Laplacian and related operators are diagonal in that basis (see next entry), and each degree evolves on its own.</p>
+      </div>
+    </details>
+
+    <details class="prelim">
+      <summary>The Laplacian on a sphere <span class="kind">Refresher</span></summary>
+      <div class="prelim-body">
+        <p>On a sphere of radius <em>a</em>, the angular part of the Laplacian has spherical harmonics as its eigenfunctions:</p>
+        <p class="eqn">\[ \nabla_\Omega^2\, Y_l^m \;=\; -\,l(l+1)\, Y_l^m. \]</p>
+        <p>Any surface field expanded in <em>Y<sub>l</sub><sup>m</sup></em> therefore satisfies elliptic angular problems degree by degree. Radial and horizontal parts remain coupled through boundary conditions but as independent one-dimensional radial ODEs per <em>l</em>.</p>
+      </div>
+    </details>
+
+    <details class="prelim">
+      <summary>Real vs complex spherical harmonics <span class="kind">Convention</span></summary>
+      <div class="prelim-body">
+        <p>The complex form <em>Y<sub>l</sub><sup>m</sup></em> ∝ <em>P<sub>l</sub><sup>m</sup></em>(cos <em>θ</em>) <em>e</em><sup><em>imφ</em></sup> is complex-valued for <em>m</em> ≠ 0. The real form replaces <em>e</em><sup><em>imφ</em></sup> with cos(<em>mφ</em>) for <em>m</em> ≥ 0 and sin(|<em>m</em>|<em>φ</em>) for <em>m</em> &lt; 0.</p>
+        <p>Normalizations vary: fully normalized (unit inner product on the sphere), Schmidt semi-normalized (common in geomagnetism), and 4π-normalized (common in geodesy). Our implementation uses the real, fully normalized convention consistent with SHTns.</p>
+      </div>
+    </details>
+
+    <details class="prelim">
+      <summary>Picard fixed-point iteration <span class="kind">Refresher</span></summary>
+      <div class="prelim-body">
+        <p>For an equation <em>x</em> = <em>F</em>(<em>x</em>) with <em>F</em> contractive (‖<em>F</em>′‖ &lt; 1), the sequence <em>x<sub>k+1</sub></em> = <em>F</em>(<em>x<sub>k</sub></em>) converges to the unique fixed point, with linear rate set by ‖<em>F</em>′‖.</p>
+        <p>Picard iteration requires only function evaluations, no Jacobian. In the sea-level equation it takes the form: guess <em>S</em>, evaluate the load, apply the Love-number kernels to obtain <em>N</em> and <em>U</em>, update <em>S</em>, and repeat. Convergence is typically reached in three to five iterations.</p>
+      </div>
+    </details>
+
+    <details class="prelim">
+      <summary>Green's-function / convolution response <span class="kind">Refresher</span></summary>
+      <div class="prelim-body">
+        <p>For a linear time-invariant system, the response to an arbitrary forcing <em>σ</em>(<em>t</em>) is the convolution of the forcing with the system's impulse response <em>G</em>(<em>t</em>):</p>
+        <p class="eqn">\[ u(t) \;=\; \int_0^{t} G(t - t')\, \sigma(t')\, dt'. \]</p>
+        <p>For the viscoelastic load problem, <em>G</em> is a sum of an instantaneous elastic step and exponential relaxation modes (§ 03). The convolution has an exact recursion under trapezoidal integration, so time-stepping the viscoelastic response has no memory-storage cost beyond one mode amplitude per relaxation mode.</p>
+      </div>
+    </details>
+
+    <details class="prelim">
+      <summary>Numerical integrator order <span class="kind">Refresher</span></summary>
+      <div class="prelim-body">
+        <p>The local truncation error of an integrator scales as <em>Δt</em><sup><em>p</em>+1</sup>, where <em>p</em> is the order. Forward Euler is first-order (error ∝ <em>Δt</em>²) and trapezoidal is second-order (error ∝ <em>Δt</em>³). Over a fixed integration interval, halving <em>Δt</em> reduces the accumulated error by a factor of <em>2<sup>p</sup></em>.</p>
+        <p>At a fixed error tolerance, the number of steps required scales as tolerance<sup>−1/<em>p</em></sup>. This is the source of the ~10<sup>3</sup> step-count ratio between Forward Euler and trapezoidal that we see on glacial-cycle runs (§ 06).</p>
+      </div>
+    </details>
+
+    <details class="prelim">
+      <summary>Load Love numbers <span class="kind origin">Origin</span></summary>
+      <div class="prelim-body">
+        <p><em class="name">Augustus Edward Hough Love</em> (1863–1940), British mathematician, introduced dimensionless coefficients for the elastic response of a self-gravitating spherical Earth in <em>Some Problems of Geodynamics</em> (Cambridge, 1911). The vertical-displacement number <em>h<sub>l</sub></em> and the geoid-perturbation number <em>k<sub>l</sub></em> are his; the horizontal-displacement number <em>l<sub>l</sub></em> was introduced independently by Toshi Shida in 1912. Peltier (1974) extended the definitions to viscoelastic (load) Love numbers.</p>
+      </div>
+    </details>
+
+    <details class="prelim">
+      <summary>Maxwell body <span class="kind origin">Origin</span></summary>
+      <div class="prelim-body">
+        <p><em class="name">James Clerk Maxwell</em> (1831–1879), Scottish physicist, proposed the series spring-and-damper viscoelastic model in <em>On the Dynamical Theory of Gases</em> (1867) as a description of the internal friction of gases. The "Maxwell time" <em>τ<sub>M</sub></em> = <em>η</em>/<em>μ</em> is named after him by convention.</p>
+      </div>
+    </details>
+
+    <details class="prelim">
+      <summary>Chandler wobble <span class="kind origin">Origin</span></summary>
+      <div class="prelim-body">
+        <p><em class="name">Seth Carlo Chandler Jr.</em> (1846–1913), American astronomer, reported in 1891 a ~433-day period in the observed variation of the Earth's rotation axis, distinct from the ~365-day annually forced component. The observed period is longer than the ~305-day Euler prediction for a rigid Earth because the real Earth is deformable and the Chandler period includes a viscoelastic correction.</p>
+      </div>
+    </details>
+
+    <details class="prelim">
+      <summary>Liouville equation <span class="kind origin">Origin</span></summary>
+      <div class="prelim-body">
+        <p><em class="name">Joseph Liouville</em> (1809–1882), French mathematician, formulated the general equation for the rotation of a deformable body. The linearized form used for glacial-isostatic true polar wander follows the exposition of Munk and MacDonald (<em>The Rotation of the Earth</em>, 1960).</p>
+      </div>
+    </details>
+
+    <details class="prelim">
+      <summary>Farrell–Clark sea-level equation <span class="kind origin">Origin</span></summary>
+      <div class="prelim-body">
+        <p><em class="name">William E. Farrell</em> derived the elastic-Earth Green's functions for surface loads in 1972. <em class="name">James A. Clark</em> and Farrell extended the framework to the coupled ice–ocean–solid Earth problem in <em>On postglacial sea level</em> (Geophys. J. R. Astron. Soc., 1976). Their integral formulation is the basis for the sea-level equation solved in FastEarth3D and most other modern GIA codes.</p>
+      </div>
+    </details>
+
+    <details class="prelim">
+      <summary>PREM · Preliminary Reference Earth Model <span class="kind origin">Origin</span></summary>
+      <div class="prelim-body">
+        <p><em class="name">Adam M. Dziewonski</em> and <em class="name">Don L. Anderson</em> published PREM in 1981 as a one-dimensional radial Earth model constrained by seismic phase arrivals, normal-mode data, and mass and inertia constraints. It gives density and elastic parameters as a function of depth. In FastEarth3D, PREM supplies the elastic profile and a viscosity structure is overlaid separately.</p>
+      </div>
+    </details>
+
+    <details class="prelim">
+      <summary>SHTns · spherical-harmonic transform library <span class="kind origin">Origin</span></summary>
+      <div class="prelim-body">
+        <p><em class="name">Nathanaël Schaeffer</em> released SHTns (2013) as a highly optimized C library for spherical-harmonic transforms, using fast Legendre-transform algorithms and SIMD-friendly memory layouts. FastEarth3D uses SHTns for every forward and inverse transform in the load-response pipeline.</p>
+      </div>
+    </details>
+
+    <details class="prelim">
+      <summary>Eustatic, geoid, isostasy <span class="kind">Terminology</span></summary>
+      <div class="prelim-body">
+        <p><em>Eustatic</em> denotes a spatially uniform component of sea-level change; the term is from Eduard Suess, <em>Das Antlitz der Erde</em> (1885). <em>Geoid</em> is the equipotential surface of Earth's gravity field that best matches long-term mean sea level; the name was proposed by J. B. Listing (1873). <em>Isostatic equilibrium</em> is the state in which the mantle load is balanced by buoyancy so that no net vertical stress remains at depth; the fluid limit of the Love-number spectrum corresponds to full isostatic compensation.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<nav class="toc" aria-label="Sections">
+  <ol>
+    <li><a href="#s1"><span class="n">01</span> Springs &amp; mantle</a></li>
+    <li><a href="#s2"><span class="n">02</span> Spherical harmonics</a></li>
+    <li><a href="#s3"><span class="n">03</span> Love numbers</a></li>
+    <li><a href="#s4"><span class="n">04</span> Sea level</a></li>
+    <li><a href="#s5"><span class="n">05</span> Rotation &amp; TPW</a></li>
+    <li><a href="#s6"><span class="n">06</span> Time integration</a></li>
+  </ol>
+</nav>
+
+<!-- SECTION 1: MAXWELL RHEOLOGY -->
+<section class="chapter" id="s1">
+  <p class="chnum">01 · Rheology</p>
+  <h2 class="chtitle">The mantle as a Maxwell body.</h2>
+  <p class="chlead">A single constitutive law with two parameters — rigidity <em>μ</em> and viscosity <em>η</em> — spans both the elastic and viscous regimes of the Earth's mantle. Their ratio sets the timescale at which behavior transitions from one to the other.</p>
+
+  <div class="tabs" data-section="s1">
+    <button data-tab="intuition" class="active"><span class="swatch"></span>Physics</button>
+    <button data-tab="fe3d"><span class="swatch"></span>Implementation</button>
+  </div>
+
+  <div class="tab-content" data-tab="intuition">
+    <div class="prose">
+      <p>The mantle responds elastically on timescales shorter than its Maxwell time and viscously on longer ones. A Maxwell body — an elastic spring and a viscous damper (a piston moving through a viscous fluid) connected in series, sharing the same stress — captures both regimes in a single constitutive law.</p>
+      <p class="eqn numbered">
+        \[ \dot{\varepsilon} \;=\; \frac{1}{\mu}\, \dot{\sigma} \;+\; \frac{\sigma}{\eta} \]
+        <span class="tag">Maxwell</span>
+      </p>
+      <p>Here <em>ε</em> is strain, <em>σ</em> is deviatoric stress, <em>μ</em> is the elastic rigidity, and <em>η</em> is the viscosity. Under a step in stress the spring contributes an instantaneous strain <em>σ</em>/<em>μ</em>; the damper contributes a viscous strain rate <em>σ</em>/<em>η</em>. The two rates share the same units, so their ratio defines a single characteristic time:</p>
+      <p class="eqn">
+        \[ \tau_M \;=\; \frac{\eta}{\mu} \;\approx\; \frac{10^{21}\,\text{Pa·s}}{10^{11}\,\text{Pa}} \;\approx\; 300\ \text{yr}. \]
+      </p>
+      <p>Loads on timescales below <em>τ<sub>M</sub></em> see essentially the elastic Earth; loads on timescales above see the fluid limit. Glacial cycles straddle this boundary, so both regimes matter in a single simulation.</p>
+    </div>
+
+    <div class="widget">
+      <p class="widget-title">Interactive · Maxwell response</p>
+      <p class="widget-heading">Strain in a Maxwell body under a step in stress applied at <em>t</em> = 0.</p>
+      <div class="controls">
+        <div class="ctl">
+          <label>Rigidity μ<span class="val" id="w1-mu-v">1.0</span> (rel.)</label>
+          <input type="range" id="w1-mu" min="0.3" max="3" step="0.05" value="1">
+        </div>
+        <div class="ctl">
+          <label>Viscosity η<span class="val" id="w1-eta-v">1.0</span> (rel.)</label>
+          <input type="range" id="w1-eta" min="0.2" max="5" step="0.05" value="1">
+        </div>
+        <div class="ctl">
+          <label>Applied stress σ<sub>0</sub><span class="val" id="w1-s-v">1.0</span></label>
+          <input type="range" id="w1-s" min="0.2" max="2" step="0.05" value="1">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="canvas-wrap"><svg id="w1-svg" viewBox="0 0 420 260" width="100%"></svg></div>
+        <div class="canvas-wrap"><svg id="w1-plot" viewBox="0 0 420 260" width="100%"></svg></div>
+      </div>
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:var(--elastic)"></span>Elastic ε<sub>e</sub> = σ/μ</span>
+        <span class="lg"><span class="sw" style="background:var(--viscous)"></span>Viscous ε<sub>v</sub> = σ t/η</span>
+        <span class="lg"><span class="sw" style="background:var(--ink)"></span>Total ε(t)</span>
+      </div>
+      <div class="readout">
+        <div>τ<sub>M</sub> = η/μ = <b id="w1-tau">1.00</b></div>
+        <div>Elastic strain at t=0: <b id="w1-e0">1.00</b></div>
+        <div>Time when viscous = elastic: <b id="w1-tcross">1.00</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" data-tab="fe3d" hidden>
+    <div class="prose">
+      <p>The real mantle is a stack of Maxwell bodies, one per radial layer, each with its own <em>(ρ, μ, η)</em>. FastEarth3D reads this depth profile from a plain-text table selected by the <code>earth</code> parameter.</p>
+      <div><span class="code-pointer">earth_models/Bagge.dat</span><span class="code-pointer">earth_models/M3-L70-V01.dat</span><span class="code-pointer">earth="PREM"</span></div>
+      <p>Each spherical-harmonic degree <em>l</em> then acquires its own spectrum of relaxation times rather than a single <em>τ<sub>M</sub></em>. Short-wavelength (high-<em>l</em>) loads stress only the shallow layers and relax on centennial timescales. Long-wavelength (low-<em>l</em>) loads sample the deep mantle and relax on glacial timescales.</p>
+      <h3>Where in the code</h3>
+      <ul>
+        <li><code>re_class</code> — loads and stores the radial <em>(ρ, μ, η, r)</em> profile.</li>
+        <li><code>ve_response</code> / <code>modal</code> — turns the profile into per-<em>l</em> Love-number time series (§ 3).</li>
+        <li><code>fastearth3d</code> module — the top-level type <code>se%par</code> holds the configuration; <code>build_earth(p)</code> assembles the earth model at startup.</li>
+      </ul>
+      <div class="aside">
+        <span class="aside-label">Bagge, PREM, M3-L70-V01</span>
+        Three profiles ship with the model. Bagge is a soft-lithosphere three-dimensional field used by default. PREM is the reference elastic profile with an overlaid viscosity structure. M3-L70-V01 is the standard GIA-benchmark cross-check, matching to within around 0.1&nbsp;% on the fluid and elastic Love numbers.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2: SPHERICAL HARMONICS -->
+<section class="chapter" id="s2">
+  <p class="chnum">02 · Basis</p>
+  <h2 class="chtitle">Spherical harmonics diagonalize the Laplacian.</h2>
+  <p class="chlead">The spherical-harmonic basis is the natural spectral representation on a sphere. In this basis the Laplacian is diagonal, and the coupled elastic-gravitational problem separates into independent radial problems, one per degree.</p>
+
+  <div class="tabs" data-section="s2">
+    <button data-tab="intuition" class="active"><span class="swatch"></span>Physics</button>
+    <button data-tab="fe3d"><span class="swatch"></span>Implementation</button>
+  </div>
+
+  <div class="tab-content" data-tab="intuition">
+    <div class="prose">
+      <p>Any square-integrable function on the sphere admits an expansion in spherical harmonics <em>Y<sub>l</sub><sup>m</sup></em>, indexed by degree <em>l</em> and order <em>m</em>:</p>
+      <p class="eqn">
+        \[ f(\theta, \varphi) \;=\; \sum_{l=0}^{\infty} \sum_{m=-l}^{l} f_{lm}\, Y_l^m(\theta, \varphi). \]
+      </p>
+      <p>The degree <em>l</em> sets the number of nodal lines and hence the angular scale of the pattern. The order <em>m</em> distributes those nodal lines between latitude and longitude:</p>
+      <ul>
+        <li><em>m</em> = 0 — zonal harmonics with only latitudinal bands.</li>
+        <li>|<em>m</em>| = <em>l</em> — sectoral harmonics with only longitudinal slices.</li>
+        <li>0 &lt; |<em>m</em>| &lt; <em>l</em> — tesseral harmonics with a mixed nodal pattern.</li>
+      </ul>
+      <p>The utility of this basis follows from a single property of the harmonics on a sphere of radius <em>a</em>:</p>
+      <p class="eqn">
+        \[ \nabla^2\, Y_l^m \;=\; -\,\frac{l(l+1)}{a^2}\, Y_l^m. \]
+      </p>
+      <p>The Laplacian is therefore diagonal, and Poisson's equation, the biharmonic equation for elastic loading, and the geoid perturbation all decouple degree by degree. In our implementation this reduces the three-dimensional load problem to a set of independent one-dimensional radial problems, one per <em>(l, m)</em>.</p>
+    </div>
+
+    <div class="widget">
+      <p class="widget-title">Interactive · Real spherical harmonics</p>
+      <p class="widget-heading">The real part of <em>Y<sub>l</sub><sup>m</sup></em>(<em>θ</em>, <em>φ</em>) on a flat map or orthographic projection.</p>
+      <div class="controls">
+        <div class="ctl">
+          <label>Degree l<span class="val" id="w2-l-v">4</span></label>
+          <input type="range" id="w2-l" min="0" max="8" step="1" value="4">
+        </div>
+        <div class="ctl">
+          <label>Order m<span class="val" id="w2-m-v">2</span></label>
+          <input type="range" id="w2-m" min="0" max="8" step="1" value="2">
+        </div>
+        <div class="ctl">
+          <label>View</label>
+          <div class="btn-group" id="w2-view">
+            <button data-v="flat" class="on">Flat map</button>
+            <button data-v="sphere">Sphere</button>
+          </div>
+        </div>
+      </div>
+      <div class="canvas-wrap"><canvas id="w2-canvas" width="720" height="360" style="width:100%; display:block; image-rendering: pixelated;"></canvas></div>
+      <div class="readout">
+        <div>Function: <b id="w2-fn">Y<sub>4</sub><sup>2</sup>(θ,φ)</b></div>
+        <div>Nodal lines: <b id="w2-nodes">4</b></div>
+        <div>Type: <b id="w2-type">tesseral</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" data-tab="fe3d" hidden>
+    <div class="prose">
+      <p>FastEarth3D uses the SHTns library for the forward and inverse spherical-harmonic transforms. The truncation degree <em>l</em><sub>max</sub> is a run-time parameter set in the namelist.</p>
+      <div><span class="code-pointer">&amp;fe3d lmax=128</span><span class="code-pointer">SHT_QUICK_INIT=1</span></div>
+      <p>Doubling <em>l</em><sub>max</sub> quadruples the number of coefficients — approximately <em>(l</em><sub>max</sub><em> + 1)</em>² — and multiplies the transform cost by roughly a factor of five. The typical trade-off is:</p>
+      <ul>
+        <li><code>lmax=64</code> — around 0.8 s per 100 yr of simulation; resolves patterns down to about 300 km.</li>
+        <li><code>lmax=128</code> — around 4.4 s per 100 yr; about 150 km resolution, matching VILMA-parity runs.</li>
+      </ul>
+      <p>The environment variable <code>SHT_QUICK_INIT=1</code> skips the SHTns internal transform-plan auto-tune, reducing startup from around 136 s to under one second. We set it in production runs and disable it only when benchmarking transform kernels.</p>
+      <h3>Where in the code</h3>
+      <ul>
+        <li><code>sht_class</code> — thin wrapper around SHTns, providing forward and inverse transforms.</li>
+        <li><code>fe_field</code> — physical fields carry both grid and spectral views, kept in sync on demand.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3: LOVE NUMBERS -->
+<section class="chapter" id="s3">
+  <p class="chnum">03 · Response</p>
+  <h2 class="chtitle">Load Love numbers, one spectrum per degree.</h2>
+  <p class="chlead">The response of a spherically symmetric layered Earth to a spherical-harmonic load component of degree <em>l</em> is a sum of exponentials. Three families of coefficients — <em>h<sub>l</sub></em>, <em>k<sub>l</sub></em>, and <em>l<sub>l</sub></em> — together encode the entire radial viscoelastic profile.</p>
+
+  <div class="tabs" data-section="s3">
+    <button data-tab="intuition" class="active"><span class="swatch"></span>Physics</button>
+    <button data-tab="fe3d"><span class="swatch"></span>Implementation</button>
+  </div>
+
+  <div class="tab-content" data-tab="intuition">
+    <div class="prose">
+      <p>The diagonalization from § 2 implies that a load coefficient <em>σ<sub>lm</sub></em>(<em>t</em>) drives a displacement coefficient <em>u<sub>lm</sub></em>(<em>t</em>) that depends on <em>l</em> only, not on <em>m</em>. The response is the sum of an instantaneous elastic step and a superposition of exponential modes:</p>
+      <p class="eqn">
+        \[ u_{lm}(t) \;=\; \frac{a}{M_E}\left[\, h_l^E\, \sigma_{lm}(t) \;+\; \sum_j h_l^{(j)} \int_0^{t} e^{-(t-t')/\tau_l^{(j)}}\, \dot{\sigma}_{lm}(t')\, dt' \right]. \]
+      </p>
+      <p>The coefficients <em>h<sub>l</sub><sup>E</sup></em>, <em>h<sub>l</sub><sup>(j)</sup></em>, and <em>τ<sub>l</sub><sup>(j)</sup></em> are the load Love numbers. Together they compress the radial viscoelastic profile into a small set of numbers, one set per degree. The fluid limit <em>h<sub>l</sub><sup>F</sup></em> = <em>h<sub>l</sub><sup>E</sup></em> + <em>Σ<sub>j</sub></em> <em>h<sub>l</sub><sup>(j)</sup></em> gives the isostatic equilibrium response.</p>
+      <p>Three families are needed. The Love number <em>h<sub>l</sub></em> gives the radial displacement, <em>k<sub>l</sub></em> gives the induced geoid perturbation, and <em>l<sub>l</sub></em> gives the horizontal displacement. For a given radial structure, all three are computed once as functions of <em>l</em> and stored as time-response kernels.</p>
+    </div>
+
+    <div class="widget">
+      <p class="widget-title">Interactive · Load Love numbers</p>
+      <p class="widget-heading">Spectrum versus degree (left) and step response of a chosen degree (right).</p>
+      <div class="controls">
+        <div class="ctl">
+          <label>Earth model</label>
+          <select id="w3-earth">
+            <option value="bagge" selected>Bagge (default, soft lithosphere)</option>
+            <option value="prem">PREM + viscosity overlay</option>
+            <option value="m3l70">M3-L70-V01 (benchmark)</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label>Which family</label>
+          <div class="btn-group" id="w3-fam">
+            <button data-f="h" class="on">h · radial</button>
+            <button data-f="k">k · geoid</button>
+            <button data-f="l">l · horizontal</button>
+          </div>
+        </div>
+        <div class="ctl">
+          <label>Degree l<span class="val" id="w3-l-v">2</span></label>
+          <input type="range" id="w3-l" min="2" max="64" step="1" value="2">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="canvas-wrap"><svg id="w3-spec" viewBox="0 0 420 260" width="100%"></svg></div>
+        <div class="canvas-wrap"><svg id="w3-time" viewBox="0 0 420 260" width="100%"></svg></div>
+      </div>
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:var(--elastic)"></span>Elastic h<sub>l</sub><sup>E</sup></span>
+        <span class="lg"><span class="sw" style="background:var(--viscous)"></span>Transient modes</span>
+        <span class="lg"><span class="sw" style="background:var(--accent)"></span>Fluid limit h<sub>l</sub><sup>F</sup></span>
+      </div>
+      <div class="readout">
+        <div>At l = <b id="w3-lshow">2</b>: elastic <b id="w3-he">−0.30</b> · fluid <b id="w3-hf">−1.85</b> · slowest τ <b id="w3-tau">4.2 kyr</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" data-tab="fe3d" hidden>
+    <div class="prose">
+      <p>FastEarth3D offers three schemes for the viscoelastic response, selected by the <code>earth_scheme</code> parameter:</p>
+      <ul>
+        <li><code>ve</code> — classical normal-mode decomposition. The layered problem is diagonalized into <em>j</em> = 1..<em>N</em><sub>modes</sub> exponentials per degree. This is the reference implementation and matches VILMA to around 0.1&nbsp;%.</li>
+        <li><code>fe</code> — a finite-element radial solve driven directly by the load. It is cheaper per step and carries no mode-truncation error, but requires sub-stepping for stability at short <em>τ</em>.</li>
+        <li><code>modal</code> — a matrix-free Krylov eigensolve seeded by a load probe. This is the basis for the RESP_MODAL reduced viscoelastic model, currently on branch <code>modal</code>. It converges to <code>ve</code> to around 2×10<sup>−3</sup> on transient amplitudes.</li>
+      </ul>
+      <p>Our default configuration combines <code>fe</code> with a three-dimensional layer split. On standard deglaciation runs it is roughly 111× faster than trapezoidal-<code>ve</code> at comparable accuracy.</p>
+      <h3>Where in the code</h3>
+      <ul>
+        <li><code>fe_response</code> — the finite-element radial solver.</li>
+        <li><code>ve_response</code> — normal-mode reference implementation.</li>
+        <li><code>modal</code> — Krylov reduced model.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 4: SEA LEVEL EQUATION -->
+<section class="chapter" id="s4">
+  <p class="chnum">04 · Sea level</p>
+  <h2 class="chtitle">The sea-level equation and its fingerprint.</h2>
+  <p class="chlead">Sea-level change is not spatially uniform. Removing mass from an ice sheet reduces the local geoid, so relative sea level drops in the near field, while global mass conservation raises it in the far field. The sea-level equation encodes this fingerprint.</p>
+
+  <div class="tabs" data-section="s4">
+    <button data-tab="intuition" class="active"><span class="swatch"></span>Physics</button>
+    <button data-tab="fe3d"><span class="swatch"></span>Implementation</button>
+  </div>
+
+  <div class="tab-content" data-tab="intuition">
+    <div class="prose">
+      <p>Relative sea level <em>S</em> is defined as the difference between the geoid perturbation <em>N</em> and the solid-surface uplift <em>U</em>, plus a spatially uniform term <em>c</em>(<em>t</em>) that enforces mass conservation across the ocean domain <em>𝒪</em>:</p>
+      <p class="eqn">
+        \[ S(\theta, \varphi, t) \;=\; \bigl[\, N(\theta, \varphi, t) \;-\; U(\theta, \varphi, t)\, \bigr]\, \mathcal{O}(\theta, \varphi, t) \;+\; c(t). \]
+      </p>
+      <p>Both <em>N</em> and <em>U</em> depend on the applied load, and the load itself contains an ocean contribution proportional to <em>S</em>. The system is therefore nonlinear:</p>
+      <p class="eqn">
+        \[ \text{load} \;=\; \rho_{\text{ice}}\, H_{\text{ice}} \;+\; \rho_w\, S \quad\longrightarrow\quad N,\ U \quad\longrightarrow\quad S \quad\longrightarrow\quad \text{load}. \]
+      </p>
+      <p>We solve this by Picard iteration at each time step: given an initial guess for <em>S</em>, evaluate the load, propagate through the Love-number kernels of § 3 to obtain <em>N</em> and <em>U</em>, update <em>S</em>, and repeat until convergence. In practice three to five iterations suffice.</p>
+    </div>
+
+    <div class="widget">
+      <p class="widget-title">Interactive · Sea-level fingerprint</p>
+      <p class="widget-heading">Relative sea level along a meridional transect, for eustatic and self-gravitating solutions.</p>
+      <div class="controls">
+        <div class="ctl">
+          <label>Ice-sheet mass loss<span class="val" id="w4-dm-v">1.0 e12 t</span></label>
+          <input type="range" id="w4-dm" min="0" max="1" step="0.02" value="0.7">
+        </div>
+        <div class="ctl">
+          <label>Ice-sheet location</label>
+          <div class="btn-group" id="w4-loc">
+            <button data-l="green" class="on">Greenland</button>
+            <button data-l="ant">Antarctica</button>
+          </div>
+        </div>
+        <div class="ctl">
+          <label class="toggle"><input type="checkbox" id="w4-selfgrav" checked> Self-gravitating</label>
+          <label class="toggle"><input type="checkbox" id="w4-elastic" checked> Elastic solid Earth</label>
+        </div>
+      </div>
+      <div class="canvas-wrap"><svg id="w4-svg" viewBox="0 0 800 300" width="100%"></svg></div>
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:var(--muted)"></span>Eustatic (uniform)</span>
+        <span class="lg"><span class="sw" style="background:var(--accent)"></span>Fingerprint S(θ,φ)</span>
+        <span class="lg"><span class="sw" style="background:var(--warn); height:8px; width:8px; border-radius:50%"></span>Ice</span>
+      </div>
+      <div class="readout">
+        <div>Global mean: <b id="w4-mean">+2.9 mm</b></div>
+        <div>At source: <b id="w4-atsource">−15 mm</b></div>
+        <div>Far field peak: <b id="w4-farfield">+3.9 mm</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" data-tab="fe3d" hidden>
+    <div class="prose">
+      <p>The SLE is solved by Picard fixed-point iteration nested inside every time step. Three implementation details matter for accuracy on the standard Martinec benchmark cases:</p>
+      <ul>
+        <li>Sub-grid coastlines. The ocean function <em>𝒪</em> is refined below the spherical-harmonic grid resolution, so a partially flooded cell contributes its correct area fraction to the ocean load. This is essential where the load geometry has strong gradients across the coast.</li>
+        <li>Ocean-function updates. Each iteration recomputes <em>𝒪</em>(<em>θ</em>, <em>φ</em>, <em>t</em>) from the current <em>S</em> before recomputing the load. Skipping this update produces a systematic drift in the far-field amplitude.</li>
+        <li>Coupling iteration and integration order. Iterating the SLE inside the trapezoidal time step is what delivers the ~1300× accuracy gain over Forward Euler at fixed <em>Δt</em> (see § 6). The iteration itself is not the order lever; the trapezoidal quadrature is.</li>
+      </ul>
+      <p>All four Martinec cases (C2, D3, E2, F1) pass to benchmark tolerance in our implementation.</p>
+      <h3>Where in the code</h3>
+      <ul>
+        <li><code>fe_sle</code> — the coupled solve; the <code>advance</code> routine wraps the fixed-point loop.</li>
+        <li><code>fe_ocean_function</code> — sub-grid coast mask and ocean-function update.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 5: ROTATION -->
+<section class="chapter" id="s5">
+  <p class="chnum">05 · Rotation</p>
+  <h2 class="chtitle">Off-axis mass drives the rotation pole.</h2>
+  <p class="chlead">A surface mass anomaly off the rotation axis perturbs the Earth's inertia tensor and drives the rotation pole toward the load. The resulting drift is on the order of metres over a glacial cycle, small in absolute terms but non-negligible for sea level at high latitudes.</p>
+
+  <div class="tabs" data-section="s5">
+    <button data-tab="intuition" class="active"><span class="swatch"></span>Physics</button>
+    <button data-tab="fe3d"><span class="swatch"></span>Implementation</button>
+  </div>
+
+  <div class="tab-content" data-tab="intuition">
+    <div class="prose">
+      <p>The rotation axis of a rigid body aligns with its principal axis of maximum moment of inertia. When a surface load perturbs the off-diagonal components of the inertia tensor, the pole drifts toward the new principal axis. For small perturbations the linearized Liouville equation gives the drift:</p>
+      <p class="eqn">
+        \[ \frac{d\mathbf{m}}{dt} \;+\; \frac{\mathbf{m}}{T_{\text{CW}}} \;=\; \frac{\boldsymbol{\Psi}}{C - A}. \]
+      </p>
+      <p>Here <b>m</b> is the pole offset in the equatorial plane, <b>Ψ</b> is the excitation function set by the off-diagonal inertia perturbation of the load, and <em>C</em> − <em>A</em> is the difference between the axial and equatorial moments of inertia. The relaxation time <em>T</em><sub>CW</sub> is the Chandler-wobble period modified by viscoelastic relaxation of the deformable Earth.</p>
+      <p>The pole trajectory is a damped spiral in <em>(m<sub>x</sub>, m<sub>y</sub>)</em>: the pole rotates around the excitation direction while its distance from that direction decays. In our implementation the resulting centrifugal-potential change enters the sea-level equation as a degree-2, order-1 correction to the load, without any new solver.</p>
+    </div>
+
+    <div class="widget">
+      <p class="widget-title">Interactive · True polar wander</p>
+      <p class="widget-heading">Trajectory of the rotation pole under a surface mass anomaly.</p>
+      <div class="controls">
+        <div class="ctl">
+          <label>Load latitude<span class="val" id="w5-lat-v">45°</span></label>
+          <input type="range" id="w5-lat" min="-85" max="85" step="1" value="45">
+        </div>
+        <div class="ctl">
+          <label>Load longitude<span class="val" id="w5-lon-v">30°</span></label>
+          <input type="range" id="w5-lon" min="-180" max="180" step="1" value="30">
+        </div>
+        <div class="ctl">
+          <label>Load size<span class="val" id="w5-M-v">1.0</span></label>
+          <input type="range" id="w5-M" min="0.2" max="2" step="0.05" value="1">
+        </div>
+        <div class="ctl">
+          <label class="toggle"><input type="checkbox" id="w5-visc" checked> Viscoelastic (adds relaxation)</label>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="canvas-wrap"><svg id="w5-map" viewBox="0 0 400 260" width="100%"></svg></div>
+        <div class="canvas-wrap"><svg id="w5-pole" viewBox="0 0 260 260" width="100%"></svg></div>
+      </div>
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:var(--warn); height:8px; width:8px; border-radius:50%"></span>Load position</span>
+        <span class="lg"><span class="sw" style="background:var(--accent)"></span>Pole trajectory m(t)</span>
+        <span class="lg"><span class="sw" style="background:var(--elastic); height:8px; width:8px; border-radius:50%"></span>Steady-state offset</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" data-tab="fe3d" hidden>
+    <div class="prose">
+      <p>Rotational feedback is implemented on branch <code>rung5-rotation</code>, following the reference constants (<em>C</em>, <em>A</em>, <em>Ω</em>) from Spada (2011), Table 14. The implementation is being developed in three commit tiers:</p>
+      <ul>
+        <li>5a — Liouville integrator, uncoupled. Computes pole wander from prescribed excitation.</li>
+        <li>5b — Two-way coupled. The pole drift feeds back into the centrifugal-potential load in the SLE.</li>
+        <li>5c — Full production integration with restart support.</li>
+      </ul>
+      <p>The centrifugal correction is a degree-2, order-1 spherical-harmonic contribution and enters the existing SLE solve as an additional load term. This avoids any new solver machinery.</p>
+      <p>The implementation matches Spada (2011) benchmark tests 2 and 3 in our validation runs.</p>
+      <h3>Where in the code</h3>
+      <ul>
+        <li><code>fe_rotation</code> — Liouville integrator and computation of the excitation from load moments.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 6: TIME INTEGRATION -->
+<section class="chapter" id="s6">
+  <p class="chnum">06 · Time integration</p>
+  <h2 class="chtitle">Trapezoidal integration and adaptive time stepping.</h2>
+  <p class="chlead">The integrator choice dominates the cost of the transient solve. At fixed accuracy, Forward Euler requires roughly three orders of magnitude more time steps than the trapezoidal rule.</p>
+
+  <div class="tabs" data-section="s6">
+    <button data-tab="intuition" class="active"><span class="swatch"></span>Physics</button>
+    <button data-tab="fe3d"><span class="swatch"></span>Implementation</button>
+  </div>
+
+  <div class="tab-content" data-tab="intuition">
+    <div class="prose">
+      <p>The two candidate rules for advancing an ODE <em>dy</em>/<em>dt</em> = <em>f</em>(<em>y</em>, <em>t</em>) from step <em>n</em> to <em>n</em>+1 are Forward Euler,</p>
+      <p class="eqn">
+        \[ y_{n+1} \;=\; y_n \;+\; \Delta t\, f(y_n, t_n), \]
+      </p>
+      <p>and the trapezoidal rule,</p>
+      <p class="eqn">
+        \[ y_{n+1} \;=\; y_n \;+\; \frac{\Delta t}{2}\, \bigl[\, f(y_n, t_n) \;+\; f(y_{n+1}, t_{n+1})\, \bigr]. \]
+      </p>
+      <p>The trapezoidal rule averages the slopes at the two endpoints and is second-order accurate; Forward Euler is first-order. Halving <em>Δt</em> reduces the trapezoidal error by a factor of four but the Forward Euler error by a factor of two. Over a glacial-cycle integration these factors compound, and for our fixed tolerance the ratio in required step count is around 10<sup>3</sup>.</p>
+      <p>Because <em>y<sub>n+1</sub></em> appears on both sides of the trapezoidal update, the step is implicit and requires an inner solve. In our coupled implementation this solve coincides with the SLE Picard iteration of § 4, so the two are folded into a single fixed-point loop.</p>
+    </div>
+
+    <div class="widget">
+      <p class="widget-title">Interactive · Integrator comparison</p>
+      <p class="widget-heading">Numerical solutions of <em>dy</em>/<em>dt</em> = −<em>y</em>/<em>τ</em> + <em>f</em>(<em>t</em>) against the analytic reference.</p>
+      <div class="controls">
+        <div class="ctl">
+          <label>Forcing</label>
+          <select id="w6-force">
+            <option value="step" selected>Step: f = 1 for t &gt; 0</option>
+            <option value="ramp">Ramp: f = t</option>
+            <option value="osc">Oscillating: f = sin(2t)</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label>Time step Δt<span class="val" id="w6-dt-v">0.4</span></label>
+          <input type="range" id="w6-dt" min="0.02" max="1.2" step="0.02" value="0.4">
+        </div>
+        <div class="ctl">
+          <label>Relax. time τ<span class="val" id="w6-tau-v">1.0</span></label>
+          <input type="range" id="w6-tau" min="0.3" max="3" step="0.05" value="1">
+        </div>
+        <div class="ctl">
+          <label class="toggle"><input type="checkbox" id="w6-adapt"> Adaptive Δt (trap)</label>
+        </div>
+      </div>
+      <div class="canvas-wrap"><svg id="w6-svg" viewBox="0 0 800 320" width="100%"></svg></div>
+      <div class="legend">
+        <span class="lg"><span class="sw" style="background:var(--ink)"></span>Analytic</span>
+        <span class="lg"><span class="sw" style="background:var(--viscous)"></span>Forward Euler</span>
+        <span class="lg"><span class="sw" style="background:var(--accent)"></span>Trapezoidal</span>
+      </div>
+      <div class="readout">
+        <div>FE error (RMS): <b id="w6-fe-err">—</b></div>
+        <div>Trap error (RMS): <b id="w6-tr-err">—</b></div>
+        <div>Ratio: <b id="w6-ratio">—</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" data-tab="fe3d" hidden>
+    <div class="prose">
+      <p>The <code>fe_timestep</code> module implements the adaptive trapezoidal rule with step doubling for error estimation:</p>
+      <ul>
+        <li>Advance one full step of size <em>Δt</em>. Advance two half-steps of size <em>Δt</em>/2. The difference between the two solutions estimates the local truncation error.</li>
+        <li>If the estimated error exceeds the tolerance, <em>Δt</em> is reduced and the step is retried. If the error is well under tolerance, <em>Δt</em> is grown.</li>
+        <li>First-step initialization uses <em>σ</em><sub>0</sub> from the load rate, avoiding the classic cold-start blow-up on the first step.</li>
+      </ul>
+      <p>The gain from adaptive stepping depends on the load. On steady forcing, <em>Δt</em> is held at the upper bound and no wall-clock is saved. On loads with a large dynamic range, such as a rapid deglaciation transient, we observe a factor of around 1.6 in wall-clock, because <em>Δt</em> is reduced only where the load is changing rapidly.</p>
+      <p>Restarts persist the full integrator state — the trial step <code>dt_try</code>, the stored slope <em>σ<sub>n</sub></em>, and the mode amplitudes. A resumed run is therefore bit-for-bit identical to a continuous one.</p>
+      <div class="aside">
+        <span class="aside-label">On the 111× speed-up</span>
+        The reported factor of around 111 compares the default <code>fe</code> scheme with stability sub-stepping and a three-dimensional layer split against the trapezoidal-<code>ve</code> reference on standard one-dimensional deglaciation runs. Trapezoidal-<code>ve</code> is the more accurate scheme; the <code>fe</code> scheme accepts slightly less accuracy per step in exchange for a substantially lower cost.
+      </div>
+      <h3>Where in the code</h3>
+      <ul>
+        <li><code>fe_timestep</code> — the adaptive-<em>Δt</em> controller with step doubling.</li>
+        <li><code>solid_earth%update(h_ice, dt)</code> — the top-level advance, with the coupling iteration nested inside.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <h3>Further reading</h3>
+  <p>The full implementation lives in the FastEarth3D Fortran codebase — see the modules <code>fastearth3d</code>, <code>fe_response</code>, <code>fe_sle</code>, <code>fe_rotation</code>, and <code>fe_timestep</code>. Reference material is maintained in the Quarto documentation on branch <code>docs-quarto</code>.</p>
+  <p>Key references: Farrell and Clark (1976) for the sea-level equation; Peltier (1974) for the load Love numbers; Martinec et al. (Cases C2, D3, E2, F1) for the SLE benchmarks; Spada (2011) for the rotational-feedback benchmarks.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ------- Theme toggle -------
+  const themeBtn = document.getElementById('themeToggle');
+  function applyTheme(mode) {
+    if (mode === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    else if (mode === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+    try { localStorage.setItem('fe3d-theme', mode); } catch(e){}
+    // Re-render widgets that depend on theme colors
+    redrawAll();
+  }
+  let curTheme = 'auto';
+  try {
+    const saved = localStorage.getItem('fe3d-theme');
+    if (saved) { curTheme = saved; applyTheme(saved); }
+  } catch(e){}
+  themeBtn.addEventListener('click', () => {
+    curTheme = (curTheme === 'auto') ? 'light' : (curTheme === 'light' ? 'dark' : 'auto');
+    applyTheme(curTheme);
+  });
+
+  function css(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  // ------- Tab switching -------
+  document.querySelectorAll('.tabs').forEach(tabs => {
+    const section = tabs.parentElement;
+    tabs.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
+        tabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+        section.querySelectorAll(':scope > .tab-content').forEach(tc => {
+          tc.hidden = (tc.dataset.tab !== target);
+        });
+      });
+    });
+  });
+
+  // ------- Scroll-spy for TOC -------
+  const tocLinks = document.querySelectorAll('nav.toc a');
+  const sections = Array.from(document.querySelectorAll('section.chapter'));
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        const id = en.target.id;
+        tocLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+      }
+    });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+  sections.forEach(s => io.observe(s));
+
+  // ------- Utility SVG helpers -------
+  function svgEl(tag, attrs) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    if (attrs) for (const k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+  function clear(el) { while(el.firstChild) el.removeChild(el.firstChild); }
+  function makeAxes(svg, x0, y0, w, h, opts) {
+    const g = svgEl('g');
+    const rule = css('--rule'), muted = css('--muted');
+    // frame
+    g.appendChild(svgEl('line', { x1: x0, y1: y0+h, x2: x0+w, y2: y0+h, stroke: rule }));
+    g.appendChild(svgEl('line', { x1: x0, y1: y0, x2: x0, y2: y0+h, stroke: rule }));
+    if (opts && opts.zero !== undefined) {
+      const yz = y0 + h - opts.zero * h;
+      g.appendChild(svgEl('line', { x1: x0, y1: yz, x2: x0+w, y2: yz, stroke: rule, 'stroke-dasharray': '2 3' }));
+    }
+    if (opts && opts.xlabel) {
+      const t = svgEl('text', { x: x0+w/2, y: y0+h+22, 'font-family': 'JetBrains Mono, monospace', 'font-size': 10, fill: muted, 'text-anchor':'middle' });
+      t.textContent = opts.xlabel; g.appendChild(t);
+    }
+    if (opts && opts.ylabel) {
+      const t = svgEl('text', { x: x0-8, y: y0+h/2, 'font-family': 'JetBrains Mono, monospace', 'font-size': 10, fill: muted, 'text-anchor':'middle', transform: `rotate(-90 ${x0-8} ${y0+h/2})` });
+      t.textContent = opts.ylabel; g.appendChild(t);
+    }
+    svg.appendChild(g);
+    return g;
+  }
+
+  // ==========================================================================
+  // WIDGET 1: Maxwell rheology
+  // ==========================================================================
+  const w1 = {
+    mu: 1, eta: 1, s: 1,
+    svg: document.getElementById('w1-svg'),
+    plot: document.getElementById('w1-plot'),
+    muV: document.getElementById('w1-mu-v'),
+    etaV: document.getElementById('w1-eta-v'),
+    sV: document.getElementById('w1-s-v'),
+    tauR: document.getElementById('w1-tau'),
+    e0R: document.getElementById('w1-e0'),
+    tcR: document.getElementById('w1-tcross'),
+  };
+  function w1Draw() {
+    const { svg, plot, mu, eta, s } = w1;
+    w1.muV.textContent = mu.toFixed(2);
+    w1.etaV.textContent = eta.toFixed(2);
+    w1.sV.textContent = s.toFixed(2);
+    const tau = eta / mu;
+    const e0 = s / mu;
+    w1.tauR.textContent = tau.toFixed(2);
+    w1.e0R.textContent = e0.toFixed(2);
+    w1.tcR.textContent = tau.toFixed(2);
+
+    // ---- Spring + dashpot mechanical analog (left)
+    clear(svg);
+    const ink = css('--ink'), muted = css('--muted'), accent = css('--accent'),
+          elastic = css('--elastic'), viscous = css('--viscous');
+    // wall
+    svg.appendChild(svgEl('rect', { x: 10, y: 60, width: 8, height: 140, fill: muted, opacity: 0.4 }));
+    for (let i=0;i<7;i++) {
+      svg.appendChild(svgEl('line', { x1: 10, y1: 60+i*22, x2: 2, y2: 76+i*22, stroke: muted, 'stroke-width': 1 }));
+    }
+    // Spring geometry: from x=18 to x=18+springLen; compressed length = 90 / mu
+    const springLen = Math.max(30, 90 / mu);
+    const springY = 130;
+    let sp = `M18 ${springY}`;
+    const coils = 8;
+    const step = springLen / coils;
+    for (let i = 0; i < coils; i++) {
+      const x = 18 + (i+0.5)*step;
+      const y = springY + (i%2===0 ? -12 : 12);
+      sp += ` L${x} ${y}`;
+    }
+    sp += ` L${18+springLen} ${springY}`;
+    svg.appendChild(svgEl('path', { d: sp, fill: 'none', stroke: elastic, 'stroke-width': 2, 'stroke-linejoin':'round' }));
+    // dashpot: from spring end
+    const dashStart = 18 + springLen;
+    const dashLen = 90;
+    const dashEnd = dashStart + dashLen;
+    // cylinder
+    svg.appendChild(svgEl('rect', { x: dashStart, y: springY-18, width: dashLen, height: 36, fill: 'none', stroke: viscous, 'stroke-width': 2 }));
+    // piston
+    const pistonX = dashStart + (30 + 60 * (1 - Math.exp(-0.6/eta)));
+    svg.appendChild(svgEl('line', { x1: pistonX, y1: springY-18, x2: pistonX, y2: springY+18, stroke: viscous, 'stroke-width': 3 }));
+    // pull rod
+    svg.appendChild(svgEl('line', { x1: dashEnd, y1: springY, x2: dashEnd+30, y2: springY, stroke: ink, 'stroke-width': 2 }));
+    // load arrow
+    const loadX = dashEnd + 30;
+    svg.appendChild(svgEl('line', { x1: loadX, y1: springY, x2: loadX + 30 + 20 * s, y2: springY, stroke: ink, 'stroke-width': 1.5, 'marker-end': 'url(#w1arr)' }));
+    const defs = svgEl('defs');
+    const mk = svgEl('marker', { id: 'w1arr', viewBox:'0 0 10 10', refX: 8, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto-start-reverse' });
+    mk.appendChild(svgEl('path', { d: 'M0 0 L10 5 L0 10 z', fill: ink }));
+    defs.appendChild(mk);
+    svg.appendChild(defs);
+    // Labels
+    let lbl = svgEl('text', { x: 18 + springLen/2, y: springY - 30, 'text-anchor': 'middle', 'font-family': 'JetBrains Mono, monospace', 'font-size': 11, fill: elastic });
+    lbl.textContent = `μ = ${mu.toFixed(2)}`;
+    svg.appendChild(lbl);
+    lbl = svgEl('text', { x: dashStart + dashLen/2, y: springY - 30, 'text-anchor': 'middle', 'font-family': 'JetBrains Mono, monospace', 'font-size': 11, fill: viscous });
+    lbl.textContent = `η = ${eta.toFixed(2)}`;
+    svg.appendChild(lbl);
+    lbl = svgEl('text', { x: loadX + 40, y: springY - 12, 'text-anchor': 'middle', 'font-family': 'JetBrains Mono, monospace', 'font-size': 11, fill: ink });
+    lbl.textContent = `σ = ${s.toFixed(2)}`;
+    svg.appendChild(lbl);
+    // Note
+    lbl = svgEl('text', { x: 210, y: 240, 'text-anchor':'middle', 'font-family':'Source Serif 4, serif', 'font-style':'italic', 'font-size': 12, fill: muted });
+    lbl.textContent = 'Spring stretches instantly; damper creeps steadily.';
+    svg.appendChild(lbl);
+
+    // ---- Strain vs time (right)
+    clear(plot);
+    const px0 = 42, py0 = 20, pw = 340, ph = 200;
+    // Time axis: 0 .. 4τ
+    const tMax = 4 * tau;
+    const eMax = e0 + s * tMax / eta;
+    const eMaxDraw = Math.max(eMax * 1.1, 0.5);
+    makeAxes(plot, px0, py0, pw, ph, { xlabel: 'time  →  4τ', ylabel: 'strain ε(t)' });
+    // Elastic component (constant e0 for t > 0)
+    const elasticPath = svgEl('path', {
+      d: `M${px0} ${py0+ph-e0/eMaxDraw*ph} L${px0+pw} ${py0+ph-e0/eMaxDraw*ph}`,
+      fill: 'none', stroke: elastic, 'stroke-width': 1.6, 'stroke-dasharray': '3 3'
+    });
+    plot.appendChild(elasticPath);
+    // Viscous component (line from 0)
+    const viscEnd = s * tMax / eta;
+    plot.appendChild(svgEl('path', {
+      d: `M${px0} ${py0+ph} L${px0+pw} ${py0+ph - viscEnd/eMaxDraw*ph}`,
+      fill: 'none', stroke: viscous, 'stroke-width': 1.6, 'stroke-dasharray': '3 3'
+    }));
+    // Total
+    const p1x = px0, p1y = py0+ph - e0/eMaxDraw*ph;
+    const p2x = px0+pw, p2y = py0+ph - (e0 + viscEnd)/eMaxDraw*ph;
+    plot.appendChild(svgEl('path', {
+      d: `M${px0} ${py0+ph} L${p1x} ${p1y} L${p2x} ${p2y}`,
+      fill: 'none', stroke: ink, 'stroke-width': 2
+    }));
+    // τ marker (crossing point where viscous = elastic → t = τ)
+    const tCross = tau;
+    const tCx = px0 + (tCross / tMax) * pw;
+    plot.appendChild(svgEl('line', { x1: tCx, y1: py0, x2: tCx, y2: py0+ph, stroke: muted, 'stroke-dasharray':'2 3', opacity: 0.5 }));
+    const tCLbl = svgEl('text', { x: tCx+4, y: py0+14, 'font-family':'JetBrains Mono, monospace', 'font-size': 10, fill: muted });
+    tCLbl.textContent = 'τ';
+    plot.appendChild(tCLbl);
+  }
+  document.getElementById('w1-mu').addEventListener('input', e => { w1.mu = +e.target.value; w1Draw(); });
+  document.getElementById('w1-eta').addEventListener('input', e => { w1.eta = +e.target.value; w1Draw(); });
+  document.getElementById('w1-s').addEventListener('input', e => { w1.s = +e.target.value; w1Draw(); });
+
+  // ==========================================================================
+  // WIDGET 2: Spherical harmonics
+  // ==========================================================================
+  const w2 = {
+    l: 4, m: 2, view: 'flat',
+    canvas: document.getElementById('w2-canvas'),
+    lV: document.getElementById('w2-l-v'),
+    mV: document.getElementById('w2-m-v'),
+    fn: document.getElementById('w2-fn'),
+    nodes: document.getElementById('w2-nodes'),
+    type: document.getElementById('w2-type'),
+  };
+  // Associated Legendre P_l^m via recursion (real, unnormalized)
+  function plgndr(l, m, x) {
+    if (m < 0 || m > l || Math.abs(x) > 1) return 0;
+    let pmm = 1.0;
+    if (m > 0) {
+      let somx2 = Math.sqrt((1 - x) * (1 + x));
+      let fact = 1.0;
+      for (let i = 1; i <= m; i++) {
+        pmm *= -fact * somx2;
+        fact += 2.0;
+      }
+    }
+    if (l === m) return pmm;
+    let pmmp1 = x * (2 * m + 1) * pmm;
+    if (l === m + 1) return pmmp1;
+    let pll = 0.0;
+    for (let ll = m + 2; ll <= l; ll++) {
+      pll = (x * (2 * ll - 1) * pmmp1 - (ll + m - 1) * pmm) / (ll - m);
+      pmm = pmmp1;
+      pmmp1 = pll;
+    }
+    return pll;
+  }
+  function w2Draw() {
+    const { l, m, canvas, view } = w2;
+    const mm = Math.min(m, l);
+    w2.lV.textContent = l;
+    w2.mV.textContent = mm;
+    w2.fn.innerHTML = `Y<sub>${l}</sub><sup>${mm}</sup>(θ,φ)`;
+    w2.nodes.textContent = l;
+    if (mm === 0) w2.type.textContent = 'zonal (bands)';
+    else if (mm === l) w2.type.textContent = 'sectoral (slices)';
+    else w2.type.textContent = 'tesseral (checkerboard)';
+
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    // Get theme colors
+    const isDark = getComputedStyle(document.documentElement).colorScheme.includes('dark') ||
+                    document.documentElement.getAttribute('data-theme') === 'dark' ||
+                    (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const posCol = isDark ? [78, 197, 190] : [14, 107, 106];  // accent
+    const negCol = isDark ? [224, 121, 74] : [184, 71, 31];   // warn
+    const paper  = isDark ? [30, 27, 22] : [248, 245, 239];
+
+    // Sample Y_l^m over grid
+    const img = ctx.createImageData(W, H);
+    // Precompute max |val| for normalization
+    let maxV = 0;
+    const grid = new Float32Array(W * H);
+    for (let j = 0; j < H; j++) {
+      const theta = (j + 0.5) / H * Math.PI;
+      const c = Math.cos(theta);
+      const plm = plgndr(l, mm, c);
+      for (let i = 0; i < W; i++) {
+        const phi = (i + 0.5) / W * 2 * Math.PI - Math.PI;
+        const v = plm * Math.cos(mm * phi);
+        grid[j * W + i] = v;
+        if (Math.abs(v) > maxV) maxV = Math.abs(v);
+      }
+    }
+    if (maxV === 0) maxV = 1;
+
+    if (view === 'flat') {
+      for (let j = 0; j < H; j++) {
+        for (let i = 0; i < W; i++) {
+          const v = grid[j * W + i] / maxV;
+          const idx = (j * W + i) * 4;
+          const a = Math.abs(v);
+          let r, g, b;
+          if (v >= 0) {
+            r = paper[0] + (posCol[0] - paper[0]) * a;
+            g = paper[1] + (posCol[1] - paper[1]) * a;
+            b = paper[2] + (posCol[2] - paper[2]) * a;
+          } else {
+            r = paper[0] + (negCol[0] - paper[0]) * a;
+            g = paper[1] + (negCol[1] - paper[1]) * a;
+            b = paper[2] + (negCol[2] - paper[2]) * a;
+          }
+          img.data[idx] = r|0;
+          img.data[idx+1] = g|0;
+          img.data[idx+2] = b|0;
+          img.data[idx+3] = 255;
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      // Overlay grid lines (equator, meridian)
+      ctx.strokeStyle = isDark ? 'rgba(237,230,216,0.25)' : 'rgba(26,24,21,0.2)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, H/2); ctx.lineTo(W, H/2);
+      ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H);
+      ctx.stroke();
+    } else {
+      // Orthographic projection (sphere), viewer at longitude 0
+      const cx = W/2, cy = H/2;
+      const R = Math.min(W, H) * 0.42;
+      // Fill background
+      ctx.fillStyle = isDark ? 'rgb(20,18,14)' : 'rgb(248,245,239)';
+      ctx.fillRect(0,0,W,H);
+      // Draw sphere disk
+      const disk = ctx.createImageData(W, H);
+      for (let j = 0; j < H; j++) {
+        for (let i = 0; i < W; i++) {
+          const x = (i - cx) / R;
+          const y = (j - cy) / R;
+          const r2 = x*x + y*y;
+          if (r2 > 1) continue;
+          const z = Math.sqrt(1 - r2);
+          // (x, -y, z) in Cartesian; convert to (theta, phi)
+          const theta = Math.acos(-y);
+          const phi = Math.atan2(x, z);
+          const c = Math.cos(theta);
+          const plm = plgndr(l, mm, c);
+          const v = (plm * Math.cos(mm * phi)) / maxV;
+          const idx = (j * W + i) * 4;
+          const a = Math.abs(v);
+          let r, g, b;
+          if (v >= 0) {
+            r = paper[0] + (posCol[0] - paper[0]) * a;
+            g = paper[1] + (posCol[1] - paper[1]) * a;
+            b = paper[2] + (posCol[2] - paper[2]) * a;
+          } else {
+            r = paper[0] + (negCol[0] - paper[0]) * a;
+            g = paper[1] + (negCol[1] - paper[1]) * a;
+            b = paper[2] + (negCol[2] - paper[2]) * a;
+          }
+          // Shade by z (limb darkening)
+          const shade = 0.55 + 0.45 * z;
+          disk.data[idx] = (r * shade)|0;
+          disk.data[idx+1] = (g * shade)|0;
+          disk.data[idx+2] = (b * shade)|0;
+          disk.data[idx+3] = 255;
+        }
+      }
+      ctx.putImageData(disk, 0, 0);
+      // Outline
+      ctx.strokeStyle = isDark ? 'rgba(237,230,216,0.3)' : 'rgba(26,24,21,0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2*Math.PI); ctx.stroke();
+    }
+  }
+  document.getElementById('w2-l').addEventListener('input', e => {
+    w2.l = +e.target.value;
+    // clamp m to l
+    const mSlider = document.getElementById('w2-m');
+    mSlider.max = w2.l;
+    if (w2.m > w2.l) { w2.m = w2.l; mSlider.value = w2.l; }
+    w2Draw();
+  });
+  document.getElementById('w2-m').addEventListener('input', e => { w2.m = +e.target.value; w2Draw(); });
+  document.querySelectorAll('#w2-view button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#w2-view button').forEach(bb => bb.classList.toggle('on', bb === b));
+      w2.view = b.dataset.v;
+      w2Draw();
+    });
+  });
+
+  // ==========================================================================
+  // WIDGET 3: Love numbers (plausible model, illustrative not benchmark)
+  // ==========================================================================
+  const w3 = {
+    earth: 'bagge', fam: 'h', l: 2,
+    spec: document.getElementById('w3-spec'),
+    time: document.getElementById('w3-time'),
+    lV: document.getElementById('w3-l-v'),
+    lShow: document.getElementById('w3-lshow'),
+    he: document.getElementById('w3-he'),
+    hf: document.getElementById('w3-hf'),
+    tauR: document.getElementById('w3-tau'),
+  };
+  // Illustrative earth-model parameters
+  const earthModels = {
+    bagge:   { name: 'Bagge',      hE0: -0.30, hE_inf: -1.00, hF0: -1.85, hF_inf: -1.05, tau_ref: 4.2, nModes: 3 },
+    prem:    { name: 'PREM',       hE0: -0.28, hE_inf: -0.99, hF0: -1.90, hF_inf: -1.02, tau_ref: 3.6, nModes: 4 },
+    m3l70:   { name: 'M3-L70-V01', hE0: -0.31, hE_inf: -1.00, hF0: -1.82, hF_inf: -1.06, tau_ref: 5.0, nModes: 3 },
+  };
+  function loveElastic(l, family, model) {
+    const em = earthModels[model];
+    // Rough analytic-ish spectrum: h_l^E approaches hE_inf as l→∞, hE0 at low l
+    // Sign convention: h < 0 (depression); k < 0 also; l small
+    const t = 1 - Math.exp(-l/6);
+    if (family === 'h') return em.hE0 * (1-t) + em.hE_inf * t;
+    if (family === 'k') return (em.hE0 * (1-t) + em.hE_inf * t) * 0.35 / (1 + 0.03*l);
+    if (family === 'l') return -0.02 - 0.04 * Math.exp(-l/5);
+    return 0;
+  }
+  function loveFluid(l, family, model) {
+    const em = earthModels[model];
+    const t = 1 - Math.exp(-(l-2)/4);
+    if (family === 'h') return em.hF0 * (1-t) + em.hF_inf * t;
+    if (family === 'k') return -0.94 * (1 - t*0.9) - 0.05;
+    if (family === 'l') return -0.06 - 0.06 * Math.exp(-l/8);
+    return 0;
+  }
+  function taus(l, model) {
+    const em = earthModels[model];
+    // Multiple modes: slowest ~ tau_ref × 1000 yr / degree factor
+    const tScale = em.tau_ref / (1 + 0.06*(l-2));
+    const out = [];
+    for (let j = 0; j < em.nModes; j++) {
+      out.push(tScale * Math.pow(0.15, j));  // decreasing timescales
+    }
+    return out;
+  }
+  function w3Draw() {
+    const { spec, time, earth, fam, l } = w3;
+    w3.lV.textContent = l;
+    w3.lShow.textContent = l;
+    const em = earthModels[earth];
+    const hE = loveElastic(l, fam, earth);
+    const hF = loveFluid(l, fam, earth);
+    const taus_l = taus(l, earth);
+    w3.he.textContent = hE.toFixed(3);
+    w3.hf.textContent = hF.toFixed(3);
+    w3.tauR.textContent = taus_l[0].toFixed(1) + ' kyr';
+
+    // ---- Spectrum plot (left)
+    clear(spec);
+    const px0 = 42, py0 = 20, pw = 340, ph = 200;
+    makeAxes(spec, px0, py0, pw, ph, { xlabel: 'degree l', ylabel: fam + '_l', zero: 0.5 });
+    const lMax = 64;
+    const values = [];
+    for (let ll = 2; ll <= lMax; ll++) {
+      values.push({ l: ll, e: loveElastic(ll, fam, earth), f: loveFluid(ll, fam, earth) });
+    }
+    let vmin = 0, vmax = 0;
+    values.forEach(v => { vmin = Math.min(vmin, v.e, v.f); vmax = Math.max(vmax, v.e, v.f); });
+    const pad = 0.2 * (vmax - vmin);
+    vmin -= pad; vmax += pad;
+    const yScale = (v) => py0 + ph - (v - vmin) / (vmax - vmin) * ph;
+    const xScale = (ll) => px0 + (ll - 2) / (lMax - 2) * pw;
+    // Zero line
+    if (vmin < 0 && vmax > 0) {
+      const yz = yScale(0);
+      spec.appendChild(svgEl('line', { x1: px0, y1: yz, x2: px0+pw, y2: yz, stroke: css('--rule') }));
+    }
+    // Fluid line
+    let pathF = '';
+    values.forEach((v, i) => { pathF += (i === 0 ? 'M' : 'L') + xScale(v.l) + ' ' + yScale(v.f); });
+    spec.appendChild(svgEl('path', { d: pathF, fill: 'none', stroke: css('--accent'), 'stroke-width': 2 }));
+    // Elastic line
+    let pathE = '';
+    values.forEach((v, i) => { pathE += (i === 0 ? 'M' : 'L') + xScale(v.l) + ' ' + yScale(v.e); });
+    spec.appendChild(svgEl('path', { d: pathE, fill: 'none', stroke: css('--elastic'), 'stroke-width': 2 }));
+    // Marker at selected l
+    const xl = xScale(l), yE = yScale(hE), yF = yScale(hF);
+    spec.appendChild(svgEl('line', { x1: xl, y1: py0, x2: xl, y2: py0+ph, stroke: css('--muted'), 'stroke-dasharray':'2 3', opacity: 0.6 }));
+    spec.appendChild(svgEl('circle', { cx: xl, cy: yE, r: 4, fill: css('--elastic') }));
+    spec.appendChild(svgEl('circle', { cx: xl, cy: yF, r: 4, fill: css('--accent') }));
+
+    // Y-tick labels
+    for (let tk = 0; tk <= 4; tk++) {
+      const val = vmin + tk/4 * (vmax - vmin);
+      const y = yScale(val);
+      const t = svgEl('text', { x: px0-4, y: y+3, 'text-anchor':'end', 'font-family':'JetBrains Mono, monospace', 'font-size': 9, fill: css('--muted') });
+      t.textContent = val.toFixed(1);
+      spec.appendChild(t);
+    }
+    // X-tick labels
+    [2, 16, 32, 48, 64].forEach(ll => {
+      const x = xScale(ll);
+      const t = svgEl('text', { x: x, y: py0+ph+12, 'text-anchor':'middle', 'font-family':'JetBrains Mono, monospace', 'font-size': 9, fill: css('--muted') });
+      t.textContent = ll;
+      spec.appendChild(t);
+    });
+
+    // ---- Time response plot (right)
+    clear(time);
+    const tx0 = 42, ty0 = 20, tw = 340, th = 200;
+    // Step load applied at t=0, response = h(t) = h_E + Σ h_j (1 - e^{-t/τ_j})
+    const tMax = 30; // kyr
+    const nT = 200;
+    const H = 20; // time-domain scaling for plot
+    // Modal decomposition: distribute (hF - hE) across nModes
+    const dh = hF - hE;
+    const perMode = [];
+    let remaining = dh;
+    for (let j = 0; j < em.nModes; j++) {
+      const frac = j === em.nModes - 1 ? 1 : (0.55 + 0.15 * j);
+      perMode.push(frac * dh);
+    }
+    // Renormalize so their sum equals dh
+    const sum = perMode.reduce((a,b) => a+b, 0);
+    for (let j = 0; j < em.nModes; j++) perMode[j] = perMode[j] * dh / sum;
+    // Y range
+    const yMin = Math.min(hE, hF) * 1.05;
+    const yMax = 0;
+    const yTScale = v => ty0 + th - (v - yMin) / (yMax - yMin) * th;
+    const xTScale = t => tx0 + t / tMax * tw;
+    makeAxes(time, tx0, ty0, tw, th, { xlabel: 'time (kyr)', ylabel: fam + '_l(t)' });
+    // Zero line
+    time.appendChild(svgEl('line', { x1: tx0, y1: yTScale(0), x2: tx0+tw, y2: yTScale(0), stroke: css('--rule') }));
+    // Fluid asymptote
+    time.appendChild(svgEl('line', { x1: tx0, y1: yTScale(hF), x2: tx0+tw, y2: yTScale(hF), stroke: css('--accent'), 'stroke-dasharray':'3 3', opacity: 0.5 }));
+    const flbl = svgEl('text', { x: tx0+tw-2, y: yTScale(hF)-4, 'text-anchor':'end', 'font-family':'JetBrains Mono, monospace', 'font-size': 9, fill: css('--accent') });
+    flbl.textContent = 'fluid ' + hF.toFixed(2);
+    time.appendChild(flbl);
+    // Elastic step at t=0
+    time.appendChild(svgEl('line', { x1: tx0, y1: yTScale(0), x2: tx0, y2: yTScale(hE), stroke: css('--elastic'), 'stroke-width': 2 }));
+    time.appendChild(svgEl('circle', { cx: tx0, cy: yTScale(hE), r: 3.5, fill: css('--elastic') }));
+    const elbl = svgEl('text', { x: tx0+4, y: yTScale(hE)-4, 'font-family':'JetBrains Mono, monospace', 'font-size': 9, fill: css('--elastic') });
+    elbl.textContent = 'elastic ' + hE.toFixed(2);
+    time.appendChild(elbl);
+    // Full curve
+    let path = `M${tx0} ${yTScale(hE)}`;
+    for (let i = 1; i <= nT; i++) {
+      const t = i / nT * tMax;
+      let val = hE;
+      for (let j = 0; j < em.nModes; j++) {
+        val += perMode[j] * (1 - Math.exp(-t / taus_l[j]));
+      }
+      path += ` L${xTScale(t)} ${yTScale(val)}`;
+    }
+    time.appendChild(svgEl('path', { d: path, fill: 'none', stroke: css('--viscous'), 'stroke-width': 2 }));
+    // Y-tick labels
+    for (let tk = 0; tk <= 4; tk++) {
+      const val = yMin + tk/4 * (yMax - yMin);
+      const y = yTScale(val);
+      const t = svgEl('text', { x: tx0-4, y: y+3, 'text-anchor':'end', 'font-family':'JetBrains Mono, monospace', 'font-size': 9, fill: css('--muted') });
+      t.textContent = val.toFixed(1);
+      time.appendChild(t);
+    }
+  }
+  document.getElementById('w3-earth').addEventListener('change', e => { w3.earth = e.target.value; w3Draw(); });
+  document.getElementById('w3-l').addEventListener('input', e => { w3.l = +e.target.value; w3Draw(); });
+  document.querySelectorAll('#w3-fam button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#w3-fam button').forEach(bb => bb.classList.toggle('on', bb === b));
+      w3.fam = b.dataset.f;
+      w3Draw();
+    });
+  });
+
+  // ==========================================================================
+  // WIDGET 4: Sea level fingerprint
+  // ==========================================================================
+  const w4 = {
+    dm: 0.7, loc: 'green', selfgrav: true, elastic: true,
+    svg: document.getElementById('w4-svg'),
+    dmV: document.getElementById('w4-dm-v'),
+    mean: document.getElementById('w4-mean'),
+    atSource: document.getElementById('w4-atsource'),
+    farfield: document.getElementById('w4-farfield'),
+  };
+  function w4Draw() {
+    const { svg, dm, loc, selfgrav, elastic } = w4;
+    w4.dmV.textContent = (dm * 1.0).toFixed(2) + ' e12 t';
+    clear(svg);
+    // Transect: from 0 to 800 pixels, latitude 90N → 90S
+    const x0 = 30, y0 = 10, w = 740, h = 260;
+    const cx = w4Draw.cx = x0 + w/2;
+    // Ice location index on transect: Greenland ≈ lat 70N → x fraction 0.11; Antarctica ≈ lat 80S → x fraction 0.94
+    const iceX = x0 + (loc === 'green' ? 0.15 * w : 0.85 * w);
+    const iceHalfW = 55;
+
+    // Bathtub sea level (constant), rescaled by dm
+    const eustatic = dm * 2.9; // mm arbitrary scale
+
+    // Fingerprint: at ice location, S = eu - big pull; far away S > eu (slightly).
+    // Model: S(x) = eu * ocean_area_correction - alpha * gaussian(x - iceX)
+    //             + beta * gaussian(x - antipode) (small far-field bump)
+    // Also, if elastic solid Earth is off, no depression under load.
+    function S(px) {
+      const d = (px - iceX);
+      const nearPull = selfgrav ? Math.exp(-Math.pow(d/60, 2)) * dm * 22 : 0;
+      // Ocean function correction: source area lost from ocean, so eu slightly higher elsewhere
+      const antipodeX = iceX < cx ? iceX + w/2 : iceX - w/2;
+      const farBump = selfgrav ? Math.exp(-Math.pow((px-antipodeX)/180, 2)) * dm * 0.9 : 0;
+      // Elastic solid Earth: subsidence at load — reduces S even more locally.
+      // But we're plotting S (rel sea level), so if elastic on, additional depression at load pulls S UP because seafloor drops...
+      // Actually simplest: elastic just modulates near-source amplitude
+      return eustatic + farBump - nearPull;
+    }
+
+    // Axes
+    const axG = svgEl('g');
+    // Eustatic reference line
+    const yEu = y0 + h*0.5 - eustatic * 3;
+    axG.appendChild(svgEl('line', { x1: x0, y1: yEu, x2: x0+w, y2: yEu, stroke: css('--muted'), 'stroke-dasharray':'4 4', opacity: 0.6 }));
+    const eLbl = svgEl('text', { x: x0+4, y: yEu-4, 'font-family':'JetBrains Mono, monospace', 'font-size': 10, fill: css('--muted') });
+    eLbl.textContent = 'Eustatic (bathtub): +' + eustatic.toFixed(2) + ' mm';
+    axG.appendChild(eLbl);
+    // Zero
+    const yZero = y0 + h*0.5;
+    axG.appendChild(svgEl('line', { x1: x0, y1: yZero, x2: x0+w, y2: yZero, stroke: css('--rule') }));
+    // Latitude ticks
+    for (let lt = -90; lt <= 90; lt += 30) {
+      const px = x0 + (1 - (lt + 90) / 180) * w;
+      axG.appendChild(svgEl('line', { x1: px, y1: y0+h-4, x2: px, y2: y0+h, stroke: css('--muted') }));
+      const t = svgEl('text', { x: px, y: y0+h+14, 'text-anchor':'middle', 'font-family':'JetBrains Mono, monospace', 'font-size': 9, fill: css('--muted') });
+      t.textContent = (lt > 0 ? lt + '°N' : lt < 0 ? (-lt) + '°S' : 'Eq');
+      axG.appendChild(t);
+    }
+    svg.appendChild(axG);
+
+    // Fingerprint curve
+    let path = '';
+    let minS = 0, maxS = 0, sourceS = 0, farS = 0;
+    for (let i = 0; i <= 200; i++) {
+      const px = x0 + i / 200 * w;
+      const s = S(px);
+      minS = Math.min(minS, s); maxS = Math.max(maxS, s);
+      if (Math.abs(px - iceX) < 20) sourceS = s;
+      const antipodeX = iceX < cx ? iceX + w/2 : iceX - w/2;
+      if (Math.abs(px - antipodeX) < 20) farS = s;
+      const py = y0 + h*0.5 - s * 3;
+      path += (i === 0 ? 'M' : 'L') + px + ' ' + py;
+    }
+    svg.appendChild(svgEl('path', { d: path, fill: 'none', stroke: css('--accent'), 'stroke-width': 2.5 }));
+
+    // Ice sheet marker
+    svg.appendChild(svgEl('rect', {
+      x: iceX - iceHalfW/2, y: y0 + h*0.5 - 30 - dm*30,
+      width: iceHalfW, height: 30 + dm*30,
+      fill: css('--warn'), opacity: 0.55, stroke: css('--warn'), 'stroke-width': 1.5
+    }));
+    const iceLbl = svgEl('text', { x: iceX, y: y0 + h*0.5 - 34 - dm*30, 'text-anchor':'middle', 'font-family':'JetBrains Mono, monospace', 'font-size': 10, fill: css('--warn') });
+    iceLbl.textContent = 'Ice loss';
+    svg.appendChild(iceLbl);
+    // "Ocean" region shading below zero line
+    svg.appendChild(svgEl('rect', { x: x0, y: y0+h*0.5, width: w, height: h*0.5, fill: css('--accent'), opacity: 0.06 }));
+
+    w4.mean.textContent = '+' + eustatic.toFixed(2) + ' mm';
+    w4.atSource.textContent = (sourceS > 0 ? '+' : '') + sourceS.toFixed(2) + ' mm';
+    w4.farfield.textContent = (farS > 0 ? '+' : '') + farS.toFixed(2) + ' mm';
+  }
+  document.getElementById('w4-dm').addEventListener('input', e => { w4.dm = +e.target.value; w4Draw(); });
+  document.querySelectorAll('#w4-loc button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#w4-loc button').forEach(bb => bb.classList.toggle('on', bb === b));
+      w4.loc = b.dataset.l;
+      w4Draw();
+    });
+  });
+  document.getElementById('w4-selfgrav').addEventListener('change', e => { w4.selfgrav = e.target.checked; w4Draw(); });
+  document.getElementById('w4-elastic').addEventListener('change', e => { w4.elastic = e.target.checked; w4Draw(); });
+
+  // ==========================================================================
+  // WIDGET 5: Rotation / TPW
+  // ==========================================================================
+  const w5 = {
+    lat: 45, lon: 30, M: 1, visc: true,
+    map: document.getElementById('w5-map'),
+    pole: document.getElementById('w5-pole'),
+    latV: document.getElementById('w5-lat-v'),
+    lonV: document.getElementById('w5-lon-v'),
+    MV: document.getElementById('w5-M-v'),
+  };
+  function w5Draw() {
+    const { map, pole, lat, lon, M, visc } = w5;
+    w5.latV.textContent = lat + '°';
+    w5.lonV.textContent = lon + '°';
+    w5.MV.textContent = M.toFixed(2);
+    clear(map);
+    clear(pole);
+    // ---- Left: world map (equirectangular)
+    const mx = 20, my = 20, mw = 360, mh = 220;
+    map.appendChild(svgEl('rect', { x: mx, y: my, width: mw, height: mh, fill: css('--paper'), stroke: css('--rule') }));
+    // Graticule
+    for (let i = 1; i < 4; i++) {
+      const y = my + i * mh / 4;
+      map.appendChild(svgEl('line', { x1: mx, y1: y, x2: mx+mw, y2: y, stroke: css('--rule'), 'stroke-dasharray':'2 3' }));
+    }
+    for (let i = 1; i < 6; i++) {
+      const x = mx + i * mw / 6;
+      map.appendChild(svgEl('line', { x1: x, y1: my, x2: x, y2: my+mh, stroke: css('--rule'), 'stroke-dasharray':'2 3' }));
+    }
+    // Equator
+    map.appendChild(svgEl('line', { x1: mx, y1: my+mh/2, x2: mx+mw, y2: my+mh/2, stroke: css('--muted'), opacity: 0.5 }));
+    // Load position
+    const px = mx + (lon + 180) / 360 * mw;
+    const py = my + (90 - lat) / 180 * mh;
+    map.appendChild(svgEl('circle', { cx: px, cy: py, r: 6 + M * 8, fill: css('--warn'), opacity: 0.7 }));
+    map.appendChild(svgEl('circle', { cx: px, cy: py, r: 3, fill: css('--warn') }));
+    const lbl = svgEl('text', { x: mx+4, y: my+16, 'font-family':'JetBrains Mono, monospace', 'font-size': 10, fill: css('--muted') });
+    lbl.textContent = 'lon –180°  ·  0°  ·  +180°';
+    map.appendChild(lbl);
+
+    // ---- Right: polar view — pole trajectory
+    const cx = 130, cy = 130, R = 105;
+    pole.appendChild(svgEl('circle', { cx, cy, r: R, fill: css('--paper'), stroke: css('--rule') }));
+    // Concentric guides
+    [0.33, 0.66].forEach(f => {
+      pole.appendChild(svgEl('circle', { cx, cy, r: R*f, fill: 'none', stroke: css('--rule'), 'stroke-dasharray':'2 3' }));
+    });
+    // Cross-hair
+    pole.appendChild(svgEl('line', { x1: cx-R, y1: cy, x2: cx+R, y2: cy, stroke: css('--rule') }));
+    pole.appendChild(svgEl('line', { x1: cx, y1: cy-R, x2: cx, y2: cy+R, stroke: css('--rule') }));
+    // Steady-state pole offset direction: toward the load's projection onto equatorial plane
+    // Amplitude prop. to sin(lat) * cos(lat) * M (equatorial component of load-induced inertia perturbation)
+    const latR = lat * Math.PI/180;
+    const lonR = lon * Math.PI/180;
+    // Steady state: opposite direction of load's equatorial vector (pole moves toward the load in this simple picture)
+    const eqComponent = Math.abs(Math.sin(latR)) * Math.cos(latR);
+    const amp = M * eqComponent * 0.85;  // fraction of R
+    // Pole offset direction — same longitude as load, radius amp
+    const psX = cx + amp * R * Math.cos(lonR);
+    const psY = cy - amp * R * Math.sin(lonR);
+    // Trajectory: spiral in from origin to (psX, psY)
+    // Damped oscillation: m(t) = ss + [(0 - ss)] * exp(-t/T) * (cos(ω t) + i sin(ω t))
+    // For elastic-only: no damping, just constant offset (single point).
+    let traj = '';
+    if (visc) {
+      const N = 220;
+      const T = 6; // decay
+      const omega = 1.6; // rotation rate (Chandler-like)
+      for (let i = 0; i <= N; i++) {
+        const t = i / N * 12;
+        const decay = Math.exp(-t / T);
+        // start at 0, spiral to ss
+        const mag = (1 - decay);
+        const angle = omega * t;
+        // Rotate the offset by 'angle' as it decays
+        const ox = amp * R * (mag * Math.cos(lonR) + decay * Math.cos(lonR + angle) * (1 - mag) * 0.6);
+        const oy = -amp * R * (mag * Math.sin(lonR) + decay * Math.sin(lonR + angle) * (1 - mag) * 0.6);
+        const x = cx + ox, y = cy + oy;
+        traj += (i === 0 ? 'M' : 'L') + x.toFixed(2) + ' ' + y.toFixed(2);
+      }
+      pole.appendChild(svgEl('path', { d: traj, fill: 'none', stroke: css('--accent'), 'stroke-width': 1.7, opacity: 0.9 }));
+    } else {
+      // Elastic-only: instant jump
+      pole.appendChild(svgEl('line', { x1: cx, y1: cy, x2: psX, y2: psY, stroke: css('--accent'), 'stroke-width': 1.7, 'stroke-dasharray':'4 3' }));
+    }
+    // Origin
+    pole.appendChild(svgEl('circle', { cx, cy, r: 2.5, fill: css('--ink') }));
+    // Steady-state marker
+    pole.appendChild(svgEl('circle', { cx: psX, cy: psY, r: 5, fill: css('--elastic') }));
+    // Labels
+    const pl = svgEl('text', { x: cx, y: 16, 'text-anchor':'middle', 'font-family':'JetBrains Mono, monospace', 'font-size': 10, fill: css('--muted') });
+    pl.textContent = 'pole offset (m_x, m_y) — view from N pole';
+    pole.appendChild(pl);
+  }
+  document.getElementById('w5-lat').addEventListener('input', e => { w5.lat = +e.target.value; w5Draw(); });
+  document.getElementById('w5-lon').addEventListener('input', e => { w5.lon = +e.target.value; w5Draw(); });
+  document.getElementById('w5-M').addEventListener('input', e => { w5.M = +e.target.value; w5Draw(); });
+  document.getElementById('w5-visc').addEventListener('change', e => { w5.visc = e.target.checked; w5Draw(); });
+
+  // ==========================================================================
+  // WIDGET 6: Time integration
+  // ==========================================================================
+  const w6 = {
+    force: 'step', dt: 0.4, tau: 1, adapt: false,
+    svg: document.getElementById('w6-svg'),
+    dtV: document.getElementById('w6-dt-v'),
+    tauV: document.getElementById('w6-tau-v'),
+    feErr: document.getElementById('w6-fe-err'),
+    trErr: document.getElementById('w6-tr-err'),
+    ratio: document.getElementById('w6-ratio'),
+  };
+  function forcing(f, t) {
+    if (f === 'step') return t > 0 ? 1 : 0;
+    if (f === 'ramp') return Math.max(0, t);
+    if (f === 'osc') return Math.sin(2 * t);
+    return 0;
+  }
+  function analytic(f, t, tau) {
+    // dy/dt = -y/tau + F(t); y(0)=0
+    if (f === 'step') return t > 0 ? (1 - Math.exp(-t/tau)) : 0;
+    if (f === 'ramp') return t > 0 ? tau * (t - tau*(1 - Math.exp(-t/tau))) : 0;
+    if (f === 'osc') {
+      // dy/dt + y/tau = sin(2t) → steady = (sin(2t) - 2tau cos(2t)) / (1 + 4tau^2), plus transient
+      const denom = 1 + 4*tau*tau;
+      const ss = (Math.sin(2*t) - 2*tau*Math.cos(2*t)) / denom;
+      // Match initial condition y(0)=0: transient = (2 tau / denom) * exp(-t/tau)
+      return ss + (2*tau/denom) * Math.exp(-t/tau);
+    }
+    return 0;
+  }
+  function w6Draw() {
+    const { svg, force, dt, tau, adapt } = w6;
+    w6.dtV.textContent = dt.toFixed(2);
+    w6.tauV.textContent = tau.toFixed(2);
+    clear(svg);
+    const px0 = 50, py0 = 20, pw = 720, ph = 270;
+    const tMax = 8;
+    // Analytic curve
+    const analyt = [];
+    let ymin = 0, ymax = 0;
+    for (let i = 0; i <= 400; i++) {
+      const t = i/400 * tMax;
+      const y = analytic(force, t, tau);
+      analyt.push({ t, y });
+      ymin = Math.min(ymin, y); ymax = Math.max(ymax, y);
+    }
+
+    // FE
+    const feStep = (yn, tn, dtc) => yn + dtc * (-yn/tau + forcing(force, tn));
+    // Trap
+    const trStep = (yn, tn, dtc) => {
+      const fn = forcing(force, tn);
+      const fp = forcing(force, tn+dtc);
+      // (1 + dt/(2tau)) y_{n+1} = (1 - dt/(2tau)) y_n + (dt/2)(fn+fp)
+      return ((1 - dtc/(2*tau))*yn + (dtc/2)*(fn+fp)) / (1 + dtc/(2*tau));
+    };
+    const fe = [{ t: 0, y: 0 }];
+    const tr = [{ t: 0, y: 0 }];
+    let feY = 0, feT = 0;
+    while (feT < tMax) {
+      const nT = Math.min(feT + dt, tMax);
+      feY = feStep(feY, feT, nT - feT);
+      feT = nT;
+      fe.push({ t: feT, y: feY });
+    }
+    let trY = 0, trT = 0, dtc = dt;
+    while (trT < tMax) {
+      if (adapt) {
+        // step doubling
+        const y1 = trStep(trY, trT, dtc);
+        const yh = trStep(trY, trT, dtc/2);
+        const y2 = trStep(yh, trT+dtc/2, dtc/2);
+        const err = Math.abs(y2 - y1) / (1 + Math.abs(y2));
+        const tol = 0.005;
+        if (err > tol && dtc > 0.02) {
+          dtc = Math.max(0.02, dtc * 0.6);
+          continue;
+        } else if (err < tol * 0.1 && dtc < 1.5) {
+          dtc = Math.min(1.5, dtc * 1.5);
+        }
+        trY = y2;
+        trT += dtc;
+      } else {
+        const nT = Math.min(trT + dt, tMax);
+        trY = trStep(trY, trT, nT - trT);
+        trT = nT;
+      }
+      tr.push({ t: trT, y: trY });
+    }
+    fe.forEach(p => { ymin = Math.min(ymin, p.y); ymax = Math.max(ymax, p.y); });
+    tr.forEach(p => { ymin = Math.min(ymin, p.y); ymax = Math.max(ymax, p.y); });
+    const pad = 0.1 * (ymax - ymin) || 0.2;
+    ymin -= pad; ymax += pad;
+    const xS = t => px0 + t / tMax * pw;
+    const yS = y => py0 + ph - (y - ymin) / (ymax - ymin) * ph;
+    // Axes
+    makeAxes(svg, px0, py0, pw, ph, { xlabel: 'time', ylabel: 'y(t)' });
+    // Zero line
+    if (ymin < 0 && ymax > 0) {
+      svg.appendChild(svgEl('line', { x1: px0, y1: yS(0), x2: px0+pw, y2: yS(0), stroke: css('--rule') }));
+    }
+    // Analytic
+    let pAnalyt = '';
+    analyt.forEach((p, i) => { pAnalyt += (i === 0 ? 'M' : 'L') + xS(p.t) + ' ' + yS(p.y); });
+    svg.appendChild(svgEl('path', { d: pAnalyt, fill: 'none', stroke: css('--ink'), 'stroke-width': 2.5 }));
+    // FE
+    let pFE = '';
+    fe.forEach((p, i) => { pFE += (i === 0 ? 'M' : 'L') + xS(p.t) + ' ' + yS(p.y); });
+    svg.appendChild(svgEl('path', { d: pFE, fill: 'none', stroke: css('--viscous'), 'stroke-width': 1.6, 'stroke-dasharray':'5 3' }));
+    // FE markers
+    fe.forEach(p => {
+      svg.appendChild(svgEl('circle', { cx: xS(p.t), cy: yS(p.y), r: 2.2, fill: css('--viscous') }));
+    });
+    // Trap
+    let pTR = '';
+    tr.forEach((p, i) => { pTR += (i === 0 ? 'M' : 'L') + xS(p.t) + ' ' + yS(p.y); });
+    svg.appendChild(svgEl('path', { d: pTR, fill: 'none', stroke: css('--accent'), 'stroke-width': 1.6 }));
+    tr.forEach(p => {
+      svg.appendChild(svgEl('circle', { cx: xS(p.t), cy: yS(p.y), r: 2.5, fill: css('--accent') }));
+    });
+    // Y ticks
+    for (let tk = 0; tk <= 4; tk++) {
+      const val = ymin + tk/4 * (ymax - ymin);
+      const y = yS(val);
+      const t = svgEl('text', { x: px0-4, y: y+3, 'text-anchor':'end', 'font-family':'JetBrains Mono, monospace', 'font-size': 9, fill: css('--muted') });
+      t.textContent = val.toFixed(2);
+      svg.appendChild(t);
+    }
+    // X ticks
+    for (let tk = 0; tk <= 4; tk++) {
+      const val = tk / 4 * tMax;
+      const x = xS(val);
+      const t = svgEl('text', { x: x, y: py0+ph+12, 'text-anchor':'middle', 'font-family':'JetBrains Mono, monospace', 'font-size': 9, fill: css('--muted') });
+      t.textContent = val.toFixed(0);
+      svg.appendChild(t);
+    }
+    // Error: sample analytic at FE / trap points and compute RMS
+    let feE = 0, trE = 0;
+    fe.forEach(p => { const ya = analytic(force, p.t, tau); feE += (p.y - ya)**2; });
+    tr.forEach(p => { const ya = analytic(force, p.t, tau); trE += (p.y - ya)**2; });
+    const feRMS = Math.sqrt(feE / fe.length);
+    const trRMS = Math.sqrt(trE / tr.length);
+    w6.feErr.textContent = feRMS.toExponential(2);
+    w6.trErr.textContent = trRMS.toExponential(2);
+    w6.ratio.textContent = trRMS > 0 ? (feRMS / trRMS).toFixed(0) + '×' : '—';
+
+    // Note on adaptive
+    if (adapt) {
+      const t = svgEl('text', { x: px0+pw-4, y: py0+14, 'text-anchor':'end', 'font-family':'JetBrains Mono, monospace', 'font-size': 10, fill: css('--accent') });
+      t.textContent = tr.length + ' steps (adaptive)';
+      svg.appendChild(t);
+    }
+  }
+  document.getElementById('w6-force').addEventListener('change', e => { w6.force = e.target.value; w6Draw(); });
+  document.getElementById('w6-dt').addEventListener('input', e => { w6.dt = +e.target.value; w6Draw(); });
+  document.getElementById('w6-tau').addEventListener('input', e => { w6.tau = +e.target.value; w6Draw(); });
+  document.getElementById('w6-adapt').addEventListener('change', e => { w6.adapt = e.target.checked; w6Draw(); });
+
+  // ------- Redraw all (after theme change) -------
+  function redrawAll() {
+    try { w1Draw(); } catch(e){ console.error('w1Draw:', e); }
+    try { w2Draw(); } catch(e){ console.error('w2Draw:', e); }
+    try { w3Draw(); } catch(e){ console.error('w3Draw:', e); }
+    try { w4Draw(); } catch(e){ console.error('w4Draw:', e); }
+    try { w5Draw(); } catch(e){ console.error('w5Draw:', e); }
+    try { w6Draw(); } catch(e){ console.error('w6Draw:', e); }
+  }
+  redrawAll();
+  window.addEventListener('DOMContentLoaded', redrawAll);
+
+  // React to OS dark-mode change (only when in auto mode)
+  const mm = window.matchMedia('(prefers-color-scheme: dark)');
+  mm.addEventListener('change', () => { if (curTheme === 'auto') redrawAll(); });
+})();
+</script>

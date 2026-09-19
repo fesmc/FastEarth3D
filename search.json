@@ -1,0 +1,1064 @@
+[
+  {
+    "objectID": "benchmarks/love-numbers.html",
+    "href": "benchmarks/love-numbers.html",
+    "title": "Benchmark: Love numbers",
+    "section": "",
+    "text": "Reference: Spada et al. (2011), the Charles University GIA benchmark, earth model M3–L70–V01 (Spada et al. 2011). Test: test_benchmark_love (in make check). Status: ✅ elastic and fluid \\(h,\\ell,k\\) match to \\(\\sim 0.1\\%\\) at every degree 2–256.\nThis benchmark tests the per-degree radial solver in isolation: for a unit surface load at degree \\(j\\), do the elastic (instantaneous) and fluid (fully relaxed) loading Love numbers match the reference?",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: Love numbers"
+    ]
+  },
+  {
+    "objectID": "benchmarks/love-numbers.html#earth-model",
+    "href": "benchmarks/love-numbers.html#earth-model",
+    "title": "Benchmark: Love numbers",
+    "section": "Earth model",
+    "text": "Earth model\nM3–L70–V01 — incompressible, self-gravitating, layered Maxwell:\n\na 70 km elastic lithosphere (\\(\\eta\\to\\infty\\)),\nthree viscous mantle layers,\nan inviscid fluid core (\\(\\mu=0\\)).\n\nThe layer table (radius, density, shear modulus, viscosity) is the incompressible model of the Spada et al. (2011) benchmark. FastEarth3D’s fe_earth_structure reproduces the benchmark’s interface gravities, total mass, and moment of inertia as an independent check before any Love number is computed.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: Love numbers"
+    ]
+  },
+  {
+    "objectID": "benchmarks/love-numbers.html#definitions",
+    "href": "benchmarks/love-numbers.html#definitions",
+    "title": "Benchmark: Love numbers",
+    "section": "Definitions",
+    "text": "Definitions\nFor a degree-\\(j\\) surface load of coefficient \\(\\sigma\\), with the load’s own surface potential \\(\\varphi^{L} = 4\\pi G\\,a\\,\\sigma/(2j+1)\\), the loading Love numbers are extracted from the surface radial functions (Farrell 1972 normalization, (Farrell 1972)):\n\\[\nh_j = \\frac{g_0(a)\\,U(a)}{\\varphi^{L}}, \\qquad\n\\ell_j = \\frac{g_0(a)\\,V(a)}{\\varphi^{L}}, \\qquad\nk_j = -\\frac{F(a)}{\\varphi^{L}} - 1.\n\\]\nThe \\(-1\\) in \\(k_j\\) follows from Martinec’s \\(\\varphi_1 = F\\) being the total perturbation potential, which carries the load’s direct potential with the opposite sign to \\(\\varphi^{L}\\) (\\(F\\to-\\varphi^{L}\\) for a rigid sphere).",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: Love numbers"
+    ]
+  },
+  {
+    "objectID": "benchmarks/love-numbers.html#analytic-anchors",
+    "href": "benchmarks/love-numbers.html#analytic-anchors",
+    "title": "Benchmark: Love numbers",
+    "section": "Analytic anchors",
+    "text": "Analytic anchors\nTwo limits are exact and are checked first (test_love, to \\(\\sim 10^{-5}\\)):\n\nFluid (\\(\\mu\\to 0\\), homogeneous): \\(h_j\\to-(2j+1)/3\\), \\(k_j\\to-1\\).\nRigid (\\(\\mu\\to\\infty\\)): \\(h_j,\\ell_j,k_j\\to 0\\).\n\nThe fluid limit independently exercises self-gravity, incompressibility, the Poisson coupling, and the load forcing; the rigid limit checks the shear block and the \\(F\\) sign.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: Love numbers"
+    ]
+  },
+  {
+    "objectID": "benchmarks/love-numbers.html#result",
+    "href": "benchmarks/love-numbers.html#result",
+    "title": "Benchmark: Love numbers",
+    "section": "Result",
+    "text": "Result\nThe elastic and fluid \\(h,\\ell,k\\) match the benchmark table to \\(\\sim 0.1\\%\\) (the P1 discretization level) at every degree from 2 to 256. The fluid limit was always exact (\\(&lt;0.5\\%\\)); the elastic numbers are the discriminating test. Correct discretization of the self-gravity \\(U\\)–\\(F\\) block is essential for the low-degree elastic numbers — see the typo in Martinec (2000) eq. (81). TABOO (NV=3, CODE=7) served as an independent reference to regenerate the M3–L70–V01 table.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: Love numbers"
+    ]
+  },
+  {
+    "objectID": "benchmarks/love-numbers.html#figures",
+    "href": "benchmarks/love-numbers.html#figures",
+    "title": "Benchmark: Love numbers",
+    "section": "Figures",
+    "text": "Figures\nFigures to be added: \\(h_j,\\ell_j,k_j\\) versus degree (elastic and fluid), FastEarth3D vs. the M3–L70–V01 table; relative-error spectra.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: Love numbers"
+    ]
+  },
+  {
+    "objectID": "benchmarks/love-numbers.html#provenance",
+    "href": "benchmarks/love-numbers.html#provenance",
+    "title": "Benchmark: Love numbers",
+    "section": "Provenance",
+    "text": "Provenance\nReference table: data/benchmarks/love_M3-L70-V01/mod_M3-L70-V01, from the giapy package (MIT) [S. B. Kachuck], originating in the Charles University GIA benchmark; independently regenerable with TABOO (GPLv3). Full details in data/benchmarks/PROVENANCE.md.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: Love numbers"
+    ]
+  },
+  {
+    "objectID": "benchmarks/disc.html",
+    "href": "benchmarks/disc.html",
+    "title": "Benchmark: disc-load response",
+    "section": "",
+    "text": "Reference: Spada et al. (2011), disc-load test, earth model M3–L70–V01 (Spada et al. 2011). Test: test_benchmark_disc (in make check). Status: ✅ displacement \\(\\sim 1\\%\\) near-field; geoid \\(\\sim 1\\%\\) for \\(\\ell\\ge 2\\); transient to \\(\\sim 0.5\\%\\).\nThis benchmark integrates the per-degree response over a spatial load and adds the time relaxation, testing the spatial synthesis and the Maxwell stepper together against a spatial reference.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: disc-load response"
+    ]
+  },
+  {
+    "objectID": "benchmarks/disc.html#load-and-setup",
+    "href": "benchmarks/disc.html#load-and-setup",
+    "title": "Benchmark: disc-load response",
+    "section": "Load and setup",
+    "text": "Load and setup\n\nA 10° radius disc of 1000 m ice (\\(\\rho_{\\text{ice}} = 931\\\n\\mathrm{kg\\,m^{-3}}\\)) on elevated bedrock — no ocean load.\nEarth model M3–L70–V01 (as for the Love numbers).\nThe disc is expanded in Legendre coefficients \\(\\sigma_n = \\tfrac{\\sigma_0}{2}\\,[P_{n-1}-P_{n+1}]\\) and the spatial response is synthesized as \\(u(\\theta) = \\sum_n U_n(a)\\,\\sigma_n\\,P_n(\\cos\\theta)\\).",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: disc-load response"
+    ]
+  },
+  {
+    "objectID": "benchmarks/disc.html#reference-data-and-metrics",
+    "href": "benchmarks/disc.html#reference-data-and-metrics",
+    "title": "Benchmark: disc-load response",
+    "section": "Reference data and metrics",
+    "text": "Reference data and metrics\nThe reference is the spatial response at colatitudes \\(\\theta = 0\\):\\(0.1\\):\\(20°\\) (201 points) and times \\(t = [0,1,2,5,10,100]\\) kyr (column 1, \\(t=0\\), is the elastic response). Three fields are compared: vertical displacement \\(u\\), geoid \\(n\\), and uplift rate \\(\\mathrm{d}u/\\mathrm{d}t\\).\nThe reference uses a mixed reference frame: displacement in a CE-like gauge (\\(h_1\\approx 0\\), geocenter), geoid in the CM frame (\\(N_1 = 0\\)). FastEarth3D reproduces both by referencing the degree-1 geoid to CM (fe_response).\nAll three reference files in this repository (u_*, n_*, dudt_*) are stored in ascending \\(\\theta\\) order and match the ordering used by the model, so they can be paired with the \\(\\theta\\) grid directly.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: disc-load response"
+    ]
+  },
+  {
+    "objectID": "benchmarks/disc.html#result",
+    "href": "benchmarks/disc.html#result",
+    "title": "Benchmark: disc-load response",
+    "section": "Result",
+    "text": "Result\n\nElastic uplift (\\(t=0\\)): centre \\(-19.81\\) m vs. reference \\(-20.57\\) m (\\(3.7\\%\\), dominated by the Gibbs ripple at the sharp 10° disc edge); the profile is \\(&lt;2\\%\\) across \\(\\theta=1\\)–\\(9°\\).\nViscoelastic transient: the centre uplift matches to \\(\\sim 0.5\\%\\) at \\(t=0,1,2,5,10\\) kyr (ratio 0.997–1.005).\nGeoid: matches to \\(\\sim 1\\%\\) for degrees \\(\\ge 2\\) (centre 32.57 vs. 33.05; far field 2.88 vs. 2.92).\nThe far-field forebulge (\\(\\theta\\gtrsim 12°\\)) is small-amplitude and low-degree-truncation sensitive, so it shows larger relative differences.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: disc-load response"
+    ]
+  },
+  {
+    "objectID": "benchmarks/disc.html#figures",
+    "href": "benchmarks/disc.html#figures",
+    "title": "Benchmark: disc-load response",
+    "section": "Figures",
+    "text": "Figures\nFigures to be added: \\(u(\\theta)\\) at \\(t=0,1,2,5,10,100\\) kyr; geoid \\(n(\\theta)\\); centre uplift time series; FastEarth3D vs. Spada disc reference.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: disc-load response"
+    ]
+  },
+  {
+    "objectID": "benchmarks/disc.html#provenance",
+    "href": "benchmarks/disc.html#provenance",
+    "title": "Benchmark: disc-load response",
+    "section": "Provenance",
+    "text": "Provenance\nReference: data/benchmarks/disc_spada2011/{u,n,dudt}_disc.txt, from the isostasy_data repository [J. Jereczek], model_outputs/Spada-2011/, originating in the Spada et al. (2011) benchmark. Full details in data/benchmarks/PROVENANCE.md.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: disc-load response"
+    ]
+  },
+  {
+    "objectID": "getting-started.html",
+    "href": "getting-started.html",
+    "title": "Installation and running",
+    "section": "",
+    "text": "This page covers getting FastEarth3D built and running a forced simulation. The build is driven by configme (one source of machine/compiler truth) and runs are staged by runme (single simulations and ensembles, locally or on SLURM).",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Installation and running"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#dependencies",
+    "href": "getting-started.html#dependencies",
+    "title": "Installation and running",
+    "section": "Dependencies",
+    "text": "Dependencies\nFastEarth3D needs only a small, well-established stack:\n\n\n\nDependency\nProvides\nSource\n\n\n\n\nfesm-utils (branch coords-dev)\nFFTW, SHTns, the fesmutils helper library (precision, ncio, namelists), and the coords module used by the remapper\ncloned/linked by configme\n\n\nnetCDF (C + Fortran)\nrestart and output I/O\nsystem package (Homebrew, modules, …)\n\n\n\nThe coords-dev branch is pinned in .configme/manifest.toml, so the checkout self-describes the exact ref it needs.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Installation and running"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#install-with-configme",
+    "href": "getting-started.html#install-with-configme",
+    "title": "Installation and running",
+    "section": "Install with configme",
+    "text": "Install with configme\nconfigme clones (or reuses) the dependencies, generates the machine/compiler Makefile fragment, and links everything together:\nconfigme install FastEarth3D\nIt resolves the machine and compiler from flags, your ~/.configme/config.toml, hostname detection, or a prompt. To be explicit, or to reuse an existing fesm-utils checkout instead of cloning:\n# pick machine + compiler explicitly\nconfigme install FastEarth3D -m macbook -c gfortran\n\n# symlink an on-disk fesm-utils rather than cloning it\nconfigme install FastEarth3D --link fesm-utils=/abs/path/to/fesm-utils\nSupported machines include awi_albedo, chinook, dkrz_levante, linux, macbook, pik_hpc2024; compilers gfortran, ifort, ifx. Run configme list for the current set and configme status to see what is present versus pending. If you only need to (re)generate the Makefile for an already-present checkout, configme config FastEarth3D does that without cloning.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Installation and running"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#build",
+    "href": "getting-started.html#build",
+    "title": "Installation and running",
+    "section": "Build",
+    "text": "Build\nconfigme writes the compiler fragment into the Makefile; building is then plain make:\nmake fastearth        # -&gt; bin/fastearth.x        (standalone forced-run driver)\nmake fastearth_mkref  # -&gt; bin/fastearth_mkref.x  (build a Gauss-grid reference state)\nmake fastearth_remap  # -&gt; bin/fastearth_remap.x  (offline lon-lat -&gt; Gauss remap)\nmake check            # build + run the test suite\nBuild switches: debug = 0|1|2 (optimized / checks / profile) and openmp = 0|1 (default 1). The threaded degree loop is what makes production resolutions fast — build openmp=1 (see Solver).",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Installation and running"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#configuration-the-fe3d-namelist",
+    "href": "getting-started.html#configuration-the-fe3d-namelist",
+    "title": "Installation and running",
+    "section": "Configuration: the &fe3d namelist",
+    "text": "Configuration: the &fe3d namelist\nAll runtime parameters live in a single namelist group &fe3d. fastearth.nml is the canonical, fully documented defaults set — every parameter is present. A run can pass a sparse overlay that sets only what it overrides (the yelmo defaults_file convention):\n./bin/fastearth.x examples/deglac_lgm.nml fastearth.nml\n#                 ^ sparse overlay        ^ complete defaults\nA few conventions worth knowing:\n\nTime fields (dt_*, time_*) are given in years in the namelist and converted to SI seconds on load; everything else is SI.\nEarth structure is chosen by earth — a named built-in (e.g. \"M3-L70-V01\") or \"custom\" to assemble from the surface-first layer arrays.\nResponse solver is chosen by earth_response: \"ve\" (full viscoelastic, default), \"elastic\", or \"null\".\nReference state / spin-up is controlled by i_eq, equil_time_max, equil_rate_tol (LGM-memory spin-up cap, relaxing to bed-stationary equilibrium), pre_spinup_1d (run a cheap 1-D pre-equilibration first), and restart_in_file (resume full state, interpolated up if lower-resolution).\n3-D viscosity is enabled with l_visc_3d = .true. and a lateral log10(eta) field (visc_3d_file).\nRotational feedback (rotation) is on by default for real-Earth runs; set rotation = .false. for the non-rotating community benchmarks.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Installation and running"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#the-drivers",
+    "href": "getting-started.html#the-drivers",
+    "title": "Installation and running",
+    "section": "The drivers",
+    "text": "The drivers\n\n\n\n\n\n\n\nExecutable\nRole\n\n\n\n\nbin/fastearth.x\nreads a reference state + an ice-thickness forcing h_ice(lon,lat,time), marches the model across the forcing (online lon-lat → Gauss remap by default), and writes the diagnostic surface fields (rsl, z_bed, h_ice, ocean function) to file_out\n\n\nbin/fastearth_mkref.x\ngenerates the canonical Gauss-grid present-day reference (e.g. RTopo) used by i_eq = 1; other resolutions remap it online (cached)\n\n\nbin/fastearth_remap.x\noffline conservative lon-lat → Gauss remap, to preprocess a forcing onto the model grid (remap_input = .false.)\n\n\n\nA complete worked configuration — an LGM → present-day deglaciation forced by the Tarasov ice/bed reconstruction — is in examples/deglac_lgm.nml.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Installation and running"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#running-with-runme",
+    "href": "getting-started.html#running-with-runme",
+    "title": "Installation and running",
+    "section": "Running with runme",
+    "text": "Running with runme\nrunme stages a clean run directory (linking in data and input, copying the namelist, recording the parameters), then runs or submits it. The executable aliases match the drivers: main → fastearth.x, mkref → fastearth_mkref.x, remap → fastearth_remap.x.\n# single local run, 8 OpenMP threads, overriding a few parameters\nrunme -o runs/deglac -e main --omp 8 -r \\\n      -p fe3d.lmax=128 fe3d.earth_response=ve fe3d.file_out=out.nc\nHow a run is launched is set by two flags:\n\n-r run the executable;\n-s prepare a SLURM submit script (and submit it, with -r);\n-s -r prepare and submit on HPC; -s alone stages the script to inspect; omitting both stages the run directory only.\n\nA comma list, range, or distribution in -p turns a parameter into an ensemble dimension (-p fe3d.lmax=64,128), with -a naming the member directories from their parameter values. SLURM settings (cluster, account, threads) live in .runme/config.toml; bootstrap it with runme config init and inspect what runme reads with runme info.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Installation and running"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#embedding-in-a-host-model",
+    "href": "getting-started.html#embedding-in-a-host-model",
+    "title": "Installation and running",
+    "section": "Embedding in a host model",
+    "text": "Embedding in a host model\nThe CLIMBER-X coupling path uses the same code behind a single use fastearth3d. The contract is intentionally narrow — the host passes ice thickness in and receives relative sea level and bedrock out, on its own grid. The model owns its Gauss grid and the host↔︎Gauss remap (built from the parameter record), and keeps all spherical-harmonic work inside (see Implementation):\nuse fastearth3d\ntype(solid_earth) :: se\ncall fe_par_load(se%par, \"fastearth.nml\")             ! configuration lives in se%par\ncall solid_earth_init(se, z_bed_eq, h_ice_eq, grid=host_grid)  ! builds the Gauss grid + remap\ncall solid_earth_spinup(se, h_ice_lgm)                ! optional LGM-memory spin-up\ndo\n   call solid_earth_update(se, h_ice, dt_yr)          ! advance dt_yr [years]\n   ! ... read se%rsl, se%z_bed on the host grid (se%gg%* on the Gauss grid) ...\nend do\ncall solid_earth_finalize(se)                         ! frees the grid too\ngrid (a coords lon-lat grid) is optional: omit it when the fields are already on the model’s Gauss grid. The full prognostic state (the Maxwell memory, the integrator state, and the model clock) is persisted on restart, so a coupled run resumes bit-for-bit; the host-grid outputs are re-derived on read.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Installation and running"
+    ]
+  },
+  {
+    "objectID": "physics/governing-equations.html",
+    "href": "physics/governing-equations.html",
+    "title": "Governing equations",
+    "section": "",
+    "text": "FastEarth3D solves the equations of a self-gravitating, incompressible, Maxwell-viscoelastic sphere \\(\\mathcal{B}\\) of radius \\(a\\) subject to a surface mass load. The formulation is the incremental, quasi-static field theory of Martinec (2000); the equation numbers in this section refer to that paper.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Governing equations"
+    ]
+  },
+  {
+    "objectID": "physics/governing-equations.html#incremental-field-equations",
+    "href": "physics/governing-equations.html#incremental-field-equations",
+    "title": "Governing equations",
+    "section": "Incremental field equations",
+    "text": "Incremental field equations\nWe work with the incremental (perturbation) fields superimposed on a hydrostatic reference state with density \\(\\rho_0(r)\\) and gravity \\(g_0(r)\\). The unknowns are the displacement \\(\\mathbf{u}\\), the incremental gravitational potential \\(\\varphi_1\\), and the incompressibility pressure (Lagrange multiplier) \\(\\Pi\\).\n\nMomentum balance\nIn the quasi-static limit the linearized, pre-stressed momentum balance reads (Martinec 2000, eq. 1)\n\\[\n\\operatorname{div}\\boldsymbol{\\tau}\n\\;-\\; \\rho_0\\,\\nabla\\varphi_1\n\\;+\\; \\operatorname{div}(\\rho_0\\mathbf{u})\\,\\nabla\\varphi_0\n\\;-\\; \\nabla\\!\\left(\\rho_0\\,\\mathbf{u}\\cdot\\nabla\\varphi_0\\right)\n\\;=\\; \\mathbf{0},\n\\]\nwhere \\(\\boldsymbol{\\tau}\\) is the incremental (Cauchy) stress and \\(\\varphi_0\\) the reference potential (\\(\\nabla\\varphi_0 = \\mathbf{g}_0\\)). The last three terms are the self-gravity body force: the perturbed-potential gradient \\(-\\rho_0\\nabla\\varphi_1\\), the advected-density buoyancy \\(\\operatorname{div}(\\rho_0\\mathbf{u})\\,\\nabla\\varphi_0\\), and the material/pre-stress advection term. These couple deformation to gravity and are the reason GIA is a global, self-gravitating problem rather than a local flexure problem.\n\n\nPoisson equation\nThe incremental potential is sourced by the advected density via Poisson’s equation (eq. 2),\n\\[\n\\nabla^2\\varphi_1 \\;+\\; 4\\pi G \\,\\operatorname{div}(\\rho_0\\mathbf{u}) \\;=\\; 0,\n\\qquad\n\\rho_1 = -\\operatorname{div}(\\rho_0\\mathbf{u}),\n\\]\nvalid throughout the interior. Outside the body \\(\\varphi_1\\) is harmonic and decays as \\(r^{-(\\ell+1)}\\) for each degree \\(\\ell\\); this exterior matching becomes a boundary condition at the surface (see Radial finite elements). The applied surface load contributes its own Newtonian potential, which enters \\(\\varphi_1\\) through the surface forcing.\n\n\nConstitutive law\nThe stress splits into an isotropic part carried by the pressure and a deviatoric part carried by shear:\n\\[\n\\boldsymbol{\\tau} \\;=\\; \\Pi\\,\\mathbf{I} \\;+\\; 2\\mu\\,\\boldsymbol{\\varepsilon}^{\\mathrm{dev}},\n\\qquad\n\\boldsymbol{\\varepsilon} = \\tfrac{1}{2}\\!\\left(\\nabla\\mathbf{u} + \\nabla\\mathbf{u}^{\\mathsf T}\\right).\n\\]\nFor the elastic problem this is Hooke’s law with shear modulus \\(\\mu(r)\\). For the viscoelastic Maxwell body the deviatoric stress acquires a relaxing memory term, described in Rheology. The bulk response is taken incompressible (\\(K\\to\\infty\\)), so \\(\\Pi\\) is a Lagrange multiplier enforcing the kinematic constraint below rather than a state variable.\n\n\nIncompressibility\n\\[\n\\operatorname{div}\\mathbf{u} \\;=\\; 0 \\qquad\\text{(eq. 5).}\n\\]\nIncompressibility is the standard idealization for mantle GIA on glacial timescales: it removes the seismic compressional modes (irrelevant here), simplifies the rheology to a single shear modulus, and makes the degree-0 (radial breathing) displacement vanish identically.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Governing equations"
+    ]
+  },
+  {
+    "objectID": "physics/governing-equations.html#reference-structure",
+    "href": "physics/governing-equations.html#reference-structure",
+    "title": "Governing equations",
+    "section": "Reference structure",
+    "text": "Reference structure\nThe reference state is a layered, spherically symmetric model. Within each layer the density \\(\\rho_k\\) and shear modulus \\(\\mu_k\\) are piecewise constant, and the reference gravity follows from the enclosed mass,\n\\[\ng_0(r) = \\frac{4\\pi G}{3}\\left(\\rho_k\\, r + \\frac{R_k}{r^2}\\right),\n\\qquad\nR_k = \\sum_{i\\le k}(\\rho_{i-1}-\\rho_i)\\,r_i^{3},\n\\quad R_1 = 0,\n\\]\n(Martinec 2000, eqs. 76–77). The inviscid fluid core is meshed explicitly with \\(\\mu = 0\\), so free-slip at the core–mantle boundary emerges from the weak form rather than being imposed as an explicit boundary condition. The elastic lithosphere is the \\(\\eta\\to\\infty\\) limit of the Maxwell layers (taken exactly, never large-but-finite — a finite value would inject a spurious slow relaxation mode).\nThe benchmark earth model used throughout validation is M3–L70–V01 (70 km elastic lithosphere, three viscous mantle layers, inviscid core), the incompressible model of the Charles University GIA benchmark (Spada et al. 2011).",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Governing equations"
+    ]
+  },
+  {
+    "objectID": "physics/governing-equations.html#weak-energy-form",
+    "href": "physics/governing-equations.html#weak-energy-form",
+    "title": "Governing equations",
+    "section": "Weak (energy) form",
+    "text": "Weak (energy) form\nRather than discretizing the strong PDEs directly, the solver discretizes the second variation of an energy functional — this is what guarantees a symmetric operator. One seeks \\((\\mathbf{u},\\varphi_1,\\Pi)\\) such that \\(\\delta E = \\delta F\\) for all admissible test functions (Martinec 2000, eq. 47), with\n\\[\nE = E_{\\text{press}} + E_{\\text{shear}} + E_{\\text{grav}} + E_{\\text{uniq}},\n\\]\n\n\n\n\n\n\n\n\nTerm\nExpression (schematic)\nRole\n\n\n\n\n\\(E_{\\text{press}}\\)\n\\(\\displaystyle\\int \\Pi\\,\\operatorname{div}\\mathbf{u}\\,\\mathrm{d}V\\)\ncouples pressure \\(\\leftrightarrow\\) incompressibility\n\n\n\\(E_{\\text{shear}}\\)\n\\(\\displaystyle\\int \\mu\\,(\\boldsymbol{\\varepsilon}\\!:\\!\\boldsymbol{\\varepsilon})\\,\\mathrm{d}V\\)\nelastic shear energy\n\n\n\\(E_{\\text{grav}}\\)\nself-gravity body force \\(+\\ \\tfrac{1}{8\\pi G}\\!\\int|\\nabla\\varphi_1|^2\\)\ngravitational coupling\n\n\n\\(E_{\\text{uniq}}\\)\nrigid-mode penalty\nremoves translation/rotation null space — degree 1 only\n\n\n\nand surface forcing \\(F_{\\text{surf}} = \\int_{\\partial\\mathcal{B}}(\\mathbf{b}_0\\cdot\\mathbf{u} + b_1\\varphi_1)\\,\\mathrm{d}S\\) with \\(\\mathbf{b}_0 = -g_0(a)\\,\\sigma\\,\\mathbf{e}_r\\) (eqs. 36–38). The viscoelastic problem adds a dissipative forcing \\(F_{\\text{diss}}\\) built from the memory stress (see Rheology).\nBecause the discrete operator is the Hessian of this functional, it is symmetric by construction. Enforcing that symmetry term-by-term was, in practice, the key to getting the low-degree elastic Love numbers right — see the Love-numbers benchmark.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Governing equations"
+    ]
+  },
+  {
+    "objectID": "physics/governing-equations.html#conventions-and-constants",
+    "href": "physics/governing-equations.html#conventions-and-constants",
+    "title": "Governing equations",
+    "section": "Conventions and constants",
+    "text": "Conventions and constants\n\nDensities: the benchmark density set is fixed once, \\(\\rho_{\\text{ice}} = 931\\), \\(\\rho_{\\text{water}} = 1000\\ \\mathrm{kg\\,m^{-3}}\\); surface gravity \\(g_0 = 9.815\\ \\mathrm{m\\,s^{-2}}\\). Mass — not volume — is conserved, applying \\(\\rho_{\\text{ice}}/\\rho_{\\text{water}}\\) exactly once in each of the flotation criterion, the eustatic conversion, and the sea-level equation.\nDegree 1 is frame-dependent. The geocenter (degree-1) signal is physical and is not hard-coded; it is solved in the CM frame (Blewitt 2003). See Sea-level equation and Radial finite elements.\n\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nThe governing equations are realized in fe_earth_structure (reference layers and gravity), fe_radial_fe (the assembled energy-Hessian operator), and fe_viscoelastic (the Maxwell memory term). The continuous-to-discrete mapping is documented term-by-term in the repository’s doc/formulation.md.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Governing equations"
+    ]
+  },
+  {
+    "objectID": "physics/rheology.html",
+    "href": "physics/rheology.html",
+    "title": "Maxwell rheology and the memory stress",
+    "section": "",
+    "text": "The mantle is modelled as an incompressible Maxwell body: it responds elastically on short timescales and viscously on long ones, with a single Maxwell time \\(\\tau_M = \\eta/\\mu\\) per layer. FastEarth3D integrates this constitutive law explicitly in the time domain — there is no normal-mode decomposition and no Laplace transform. This is the structural choice that makes laterally varying (3D) viscosity essentially free.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Maxwell rheology and the memory stress"
+    ]
+  },
+  {
+    "objectID": "physics/rheology.html#the-maxwell-body",
+    "href": "physics/rheology.html#the-maxwell-body",
+    "title": "Maxwell rheology and the memory stress",
+    "section": "The Maxwell body",
+    "text": "The Maxwell body\nFor a deviatoric stress \\(\\boldsymbol{\\tau}\\) and deviatoric strain \\(\\boldsymbol{\\varepsilon}\\), the Maxwell rheology is\n\\[\n\\dot{\\boldsymbol{\\tau}} + \\frac{\\mu}{\\eta}\\,\\boldsymbol{\\tau}\n\\;=\\; 2\\mu\\,\\dot{\\boldsymbol{\\varepsilon}},\n\\]\nwith \\(\\mu(r)\\) the shear modulus and \\(\\eta(r)\\) the viscosity. Two limits are exact and are used as validation anchors:\n\nElastic / lithosphere: \\(\\eta\\to\\infty \\Rightarrow\\) Hooke’s law \\(\\boldsymbol{\\tau} = 2\\mu\\boldsymbol{\\varepsilon}\\). The lithosphere is taken as \\(\\eta = \\infty\\) exactly; a large-but-finite value would seed a spurious slow mode that contaminates multi-cycle runs.\nFluid / inviscid core: \\(\\mu\\to 0 \\Rightarrow\\) the layer carries no deviatoric stress (free-slip).",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Maxwell rheology and the memory stress"
+    ]
+  },
+  {
+    "objectID": "physics/rheology.html#explicit-memory-stress-scheme",
+    "href": "physics/rheology.html#explicit-memory-stress-scheme",
+    "title": "Maxwell rheology and the memory stress",
+    "section": "Explicit memory-stress scheme",
+    "text": "Explicit memory-stress scheme\nFollowing Martinec (2000) (§3, eqs. 23–25), the total stress at time step \\(i\\) is the instantaneous elastic stress — computed by the same elastic operator every step — plus a memory stress \\(\\boldsymbol{\\tau}^{V}\\) that encodes the relaxation history:\n\\[\n\\boldsymbol{\\tau}^{V,i}\n\\;=\\; (1 - M)\\,\\boldsymbol{\\tau}^{V,i-1}\n\\;-\\; 2\\mu\\,M\\,\\boldsymbol{\\varepsilon}^{\\,i},\n\\qquad\nM \\equiv \\frac{\\mu\\,\\Delta t}{\\eta}.\n\\]\nThis is the \\(\\omega = 1\\) (fully explicit) update. The memory stress enters the right-hand side of the field equations as a dissipative forcing\n\\[\nF_{\\text{diss}} \\;=\\; -\\!\\int \\boldsymbol{\\tau}^{V,i} : \\delta\\boldsymbol{\\varepsilon}\\ \\mathrm{d}V\n\\qquad\\text{(eq. 35).}\n\\]\nThe crucial consequence: the left-hand-side operator never changes in time. It is assembled, equilibrated, and LU-factored once, then reused at every step with a fresh right-hand side. Each step costs a back-substitution, not a re-factorization (see Solver).\n\n\n\n\n\n\nNoteWhy explicit, not implicit or normal-mode\n\n\n\nWith the explicit update, the memory stress at step \\(i\\) depends only on the previous step’s stress and strain — both known. Nothing in the operator depends on viscosity, so a spatially varying \\(\\eta(r,\\theta,\\phi)\\) changes only the scalar \\(M\\) that multiplies known fields pointwise. The angular harmonics stay decoupled in the solve. A normal-mode method, by contrast, must re-solve a degree-by-degree eigenvalue problem whenever the radial structure changes and cannot represent lateral viscosity at all without abandoning the mode basis.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Maxwell rheology and the memory stress"
+    ]
+  },
+  {
+    "objectID": "physics/rheology.html#from-layers-to-the-same-kernel-in-1d-and-3d",
+    "href": "physics/rheology.html#from-layers-to-the-same-kernel-in-1d-and-3d",
+    "title": "Maxwell rheology and the memory stress",
+    "section": "From layers to the same kernel in 1D and 3D",
+    "text": "From layers to the same kernel in 1D and 3D\nIn the 1D (radially symmetric) case the memory stress evolves directly on the tensor spherical-harmonic coefficients (Martinec 2000, §9): there is no spatial grid. Per radial element it is stored for the four spheroidal tensor components \\(\\lambda\\in\\{1,2,5,6\\}\\) (eq. 109), and the strain coefficients follow from the nodal radial functions \\(U,V\\) via eq. 87–88. The dissipative right-hand side is a two-point radial Gauss quadrature of the spectral double-dot \\(\\sum_\\lambda \\lVert Z^\\lambda\\rVert^2\\,\\tau^{V,\\lambda}\\,\\delta\\varepsilon^\\lambda\\) with the component norms \\(\\{1,\\ J/2,\\ 2J^2,\\ 2J(J-2)\\}\\), \\(J = \\ell(\\ell+1)\\) (eqs. 110, B13).\nIn the 3D (laterally varying viscosity) case, the identical kernel runs, but the memory update \\(M = \\mu\\Delta t/\\eta\\) is evaluated pointwise on the Gauss–Legendre grid and transformed back to spectral space each step (pseudo-spectral). The per-element Maxwell routines — strain_coeffs, ve_strain_constants, dissipative_rhs, advance_memory — are shared verbatim between the 1D stepper and the field driver. There is no duplicated algorithm and no separate “3D solver”.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Maxwell rheology and the memory stress"
+    ]
+  },
+  {
+    "objectID": "physics/rheology.html#stability",
+    "href": "physics/rheology.html#stability",
+    "title": "Maxwell rheology and the memory stress",
+    "section": "Stability",
+    "text": "Stability\nThe explicit scheme is conditionally stable: the step is bounded by the shortest Maxwell time present,\n\\[\n\\Delta t \\;\\lesssim\\; \\frac{2\\,\\eta_{\\min}}{\\mu}.\n\\]\nIn practice a viscosity floor (e.g. \\(\\sim 10^{19}\\ \\mathrm{Pa\\,s}\\)) caps the fastest relaxation and sets a usable step (VILMA-scale runs use \\(\\Delta t \\approx 2.5\\) yr; the benchmark cases here use 20 yr). Elastic layers (\\(M\\to 0\\)) freeze and carry no memory; fluid layers (\\(\\mu = 0\\)) carry no memory either.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nfe_viscoelastic holds both the 1D per-degree stepper (ve_degree) and the shared per-element kernel. The memory state is the only prognostic field carried across a restart (fe_io). Time integration is validated by test_relax (a held load relaxes elastic \\(\\to\\) fluid, \\(t_{\\text{relax}}\\propto\\eta\\), step-converged) and is benchmarked in Sea-level equation.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Maxwell rheology and the memory stress"
+    ]
+  },
+  {
+    "objectID": "physics/rheology.html#a-modal-reduction-was-tried",
+    "href": "physics/rheology.html#a-modal-reduction-was-tried",
+    "title": "Maxwell rheology and the memory stress",
+    "section": "A modal reduction was tried",
+    "text": "A modal reduction was tried\nFor an incompressible layered Maxwell Earth the per-degree response is a finite sum of exponential relaxation modes, with only a handful of modes dominating the surface response at each degree. This suggests a natural reduction: replace the full radial memory tensor by \\(K\\) scalar amplitudes \\(\\xi_k(\\ell,m)\\) per coefficient, each advancing by its exact exponential. Radially varying viscosity is then exact in the limit \\(K \\to \\infty\\), and lateral viscosity is folded in as a rate modulation of each mode by the local viscosity in the depth band that mode samples.\nWe implemented and validated such a reduced solver, but decided against retaining it. The measured speed-up over the full explicit scheme was modest, and the approximation error grew rapidly once lateral viscosity contrasts or strongly time-varying loads were introduced. Since the explicit memory-stress scheme is already cheap — one back-substitution per step, with no angular coupling — the added complexity of maintaining a second response operator was not justified. The full solver is retained as the single response path.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Maxwell rheology and the memory stress"
+    ]
+  },
+  {
+    "objectID": "references.html",
+    "href": "references.html",
+    "title": "References",
+    "section": "",
+    "text": "The spectral–finite-element, time-domain method and its rotational extension:\n\nMartinec (2000) — the spectral–finite-element approach to 3D viscoelastic relaxation in a spherical Earth. The core method.\nMartinec and Hagedoorn (2014) — time-domain rotational feedback.\nKendall et al. (2005) — the sea-level equation with moving shorelines (pseudo-spectral fixed point).",
+    "crumbs": [
+      "Overview",
+      "References"
+    ]
+  },
+  {
+    "objectID": "references.html#primary-method",
+    "href": "references.html#primary-method",
+    "title": "References",
+    "section": "",
+    "text": "The spectral–finite-element, time-domain method and its rotational extension:\n\nMartinec (2000) — the spectral–finite-element approach to 3D viscoelastic relaxation in a spherical Earth. The core method.\nMartinec and Hagedoorn (2014) — time-domain rotational feedback.\nKendall et al. (2005) — the sea-level equation with moving shorelines (pseudo-spectral fixed point).",
+    "crumbs": [
+      "Overview",
+      "References"
+    ]
+  },
+  {
+    "objectID": "references.html#benchmarks",
+    "href": "references.html#benchmarks",
+    "title": "References",
+    "section": "Benchmarks",
+    "text": "Benchmarks\n\nSpada et al. (2011) — the GIA-code benchmark (Love numbers, disc-load response, polar motion; Charles University benchmark, earth model M3–L70–V01).\nMartinec et al. (2018) — the sea-level-equation intercomparison.",
+    "crumbs": [
+      "Overview",
+      "References"
+    ]
+  },
+  {
+    "objectID": "references.html#vilma-physics-and-coupling",
+    "href": "references.html#vilma-physics-and-coupling",
+    "title": "References",
+    "section": "VILMA physics and coupling",
+    "text": "VILMA physics and coupling\n\nAlbrecht et al. (2024) — coupled PISM–VILMA; documents VILMA’s physics.\nBagge et al. (2021) — VILMA with 3D earth structure.\nWilleit et al. (2022) — the CLIMBER-X Earth system model (the host).",
+    "crumbs": [
+      "Overview",
+      "References"
+    ]
+  },
+  {
+    "objectID": "references.html#supporting-theory",
+    "href": "references.html#supporting-theory",
+    "title": "References",
+    "section": "Supporting theory",
+    "text": "Supporting theory\n\nFarrell (1972) — load Love numbers and the deformation of the Earth by surface loads.\nMitrovica et al. (2005) — revised rotational stability theory (fixing \\(k_f\\) from the observed flattening).\nBlewitt (2003) — reference frames, geocenter, and degree-1 surface loading.\nHanýk (1999) — initial-value (time-domain) viscoelastic relaxation.",
+    "crumbs": [
+      "Overview",
+      "References"
+    ]
+  },
+  {
+    "objectID": "references.html#numerical-libraries",
+    "href": "references.html#numerical-libraries",
+    "title": "References",
+    "section": "Numerical libraries",
+    "text": "Numerical libraries\n\nSchaeffer (2013) — SHTns, efficient spherical-harmonic transforms.\nFrigo and Johnson (2005) — FFTW3.\n\n\n\nFull bibliography\n\n\nAlbrecht, T., M. Bagge, and V. Klemann. 2024. “Feedback Mechanisms Controlling Antarctic Glacial-Cycle Dynamics Simulated with a Coupled Ice Sheet–Solid Earth Model.” The Cryosphere 18 (9): 4233–55. https://doi.org/10.5194/tc-18-4233-2024.\n\n\nBagge, M., V. Klemann, B. Steinberger, M. Latinović, and M. Thomas. 2021. “Glacial-Isostatic Adjustment Models Using Geodynamically Constrained 3D Earth Structures.” Geochemistry, Geophysics, Geosystems 22 (11): e2021GC009853. https://doi.org/10.1029/2021GC009853.\n\n\nBlewitt, G. 2003. “Self-Consistency in Reference Frames, Geocenter Definition, and Surface Loading of the Solid Earth.” Journal of Geophysical Research: Solid Earth 108 (B2): 2103. https://doi.org/10.1029/2002JB002082.\n\n\nFarrell, W. E. 1972. “Deformation of the Earth by Surface Loads.” Reviews of Geophysics 10 (3): 761–97. https://doi.org/10.1029/RG010i003p00761.\n\n\nFrigo, M., and S. G. Johnson. 2005. “The Design and Implementation of FFTW3.” Proceedings of the IEEE 93 (2): 216–31. https://doi.org/10.1109/JPROC.2004.840301.\n\n\nHanýk, L. 1999. “Viscoelastic Response of the Earth: Initial-Value Approach.” PhD thesis, Charles University, Prague.\n\n\nKendall, R. A., J. X. Mitrovica, and G. A. Milne. 2005. “On Post-Glacial Sea Level – II. Numerical Formulation and Comparative Results on Spherically Symmetric Models.” Geophysical Journal International 161 (3): 679–706. https://doi.org/10.1111/j.1365-246X.2005.02553.x.\n\n\nMartinec, Z. 2000. “Spectral–Finite Element Approach to Three-Dimensional Viscoelastic Relaxation in a Spherical Earth.” Geophysical Journal International 142 (1): 117–41. https://doi.org/10.1046/j.1365-246x.2000.00138.x.\n\n\nMartinec, Z., and J. Hagedoorn. 2014. “The Rotational Feedback on Linear-Momentum Balance in Glacial Isostatic Adjustment.” Geophysical Journal International 199 (3): 1823–46. https://doi.org/10.1093/gji/ggu369.\n\n\nMartinec, Z., V. Klemann, W. van der Wal, et al. 2018. “A Benchmark Study of Numerical Implementations of the Sea Level Equation in GIA Modelling.” Geophysical Journal International 215 (1): 389–414. https://doi.org/10.1093/gji/ggy280.\n\n\nMitrovica, J. X., J. Wahr, I. Matsuyama, and A. Paulson. 2005. “The Rotational Stability of an Ice-Age Earth.” Geophysical Journal International 161 (2): 491–506. https://doi.org/10.1111/j.1365-246X.2005.02609.x.\n\n\nSchaeffer, N. 2013. “Efficient Spherical Harmonic Transforms Aimed at Pseudospectral Numerical Simulations.” Geochemistry, Geophysics, Geosystems 14 (3): 751–58. https://doi.org/10.1002/ggge.20071.\n\n\nSpada, G., V. R. Barletta, V. Klemann, et al. 2011. “A Benchmark Study for Glacial Isostatic Adjustment Codes.” Geophysical Journal International 185 (1): 106–32. https://doi.org/10.1111/j.1365-246X.2011.04952.x.\n\n\nWilleit, M., A. Ganopolski, A. Robinson, and N. R. Edwards. 2022. “The Earth System Model CLIMBER-X V1.0 – Part 1: Climate Model Description and Validation.” Geoscientific Model Development 15 (14): 5905–48. https://doi.org/10.5194/gmd-15-5905-2022.",
+    "crumbs": [
+      "Overview",
+      "References"
+    ]
+  },
+  {
+    "objectID": "discretization/radial-fe.html",
+    "href": "discretization/radial-fe.html",
+    "title": "Radial finite elements and the per-degree operator",
+    "section": "",
+    "text": "After the spectral reduction, each spherical-harmonic degree \\(j\\) is an independent 1D radial boundary-value problem. FastEarth3D discretizes it with finite elements in radius, assembling the symmetric saddle-point operator that is the Hessian of the energy functional.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Radial finite elements and the per-degree operator"
+    ]
+  },
+  {
+    "objectID": "discretization/radial-fe.html#mesh-and-bases",
+    "href": "discretization/radial-fe.html#mesh-and-bases",
+    "title": "Radial finite elements and the per-degree operator",
+    "section": "Mesh and bases",
+    "text": "Mesh and bases\nThe mesh spans the whole sphere \\(\\langle 0, a\\rangle\\) — the inviscid core is meshed too — with piecewise-constant \\(\\rho_k,\\mu_k\\) per element. The benchmark M3–L70–V01 model uses 218 nodes (VEGA 5/10/40 km radial spacing). Two finite-element bases are used (Martinec 2000, §6):\n\nP1 “tent” functions \\(\\psi_k(r)\\) for the nodal fields: \\(U,V,F = \\sum_k [\\,\\cdot\\,]_k\\,\\psi_k\\) (continuous, one value per node).\nP0 (piecewise-constant) functions \\(\\xi_k(r)\\) for the pressure: \\(\\Pi = \\sum_k \\Pi_k\\,\\xi_k\\) (one value per element).\n\nThis P1(U,V,F) / P0(\\(\\Pi\\)) pairing is the inf–sup-stable choice for the incompressible saddle-point problem: the pressure enforces \\(\\operatorname{div}\\mathbf{u}=0\\) weakly through its coupling block.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Radial finite elements and the per-degree operator"
+    ]
+  },
+  {
+    "objectID": "discretization/radial-fe.html#element-bilinear-forms",
+    "href": "discretization/radial-fe.html#element-bilinear-forms",
+    "title": "Radial finite elements and the per-degree operator",
+    "section": "Element bilinear forms",
+    "text": "Element bilinear forms\nThe element matrices are built from the closed-form radial integrals of Martinec’s Appendix C (the \\(I_1\\ldots I_7\\), \\(K_1\\ldots K_3\\) families), implemented and unit-tested in fe_radial_integrals:\n\n\n\n\n\n\n\n\n\nBlock\nEquation\nIntegrals\nCouples\n\n\n\n\nPressure / incompressibility \\(\\delta E_{\\text{press}}\\)\neq. 82\n\\(K_1,K_2\\)\n\\(\\Pi \\leftrightarrow (U' + 2U/r - JV/r)\\)\n\n\nShear stiffness \\(\\delta E_{\\text{shear}}\\)\neq. 80\n\\(I_1,I_3,I_6\\) (\\(\\times\\mu_k\\))\n\\(U,V\\)\n\n\nSelf-gravity \\(\\delta E_{\\text{grav}}\\)\neq. 81\n\\(I_2,I_4,I_5,I_7\\), \\(\\tfrac{1}{4\\pi G}\\)\n\\(U,V,F\\)\n\n\nRigid-mode penalty \\(\\delta E_{\\text{uniq}}\\)\neq. 83\n\\(K_3\\)\n\\(U,V\\) at \\(j=1\\)\n\n\n\nThe singular \\(I_7\\) (the \\(1/r\\) term carrying \\(R_k\\)) is skipped in the innermost element where \\(R_1 = 0\\), avoiding a \\(0\\cdot\\infty\\); the \\(r^2\\) weighting handles regularity at the centre so no explicit centre boundary condition is needed.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Radial finite elements and the per-degree operator"
+    ]
+  },
+  {
+    "objectID": "discretization/radial-fe.html#a-symmetric-operator-and-the-bug-that-hid-in-it",
+    "href": "discretization/radial-fe.html#a-symmetric-operator-and-the-bug-that-hid-in-it",
+    "title": "Radial finite elements and the per-degree operator",
+    "section": "A symmetric operator — and the bug that hid in it",
+    "text": "A symmetric operator — and the bug that hid in it\nLaid out node-interleaved as \\([U\\ V\\ F\\mid\\Pi]\\), the per-degree system is\n\\[\n\\begin{bmatrix} A & B^{\\mathsf T}\\\\ B & 0\\end{bmatrix}\n\\begin{bmatrix} d\\\\ \\Pi\\end{bmatrix}\n=\n\\begin{bmatrix} f\\\\ 0\\end{bmatrix},\n\\]\nwith \\(A\\) the shear+gravity stiffness and \\(B\\) the incompressibility coupling. The whole operator is symmetric — it is the second variation (Hessian) of the energy functional \\(E\\), hence self-transpose by construction. In particular the self-gravity \\(U\\!\\leftrightarrow\\! F\\) coupling is a transpose pair: the potential-gradient body force \\(\\int\\rho_0(\\mathrm{d}F/\\mathrm{d}r)\\,\\delta U\\,r^2\\) and the Poisson source \\(\\int\\rho_0 U(\\mathrm{d}\\,\\delta F/\\mathrm{d}r)\\,r^2\\) discretize to \\(I^2_{\\beta\\alpha}\\) and \\(I^2_{\\alpha\\beta}\\) respectively.\n\n\n\n\n\n\nWarningTypo in Martinec (2000), eq. (81)\n\n\n\nThe discretized self-gravity block written out in Martinec (2000) eq. (81) appears to contain a typo: it gives the \\(U\\)–\\(F\\) coupling as \\(I^2_{\\alpha\\beta}\\) where the symmetric partner \\(I^2_{\\beta\\alpha}\\) is required. Because the full operator is the Hessian of the energy functional \\(E\\), it must be symmetric; the corresponding term in the continuous form (eq. 65) makes this clear on term-by-term inspection. Using eq. (81) as written breaks the operator symmetry and softens the elastic low-degree Love numbers markedly — \\(h_e(2)\\) was \\(\\sim 47\\%\\) below the benchmark in our own tests, while every analytic limit and the fluid limit still passed. Anyone implementing this block should take eq. (65) as the arbiter, use \\(I^2_{\\beta\\alpha}\\) for the \\(U\\)–\\(F\\) coupling, and assert \\(\\lVert A - A^{\\mathsf T}\\rVert = 0\\) on the assembled matrix.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Radial finite elements and the per-degree operator"
+    ]
+  },
+  {
+    "objectID": "discretization/radial-fe.html#boundary-and-regularity-conditions",
+    "href": "discretization/radial-fe.html#boundary-and-regularity-conditions",
+    "title": "Radial finite elements and the per-degree operator",
+    "section": "Boundary and regularity conditions",
+    "text": "Boundary and regularity conditions\n\nSurface — the exterior potential match (\\(\\varphi_1\\propto r^{-(j+1)}\\) outside) adds a \\((j+1)F(a)\\) term on the \\(F\\!-\\!F\\) diagonal at the surface node; the load enters as the right-hand side \\(-a^2\\sigma\\,g_0(a)\\) on \\(U(a)\\) and \\(-a^2\\sigma\\) on \\(F(a)\\) (eq. 84).\nCentre \\(r=0\\) — no explicit BC (meshed through, \\(r^2\\) weighting + \\(R_1=0\\)).\nCore–mantle boundary — none imposed; free-slip emerges from \\(\\mu=0\\) in the meshed core.\nDensity-jump interfaces — natural conditions of the weak form.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Radial finite elements and the per-degree operator"
+    ]
+  },
+  {
+    "objectID": "discretization/radial-fe.html#degree-1-the-geocenter-kept-sparse",
+    "href": "discretization/radial-fe.html#degree-1-the-geocenter-kept-sparse",
+    "title": "Radial finite elements and the per-degree operator",
+    "section": "Degree 1: the geocenter, kept sparse",
+    "text": "Degree 1: the geocenter, kept sparse\nDegree 1 carries the rigid-translation null space, removed by \\(E_{\\text{uniq}}\\) (eq. 83). That penalty is a rank-1 term whose coefficient is \\(\\sim 10^{16}\\times\\) the band entries — i.e. it is already a hard constraint \\(w^{\\mathsf T}d = 0\\) (the CM/geocenter frame, (Blewitt 2003)) in all but name. Imposing it as a dense penalty would fill the band; instead it borders the band with one KKT row/column:\n\\[\n\\begin{bmatrix} A_{\\text{band}} & w\\\\ w^{\\mathsf T} & 0\\end{bmatrix}\n\\begin{bmatrix} d\\\\ \\lambda\\end{bmatrix}\n=\n\\begin{bmatrix} f\\\\ 0\\end{bmatrix}.\n\\]\nThe solve runs at \\(\\text{ndof}+1\\) internally but keeps the physical \\(\\text{ndof}\\) interface, so the time stepper needs no degree-1 special case. The geocenter is thus the physical degree-1 signal, not a hard-coded \\(\\{h_1,l_1,k_1\\}\\).\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nfe_radial_fe assembles build_dense_operator (the reference dense operator, with the dense \\(E_{\\text{uniq}}\\) penalty for cross-checking) and the banded operator used in production; fe_radial_integrals holds the Appendix-C element integrals. Love numbers are extracted by loading_love — see Love numbers. Validated by test_assembly, test_love.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Radial finite elements and the per-degree operator"
+    ]
+  },
+  {
+    "objectID": "discretization/spectral.html",
+    "href": "discretization/spectral.html",
+    "title": "Spectral reduction and the SH transform",
+    "section": "",
+    "text": "Horizontally, every field is expanded in spherical harmonics; the angular dependence is handled analytically and each degree decouples. This page covers the spectral reduction of the field equations and the transform kernel that moves between grid and spectral space.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Spectral reduction and the SH transform"
+    ]
+  },
+  {
+    "objectID": "discretization/spectral.html#vector-spherical-harmonic-expansion",
+    "href": "discretization/spectral.html#vector-spherical-harmonic-expansion",
+    "title": "Spectral reduction and the SH transform",
+    "section": "Vector spherical-harmonic expansion",
+    "text": "Vector spherical-harmonic expansion\nThe displacement, potential, and pressure are expanded as (Martinec 2000, eqs. 55–57)\n\\[\n\\mathbf{u} = \\sum_{j\\ge 1}\\Bigl[\\,U_{jm}(r)\\,\\mathbf{S}^{(-1)}_{jm}\n+ V_{jm}(r)\\,\\mathbf{S}^{(1)}_{jm}\n+ W_{jm}(r)\\,\\mathbf{S}^{(0)}_{jm}\\,\\Bigr],\n\\qquad\n\\varphi_1 = \\sum_{j\\ge 0} F_{jm}(r)\\,Y_{jm},\n\\quad\n\\Pi = \\sum_{j\\ge 0}\\Pi_{jm}(r)\\,Y_{jm},\n\\]\nwhere \\(\\mathbf{S}^{(-1)},\\mathbf{S}^{(1)},\\mathbf{S}^{(0)}\\) are the spheroidal (radial, consoidal) and toroidal vector harmonics. Two simplifications follow from the physics:\n\nNo degree 0 in \\(\\mathbf{u}\\) — incompressibility forbids the radial breathing mode.\nSpheroidal-only for loading — a surface mass load excites no toroidal (\\(W\\)) motion on a radially symmetric Earth; the \\(W\\) block decouples and is dropped (eq. 110). The divergence reduces to \\(\\operatorname{div}\\mathbf{u} = \\sum (U' + 2U/r - J\\,V/r)\\,Y_{jm}\\), \\(J=j(j+1)\\) (eq. 58).\n\nEach degree \\(j\\) then reduces to an independent 1D radial problem in \\(\\{U_{jm},V_{jm},F_{jm},\\Pi_{jm}\\}\\) — the central economy of the method. The order \\(m\\) enters only through the (real) load coefficients, so the operator is assembled and factored once per degree and reused across all \\(m\\).",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Spectral reduction and the SH transform"
+    ]
+  },
+  {
+    "objectID": "discretization/spectral.html#real-orthonormal-harmonics",
+    "href": "discretization/spectral.html#real-orthonormal-harmonics",
+    "title": "Spectral reduction and the SH transform",
+    "section": "Real, orthonormal harmonics",
+    "text": "Real, orthonormal harmonics\nFastEarth3D uses fully normalized real spherical harmonics with no Condon–Shortley phase, on a Gauss–Legendre latitude grid with a \\(\\phi\\)-contiguous layout; spectral arrays store \\(m \\ge 0\\). This convention (SHT_ORTHONORMAL, SHT_NO_CS_PHASE) is pinned across the whole code so that quadrature (\\(\\int\\!\\mathrm{d}\\Omega\\)), the orthonormality of \\(Y_{10}\\), and round-trip transforms all hold to machine precision.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Spectral reduction and the SH transform"
+    ]
+  },
+  {
+    "objectID": "discretization/spectral.html#the-transform-kernel-shtns-fftw",
+    "href": "discretization/spectral.html#the-transform-kernel-shtns-fftw",
+    "title": "Spectral reduction and the SH transform",
+    "section": "The transform kernel (SHTns + FFTW)",
+    "text": "The transform kernel (SHTns + FFTW)\nThe grid\\(\\leftrightarrow\\)spectral transform is the workhorse of a pseudo-spectral method — it is called many times per time step — so it is built on SHTns (Schaeffer 2013), a high-performance spherical-harmonic transform library, which in turn uses FFTW (Frigo and Johnson 2005) for the longitudinal FFTs. FastEarth3D wraps SHTns in a thin Fortran module (fe_sht) that exposes:\n\nforward / inverse scalar transforms (analysis and synthesis);\nquadrature on the sphere, \\(\\int f\\,\\mathrm{d}\\Omega\\);\narbitrary-point evaluation of a spectral field (used to sample the benchmark profiles at exact colatitudes/longitudes), via SHTns’ point-evaluation routine;\nspheroidal (horizontal-gradient) evaluation — the surface gradient field \\((\\partial_\\theta,\\ (\\sin\\theta)^{-1}\\partial_\\phi)\\) — used for the horizontal displacement output. SHTns’ spheroidal synthesis is the direct surface gradient (no \\(\\ell(\\ell+1)\\) factor), which matches the analytic case-A horizontal response.\n\nThe round-trip transform, quadrature, normalization, and point/gradient evaluation are validated to \\(\\sim 10^{-15}\\) in test_sht and test_field.\n\n\n\n\n\n\nNoteWhy a library, and which convention\n\n\n\nRe-implementing a fast, accurate, well-tested Legendre transform is a project in itself; SHTns is the de-facto standard for pseudo-spectral geodynamo/GIA work and is many times faster than a naive transform at the resolutions of interest (SH degree \\(\\sim 170\\), grid \\(1024\\times 2048\\) at VILMA resolution). The one non-negotiable is pinning the normalization and phase convention everywhere, so that Love numbers, quadrature, and benchmark comparisons all use the same \\(Y_{jm}\\).",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Spectral reduction and the SH transform"
+    ]
+  },
+  {
+    "objectID": "discretization/spectral.html#resolution",
+    "href": "discretization/spectral.html#resolution",
+    "title": "Spectral reduction and the SH transform",
+    "section": "Resolution",
+    "text": "Resolution\nThe reference VILMA-scale configuration is SH degree 170 with a \\(1024\\times 2048\\) SLE grid. The benchmark cases here run at degree 32–128; the Love-number and disc benchmarks synthesize spatial profiles by summing the per-degree response against Legendre polynomials. All spherical-harmonic transforms stay inside this model — a host such as CLIMBER-X exchanges only grid-space ice thickness and bedrock/sea-level fields.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Spectral reduction and the SH transform"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "FastEarth3D",
+    "section": "",
+    "text": "FastEarth3D is a fast, open-source 3D solid-Earth model: a self-gravitating, incompressible, Maxwell-viscoelastic sphere coupled to a self-consistent sea-level equation with migrating coastlines. It is designed as an open-source replacement for VILMA inside the CLIMBER-X Earth system model (Willeit et al. 2022), and more generally as a reusable glacial isostatic adjustment (GIA) engine for ice-sheet and sea-level work.\nThe numerical method follows the spectral–finite-element, time-domain approach of Martinec (2000): spherical harmonics horizontally, finite elements radially, and an explicit memory-stress integration of the Maxwell rheology in time. The solver is 3D-ready from the start — laterally varying viscosity costs nothing extra — and is validated first in 1D against the published GIA community benchmarks (Spada et al. 2011; Martinec et al. 2018).",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "FastEarth3D"
+    ]
+  },
+  {
+    "objectID": "index.html#why-this-method",
+    "href": "index.html#why-this-method",
+    "title": "FastEarth3D",
+    "section": "Why this method",
+    "text": "Why this method\nThe structural advantage of this approach is that, with an explicit Maxwell time scheme, the stiffness solve has no angular coupling. Each spherical-harmonic degree \\(\\ell\\) decouples into an independent, small, banded radial system. This makes the solver embarrassingly parallel and cheap, and lateral (3D) viscosity is free: it never couples the harmonics in the solve, entering only through the explicitly-known memory stress. That memory stress is evaluated pointwise on the Gauss–Legendre grid and transformed back to spectral space each step, a pseudo-spectral treatment. The 1D and 3D code paths are therefore the same solver.\n\n\n\n\n\n\n\n\n\n\nMethod family\nExamples\n3D viscosity\nSpeed\nFit for purpose\n\n\n\n\nNormal-mode + Love numbers + SLE\nSELEN, TABOO, ALMA3\nno (1D only)\nfast (1D)\ndead end for 3D\n\n\nTime-domain spectral–FE\nVILMA (Martinec 2000)\nyes\nfast\nchosen\n\n\nFull 3D FE/FV\nCitcomSVE, ASPECT, Elmer\nyes\nslow, heavy\ntoo complex",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "FastEarth3D"
+    ]
+  },
+  {
+    "objectID": "index.html#what-is-in-these-docs",
+    "href": "index.html#what-is-in-these-docs",
+    "title": "FastEarth3D",
+    "section": "What is in these docs",
+    "text": "What is in these docs\n\nInstall & run — building with configme, the &fe3d namelist, the drivers, and staging runs with runme.\nPhysics — the governing equations (momentum, Poisson, incompressibility), the Maxwell rheology and its memory stress, the sea-level equation, and rotational feedback.\nDiscretization — the spectral reduction, the P1/P0 radial finite-element operator, the explicit time scheme, and the banded direct solver.\nBenchmarks — a summary table of validation results, with one page per benchmark (Love numbers, the disc-load response, and the sea-level-equation intercomparison).\nImplementation — the libraries the model builds on, and the codebases and datasets that informed the validation.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "FastEarth3D"
+    ]
+  },
+  {
+    "objectID": "index.html#status",
+    "href": "index.html#status",
+    "title": "FastEarth3D",
+    "section": "Status",
+    "text": "Status\nThe full model is implemented. The core includes the spectral–finite-element solver, the viscoelastic time stepping and response operator, the self-consistent migrating-coastline sea-level equation, rotational feedback (polar motion), and laterally varying (3D) viscosity. It also supports restart and spin-up, online remapping of lon-lat forcing, and a host-coupling API.\nValidation against the Spada et al. (2011) and Martinec et al. (2018) community benchmarks covers the radial solver, the disc-load response, and the sea-level equation. Rotation is checked against the Spada test 3/2. Cross-code validation of the 3D viscosity path is ongoing (see the validation ladder).",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "FastEarth3D"
+    ]
+  },
+  {
+    "objectID": "discretization/time-stepping.html",
+    "href": "discretization/time-stepping.html",
+    "title": "Time stepping and the field driver",
+    "section": "",
+    "text": "The viscoelastic evolution is an explicit march in time built directly on the elastic operator. This page covers how a step is taken, how the memory state is carried, and how the field-level driver feeds the sea-level equation without corrupting that state.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Time stepping and the field driver"
+    ]
+  },
+  {
+    "objectID": "discretization/time-stepping.html#one-step",
+    "href": "discretization/time-stepping.html#one-step",
+    "title": "Time stepping and the field driver",
+    "section": "One step",
+    "text": "One step\nThe \\(\\omega=1\\) Maxwell scheme (see Rheology) keeps the left-hand operator fixed and updates only the right-hand side. A step at degree \\(j\\) is:\n\nForm the dissipative forcing \\(-\\int\\boldsymbol{\\tau}^{V,i-1}:\\delta\\boldsymbol{\\varepsilon}\\) from the previous memory stress (a two-point radial Gauss quadrature of the spectral double-dot over the four spheroidal tensor components).\nAdd the surface-load right-hand side for the current load.\nBack-substitute through the once-factored operator (no re-factorization).\nUpdate the memory stress \\(\\boldsymbol{\\tau}^{V,i} = (1-M)\\boldsymbol{\\tau}^{V,i-1} - 2\\mu M\\,\\boldsymbol{\\varepsilon}^{i}\\) from the new strain.\n\nElastic layers (\\(M\\to 0\\)) freeze; fluid layers (\\(\\mu=0\\)) carry no memory. The 1D validation test_relax shows a held load relaxing monotonically from the elastic Love number to the fluid limit \\(-(2j+1)/3\\), with \\(t_{\\text{relax}}\\propto\\eta\\) and convergence under step refinement.\nThis explicit update is conditionally stable — the step is capped by the shortest Maxwell time, so a short dynamical \\(\\Delta t\\) is sub-cycled within the coupling interval (the fe_timestep controller sizes it; scheme = \"trap\" selects the 2nd-order adaptive variant).",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Time stepping and the field driver"
+    ]
+  },
+  {
+    "objectID": "discretization/time-stepping.html#the-viscoelastic-field-driver",
+    "href": "discretization/time-stepping.html#the-viscoelastic-field-driver",
+    "title": "Time stepping and the field driver",
+    "section": "The viscoelastic field driver",
+    "text": "The viscoelastic field driver\nThe SLE needs a field load whose every coefficient \\((\\ell,m)\\) has its own independent load history — the ice and ocean evolve differently everywhere. The ve_response driver provides this while remaining safe to call from inside an iterative solver, using the affine structure of the response at fixed time:\n\\[\nu_{\\ell m} \\;=\\; g_u(\\ell)\\,\\sigma_{\\ell m} \\;+\\; \\text{drift}_{\\ell m},\n\\]\nwhere \\(g_u(\\ell)\\) is the instantaneous (elastic) gain and \\(\\text{drift}_{\\ell m}\\) comes from the frozen past-relaxation memory. The step is bracketed:\n\nbegin_step freezes the drift — one memory-forcing solve per coefficient, done once at the start of the step;\napply() is then a cheap affine evaluation the SLE fixed point may call repeatedly;\ncommit_step advances the Maxwell memory once, with the converged load.\n\nEach complex \\((\\ell,m)\\) history is stored as two real histories (real/imaginary), since the operator and \\(M=\\mu\\Delta t/\\eta\\) are real. The per-element Maxwell kernel is shared verbatim with the 1D stepper — test_ve_response confirms the field driver’s first step equals elastic_response exactly, and that a held degree-2 field reproduces the 1D ve_degree history to \\(\\sim 10^{-13}\\).",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Time stepping and the field driver"
+    ]
+  },
+  {
+    "objectID": "discretization/time-stepping.html#memory-storage-and-restart",
+    "href": "discretization/time-stepping.html#memory-storage-and-restart",
+    "title": "Time stepping and the field driver",
+    "section": "Memory storage and restart",
+    "text": "Memory storage and restart\nThe per-\\((\\ell,m)\\) memory and drift are stored in degree-grouped slot order (an \\(\\ell m \\leftrightarrow k\\) map), so the inner loop is contiguous and per-degree, allowing operator reuse without scattering the (large) memory arrays. The only prognostic state carried across a restart is the viscoelastic memory — the Maxwell stress \\(\\boldsymbol{\\tau}\\) — plus the integrator state and the model time. Reference fields (equilibrium bedrock, reference ice/topo) are static and validated on read. test_restart confirms a checkpoint-restart reproduces an uninterrupted run bit-for-bit. A lower-resolution restart is interpolated up to the model grid (degree-grouped spectral block copy), so a run can be spun up cheaply at coarse resolution and continued at fine resolution.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Time stepping and the field driver"
+    ]
+  },
+  {
+    "objectID": "discretization/time-stepping.html#coupling-cadence",
+    "href": "discretization/time-stepping.html#coupling-cadence",
+    "title": "Time stepping and the field driver",
+    "section": "Coupling cadence",
+    "text": "Coupling cadence\nFor host coupling (CLIMBER-X), the model sub-cycles its short dynamical step \\(\\Delta t\\) within a longer coupling interval: ice thickness is held across the interval, the SLE is solved each \\(\\Delta t\\), and the bedrock \\(z_{\\text{bed}} = z_{\\text{bed,eq}} - \\text{rsl}\\) is returned at the coupling cadence. The reference state and its datum are chosen by i_eq (e.g. a present-day RTopo reference, or an equilibrium configuration); a non-equilibrium start (a held LGM load) is brought into balance by a spin-up (solid_earth_spinup) that relaxes the held load to bed-stationary equilibrium (rate below equil_rate_tol) — capped by equil_time_max — with an optional cheap 1-D pre-equilibration (pre_spinup_1d) before switching the transient to the 3-D path.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nfe_viscoelastic (1D stepper + shared kernel), fe_response (ve_response field driver, begin_step/commit_step), fe_io (netCDF restart), and fe_coupling (host init/update contract). The cost of begin_step is the main performance driver and is addressed in Solver.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Time stepping and the field driver"
+    ]
+  },
+  {
+    "objectID": "discretization/solver.html",
+    "href": "discretization/solver.html",
+    "title": "The banded direct solver and performance",
+    "section": "",
+    "text": "The per-degree saddle-point system is small, banded, and reused unchanged across all orders \\(m\\), all loads, and every time step. FastEarth3D therefore solves it with a dependency-free, re-entrant, pivoted banded LU — factor once, solve many times — which is both faster and structurally simpler than the iterative solver used in early versions.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "The banded direct solver and performance"
+    ]
+  },
+  {
+    "objectID": "discretization/solver.html#why-a-banded-direct-solve-fits",
+    "href": "discretization/solver.html#why-a-banded-direct-solve-fits",
+    "title": "The banded direct solver and performance",
+    "section": "Why a banded direct solve fits",
+    "text": "Why a banded direct solve fits\nLaid out node-interleaved as \\([U\\ V\\ F\\mid\\Pi]\\), the operator has a half-bandwidth of \\(\\sim 6\\). Its entries span \\(\\sim 20\\) orders of magnitude (\\(\\mu r^2/h\\) versus the pressure couplings versus \\(1/4\\pi G\\)), so it is first geometric-mean row/column equilibrated. Two facts then make a direct band solve ideal:\n\nThe operator depends on degree only through \\(J = j(j+1)\\), so it is assembled and factored once per degree and reused for all \\(m\\), all loads, and all time steps. A step costs only a band back-substitution.\nIt is indefinite (zero pressure block), so partial pivoting is required; the fe_band LU pivots within the band.\n\nDegree 1 carries the dense KKT border (the rigid-mode constraint), giving that one degree a near-full bandwidth — it factors as a dense LU through the same code path. The result is \\(\\sim 20\\ \\mu\\mathrm{s}\\) per solve, versus \\(\\sim 700\\\n\\mu\\mathrm{s}\\) for the earlier iterative (GMRES+ILU) solver, with no preconditioner fill to evict from cache.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "The banded direct solver and performance"
+    ]
+  },
+  {
+    "objectID": "discretization/solver.html#no-external-linear-algebra-dependency",
+    "href": "discretization/solver.html#no-external-linear-algebra-dependency",
+    "title": "The banded direct solver and performance",
+    "section": "No external linear-algebra dependency",
+    "text": "No external linear-algebra dependency\nfe_band is hand-rolled and dependency-free: it pulls in no LAPACK and no LIS. This is a deliberate design choice driven by linking into a larger, OpenMP-parallel host:\n\n\n\n\n\n\nNoteWhy LIS (and LAPACK) were removed\n\n\n\nAn earlier version used the LIS iterative-solver library. Linking LIS into an OpenMP host (CLIMBER-X) would pull in lis-omp, nesting OpenMP regions, and concurrent LIS solves are not re-entrant (global solver state). The hand-rolled band LU has no global state, so it is re-entrant and the per-degree loop parallelizes cleanly with OpenMP. With LIS gone there is no serial-vs-OpenMP variant to reconcile. The project also avoids LAPACK for the same dependency-minimization reason — the band solver is small and fully tested (test_band against a dense reference).",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "The banded direct solver and performance"
+    ]
+  },
+  {
+    "objectID": "discretization/solver.html#performance-of-the-sle-driver",
+    "href": "discretization/solver.html#performance-of-the-sle-driver",
+    "title": "The banded direct solver and performance",
+    "section": "Performance of the SLE driver",
+    "text": "Performance of the SLE driver\nThe cost driver for a coupled run is ve_response%begin_step, which performs two real per-degree solves for every \\((\\ell,m)\\) each step (\\(\\mathcal{O}(n_{\\ell m})\\) solves). Four changes — all exact (results unchanged) except the threshold-controlled skip — brought this from impractical to routine:\n\n\n\n\n\n\n\nChange\nEffect\n\n\n\n\nBanded LU replaces GMRES+ILU on the per-degree solve\n\\(\\sim 35\\times\\) per solve; cache-light\n\n\nDegree-grouped storage of per-\\((\\ell,m)\\) memory/drift (slot \\(k\\))\ncontiguous + operator reuse\n\n\nSkip-negligible coefficients (memory \\(&lt; \\texttt{skip\\_tol}\\times\\max\\))\n\\(\\sim 2\\times\\) for a localized cap\n\n\nOpenMP over the degree loop (safe via the re-entrant LU)\n\\(\\sim 5.4\\times\\) at 8 threads\n\n\n\nNet effect on begin_step:\n\n\n\nResolution\nOriginal (LIS)\nBand LU, 1 thread\nBand LU, 8 threads\n\n\n\n\n\\(\\ell_{\\max}=64\\)\n\\(7.9\\) s/step\n\\(84\\) ms/step\n—\n\n\n\\(\\ell_{\\max}=128\\)\n(hours/run)\n\\(310\\) ms/step\n\\(58\\) ms/step\n\n\n\nThe full sea-level benchmark (\\(\\ell_{\\max}=128\\), \\(\\sim 750\\) steps) thus runs in minutes rather than hours, which is what makes the Martinec (2018) SLE cases feasible as routine validation. At VILMA resolution (SH degree 170) the same machinery applies.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nfe_band (pivoted banded LU + equilibration), fe_radial_fe (assembly, factorization, reuse), fe_response (skip_tol, degree-grouped slots, OpenMP loop). Build with make openmp=1 for the threaded degree loop (serial dependencies + -fopenmp).",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "The banded direct solver and performance"
+    ]
+  },
+  {
+    "objectID": "implementation.html",
+    "href": "implementation.html",
+    "title": "Implementation and attribution",
+    "section": "",
+    "text": "FastEarth3D is a modern-Fortran implementation of published GIA physics, built on a small set of well-established numerical libraries. This page records what the model is built on, and what informed its development and validation.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Implementation and attribution"
+    ]
+  },
+  {
+    "objectID": "implementation.html#physics-and-references",
+    "href": "implementation.html#physics-and-references",
+    "title": "Implementation and attribution",
+    "section": "Physics and references",
+    "text": "Physics and references\nFastEarth3D reproduces the physics of VILMA: an incompressible, self-gravitating, Maxwell-viscoelastic sphere with rotational feedback and a full migrating-coastline sea-level equation. VILMA’s character is documented in Albrecht et al. (2024) and Bagge et al. (2021). The numerical method follows Martinec (2000), with rotation from Martinec and Hagedoorn (2014) and the sea-level equation from Kendall et al. (2005) and Martinec et al. (2018).\nThe implementation is modern and minimal: a small, dependency-light Fortran codebase organized as single-purpose modules (fe_*), validated rung-by-rung against the community benchmarks. It is 3D-ready from the start — laterally varying viscosity costs nothing extra in the solver — while validated first in 1D.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Implementation and attribution"
+    ]
+  },
+  {
+    "objectID": "implementation.html#libraries-we-build-on",
+    "href": "implementation.html#libraries-we-build-on",
+    "title": "Implementation and attribution",
+    "section": "Libraries we build on",
+    "text": "Libraries we build on\n\n\n\nLibrary\nRole\nReference\n\n\n\n\nSHTns\nfast spherical-harmonic transforms (forward/inverse, quadrature, point & gradient evaluation)\nSchaeffer (2013)\n\n\nFFTW3\nthe longitudinal FFTs underlying SHTns\nFrigo and Johnson (2005)\n\n\nnetCDF\nrestart and output I/O\n—\n\n\nfesm-utils\nshared build system + helper library (precision, ncio, namelists)\n—\n\n\n\nThe FFT and spherical-harmonic transform are central, not incidental. A pseudo-spectral method moves between grid and spectral space many times per step: the SLE forms its ocean-function product on the grid and its load–response convolution in spectral space. Using SHTns and FFTW for that kernel, rather than a hand-rolled transform, keeps the model fast at the resolutions of interest. The transform convention (orthonormal, no Condon–Shortley phase, Gauss grid) is pinned across the whole code. See Spectral reduction.\nThe linear solver, by contrast, is hand-rolled: a dependency-free, re-entrant, pivoted banded LU (fe_band). This choice avoids an external dependency (LIS, LAPACK) that would complicate linking into an OpenMP host. See Solver.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Implementation and attribution"
+    ]
+  },
+  {
+    "objectID": "implementation.html#codebases-and-datasets-that-informed-the-validation",
+    "href": "implementation.html#codebases-and-datasets-that-informed-the-validation",
+    "title": "Implementation and attribution",
+    "section": "Codebases and datasets that informed the validation",
+    "text": "Codebases and datasets that informed the validation\nSeveral existing codebases provided independent reference solutions and datasets used during validation of FastEarth3D. Each implements the physics in a somewhat different way, which was helpful for understanding the method, and each supplied reference data used in the benchmark pages:\n\ngiapy (S. B. Kachuck, MIT) — source of the vendored M3–L70–V01 Love-number table, the SBK sea-level reference curves, and the analytic load/basin specifications for the Martinec et al. (2018) cases.\nTABOO (D. Melini, GPLv3) — a normal-mode code used as an independent reference to regenerate the M3–L70–V01 Love numbers (NV=3, CODE=7).\nisostasy_data / FastIsostasy.jl (J. Jereczek) — source of the Spada et al. (2011) disc-load spatial-response reference.\n\nFull provenance and licensing of every vendored dataset is in the repository’s data/benchmarks/PROVENANCE.md.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Implementation and attribution"
+    ]
+  },
+  {
+    "objectID": "implementation.html#build-and-host-coupling",
+    "href": "implementation.html#build-and-host-coupling",
+    "title": "Implementation and attribution",
+    "section": "Build and host coupling",
+    "text": "Build and host coupling\nThe model uses a configme build: a machine fragment inserted into a Makefile template. Dependencies are provided through a fesm-utils checkout (FFTW, SHTns) plus system netCDF, and runs are staged with runme. Both are covered in Install & run.\nThe host-coupling contract, designed for CLIMBER-X, is intentionally narrow. The host passes ice thickness in and receives relative sea level and bedrock out, on its own grid. The model owns its Gauss grid and the host↔︎Gauss remap (conservative in, bilinear out), built from the parameter record, and keeps all spherical-harmonic transforms inside.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Implementation and attribution"
+    ]
+  },
+  {
+    "objectID": "implementation.html#license-and-citation",
+    "href": "implementation.html#license-and-citation",
+    "title": "Implementation and attribution",
+    "section": "License and citation",
+    "text": "License and citation\nSee the repository for the current license. When citing the method, cite the primary sources — above all Martinec (2000) for the spectral–finite-element approach, and Spada et al. (2011) and Martinec et al. (2018) for the benchmarks against which FastEarth3D is validated.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Implementation and attribution"
+    ]
+  },
+  {
+    "objectID": "physics/sea-level.html",
+    "href": "physics/sea-level.html",
+    "title": "The sea-level equation",
+    "section": "",
+    "text": "Surface loading and sea level are coupled: ice and ocean water deform and re-gravitate the solid Earth, which moves the geoid and the solid surface, which redistributes the ocean water, which changes the load. FastEarth3D solves this self-consistently with the migrating-coastline sea-level equation (SLE) in the pseudo-spectral form of Kendall et al. (2005), driven by the viscoelastic response operator.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "The sea-level equation"
+    ]
+  },
+  {
+    "objectID": "physics/sea-level.html#the-response-operator",
+    "href": "physics/sea-level.html#the-response-operator",
+    "title": "The sea-level equation",
+    "section": "The response operator",
+    "text": "The response operator\nThe SLE is built on a thin abstraction. A response operator maps a spectral surface-mass load \\(\\sigma_{\\ell m}\\) to the surface uplift \\(u_{\\ell m}\\) and geoid height \\(N_{\\ell m}\\):\n\\[\n\\texttt{apply}:\\ \\sigma_{\\ell m}\\ \\longmapsto\\ (u_{\\ell m},\\ N_{\\ell m}).\n\\]\nThe geoid is obtained from the incremental potential by Bruns’ formula, \\(N(a) = -F(a)/g\\), where \\(F\\) is the radial coefficient of \\(\\varphi_1\\). This uses only \\(U\\) and \\(F\\) — not the horizontal Love number \\(\\ell\\) — so the SLE is never blocked by horizontal-displacement conventions. Three implementations share the interface:\n\n\n\n\n\n\n\n\nImplementation\nResponse\nUse\n\n\n\n\nelastic_response\nper-degree elastic gains \\(g_u(\\ell), g_N(\\ell)\\)\ninstantaneous Earth\n\n\nnull_response\n\\(u\\equiv N\\equiv 0\\)\nrigid, non-self-gravitating \\(\\to\\) eustatic baseline\n\n\nve_response\nviscoelastic field driver (memory history per \\((\\ell,m)\\))\nthe GIA case",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "The sea-level equation"
+    ]
+  },
+  {
+    "objectID": "physics/sea-level.html#the-sea-level-equation",
+    "href": "physics/sea-level.html#the-sea-level-equation",
+    "title": "The sea-level equation",
+    "section": "The sea-level equation",
+    "text": "The sea-level equation\nLet \\(C(\\theta,\\phi)\\) be the ocean function (1 over ocean, 0 over land/grounded ice), \\(\\Delta I\\) the ice-thickness change, and \\(S\\) the relative sea-level change. The SLE is a Fredholm equation of the second kind,\n\\[\nS \\;=\\; C\\cdot\\bigl(N - u + \\Delta\\phi\\bigr),\n\\]\nwhere \\((N,u)\\) is the Earth’s response to the total load \\(L = \\rho_{\\text{ice}}\\,\\Delta I + \\rho_{\\text{water}}\\,C\\!\\cdot\\!S\\), and the spatial constant \\(\\Delta\\phi\\) enforces conservation of ocean mass,\n\\[\n\\rho_{\\text{water}}\\!\\int C\\!\\cdot\\!S\\,\\mathrm{d}A\n\\;=\\; -\\,\\rho_{\\text{ice}}\\!\\int_{\\text{grounded}} \\Delta I\\,\\mathrm{d}A .\n\\]\nFixing \\(\\Delta\\phi\\) each iteration from this balance makes mass exactly conserved by construction (to machine precision), rather than as a converged residual.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "The sea-level equation"
+    ]
+  },
+  {
+    "objectID": "physics/sea-level.html#pseudo-spectral-fixed-point-iteration",
+    "href": "physics/sea-level.html#pseudo-spectral-fixed-point-iteration",
+    "title": "The sea-level equation",
+    "section": "Pseudo-spectral fixed-point iteration",
+    "text": "Pseudo-spectral fixed-point iteration\nThe equation is solved by nested fixed-point iteration (Kendall et al. 2005):\n\nInner loop — iterate \\(S\\) at a fixed coastline. The load \\(\\to\\) response convolution is done in spectral space (it is diagonal per degree), while the ocean-function product \\(C\\!\\cdot\\!S\\) is formed pointwise on the Gauss–Legendre grid. Mixing the two representations this way is what kills the Gibbs ringing that a purely spectral coastline product would produce.\nOuter loop — migrate the coastline by recomputing the ocean function from the updated topography \\(\\text{topo}_0 - S\\), then repeat. Convergence is typically reached in \\(\\sim 3\\) outer \\(\\times\\ \\sim 3\\) inner iterations.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "The sea-level equation"
+    ]
+  },
+  {
+    "objectID": "physics/sea-level.html#ocean-function-flotation-and-the-coast",
+    "href": "physics/sea-level.html#ocean-function-flotation-and-the-coast",
+    "title": "The sea-level equation",
+    "section": "Ocean function, flotation, and the coast",
+    "text": "Ocean function, flotation, and the coast\nThe ocean function distinguishes three regimes, each handled explicitly so that no mass is double-counted:\n\nGrounded vs. floating ice. A cell is ocean only where it is below sea level and the ice does not ground: \\(\\rho_{\\text{ice}}\\,I &lt; -\\rho_{\\text{water}}\\,\\text{topo}\\). Only grounded ice loads the bed and changes the ocean-water budget; floating ice is already carried by the ocean term.\nTwo ocean-geometry modes. A fixed ocean (Martinec SLE1) holds \\(C = O^{(0)} = (\\text{topo}_0 &lt; 0)\\) for the whole run; the migrating coastline (SLE2) updates \\(C\\) every outer iteration.\nSub-grid (sloping-coast) loading. The binary load \\(\\rho_{\\text{water}}\\,C\\!\\cdot\\!S\\) puts the full sea-level change wherever \\(C=1\\), giving a sharp shoreline. The optional sub-grid mode instead loads the actual water-column change \\(s = C\\!\\cdot\\!S - \\zeta^{(0)}(C - C_0)\\), which tapers smoothly to zero as a newly flooded cell fills from its own bed (Martinec 2018, §2.2, eqs. 15–19). This is a local correction — one extra field term and one integral — yet it collapses the cap-edge grounding-line residuals in the migrating benchmark cases to the \\(\\sim 1\\%\\) level.\n\n\n\n\n\n\n\nNoteWhy the affine trick makes the VE driver tractable\n\n\n\nThe viscoelastic response at a fixed time is affine in the current load: \\(u_{\\ell m} = g_u(\\ell)\\,\\sigma_{\\ell m} + \\text{drift}_{\\ell m}\\), where the drift comes from the frozen past-relaxation memory. So the SLE fixed point can call apply() as many times as it likes within a step without corrupting the Maxwell state. A begin_step freezes the drift (one memory-forcing solve per coefficient); commit_step advances the memory once, with the converged load. This is what lets a viscoelastic Earth sit inside an iterative SLE solver cheaply.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "The sea-level equation"
+    ]
+  },
+  {
+    "objectID": "physics/sea-level.html#reference-frame-and-degree-1",
+    "href": "physics/sea-level.html#reference-frame-and-degree-1",
+    "title": "The sea-level equation",
+    "section": "Reference frame and degree 1",
+    "text": "Reference frame and degree 1\nThe geocenter (degree-1) terms are physical and frame-dependent. FastEarth3D solves degree 1 in the CM frame (Blewitt 2003) via a rigid-translation constraint, so the displacement degree-1 (and hence the uplift) is self-consistent with the geoid. The Spada-2011 disc benchmark uses a mixed convention — displacement in a CE-like gauge (\\(h_1\\approx 0\\)), geoid in the CM frame (\\(N_1 = 0\\)) — which FastEarth3D reproduces by referencing the degree-1 geoid to CM. See the disc benchmark.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nfe_response defines the response-operator interface and its three implementations; fe_sle is the fixed-point SLE solver (ocean function, flotation, migration, sub-grid load, mass-conserving \\(\\Delta\\phi\\)); fe_field builds analytic ice caps and basin topographies for the benchmarks. Validation is in Sea-level equation.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "The sea-level equation"
+    ]
+  },
+  {
+    "objectID": "physics/rotation.html",
+    "href": "physics/rotation.html",
+    "title": "Rotational feedback (polar motion)",
+    "section": "",
+    "text": "A redistribution of surface mass (ice, ocean water) and the resulting solid-Earth deformation change the planet’s inertia tensor, which perturbs the rotation vector — true polar wander (TPW). The shifted rotation in turn alters the centrifugal potential, itself a degree-2 surface load that drives further deformation and sea-level change. FastEarth3D implements this two-way rotational feedback in the time domain, consistent with the explicit memory-stress machinery.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Rotational feedback (polar motion)"
+    ]
+  },
+  {
+    "objectID": "physics/rotation.html#formulation",
+    "href": "physics/rotation.html#formulation",
+    "title": "Rotational feedback (polar motion)",
+    "section": "Formulation",
+    "text": "Formulation\nThe rotational theory follows the time-domain approach of Martinec and Hagedoorn (2014), which composes with a viscoelastic, 3D-viscosity solver. On the GIA timescale the Chandler wobble is neglected, leaving a quasi-static Liouville equation for the polar-motion vector \\(\\mathbf{m}\\),\n\\[\n\\Bigl[\\,1 - \\tfrac{k^{T}(t)}{k_{s}}\\,\\Bigr] * \\mathbf{m}(t) = \\Psi_{L}(t),\n\\qquad\n\\Psi_{L}(t) = \\frac{I(t)}{C-A},\n\\qquad\nI(t) = \\bigl[\\delta(t) + k^{L}(t)\\bigr] * I_{\\rm rigid}(t),\n\\]\nwhere \\(*\\) is time convolution, \\(I_{\\rm rigid}\\) is the rigid-body inertia perturbation from the surface load, \\(k^{L}\\) and \\(k^{T}\\) are the loading and tidal degree-2 Love numbers, \\(k_s\\) is the secular (fluid-limit) number, and \\(C-A\\) is the moment difference.\nThe implementation carries two degree-2 viscoelastic channels on the same per-degree operator — a loading channel forced by the rigid inertia (a direct Gauss-grid quadrature of the load, so no axisymmetry is assumed) and a tidal channel forced by the centrifugal potential. Each carries its own Maxwell memory. The polar motion \\(\\mathbf{m}\\) is solved algebraically each step and is affine in the load, so it sits inside the SLE ↔︎ rotation fixed point safely; the channel memories are committed once with the converged \\(\\mathbf{m}\\).",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Rotational feedback (polar motion)"
+    ]
+  },
+  {
+    "objectID": "physics/rotation.html#coupling-through-the-sea-level-equation",
+    "href": "physics/rotation.html#coupling-through-the-sea-level-equation",
+    "title": "Rotational feedback (polar motion)",
+    "section": "Coupling through the sea-level equation",
+    "text": "Coupling through the sea-level equation\nThe centrifugal potential of the perturbed rotation,\n\\[\n\\Lambda = \\Omega^{2} a^{2}\\,\\sin\\theta\\cos\\theta\\,(m_1\\cos\\phi + m_2\\sin\\phi),\n\\]\nis a degree-2, order-1 field. It enters the SLE as the rotational sea-surface contribution \\(s_{\\rm rot} = (1+k^{T})\\Lambda/g - h^{T}\\Lambda/g\\) (geoid minus uplift), held constant across the SLE solve while the caller iterates the rotation ↔︎ SLE fixed point. The rotational potential is thus treated as a load like any other — self-consistent, not a bolt-on correction.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Rotational feedback (polar motion)"
+    ]
+  },
+  {
+    "objectID": "physics/rotation.html#design-constraints-honoured",
+    "href": "physics/rotation.html#design-constraints-honoured",
+    "title": "Rotational feedback (polar motion)",
+    "section": "Design constraints honoured",
+    "text": "Design constraints honoured\n\nDegree-2, tidal Love numbers. The rotational deformation uses tidal (not loading) Love numbers; the centrifugal forcing is purely degree 2.\nThe secular number \\(k_s\\). Computing \\(k_s\\) from the assumed lithosphere thickness leads to the well-known “lithosphere-thickness paradox” in rotational stability; the model can instead pin \\(k_s\\) to the observed hydrostatic flattening (Mitrovica et al. 2005), recommended for deep time.\nCouple through the SLE. The rotational potential enters the sea-level equation self-consistently (above).",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Rotational feedback (polar motion)"
+    ]
+  },
+  {
+    "objectID": "physics/rotation.html#validation",
+    "href": "physics/rotation.html#validation",
+    "title": "Rotational feedback (polar motion)",
+    "section": "Validation",
+    "text": "Validation\nThe Liouville polar-motion solve is checked against Spada et al. (2011) test 3/2 (Spada et al. 2011) (model fluid \\(k_s \\approx 0.93\\)–\\(0.94\\)), and the rotation ↔︎ SLE per-step fixed point is exercised by test_rotation_sle. See the validation ladder.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nfe_rotation holds the two degree-2 channels, the Liouville solve, and the s_rot SLE contribution; fe_coupling drives the rotation ↔︎ SLE fixed point; fe_io persists the polar motion and channel memory on restart. On by default (rotation = .true.); set rotation = .false. for non-rotating benchmarks.",
+    "crumbs": [
+      "Overview",
+      "Physics",
+      "Rotational feedback (polar motion)"
+    ]
+  },
+  {
+    "objectID": "benchmarks/index.html",
+    "href": "benchmarks/index.html",
+    "title": "Benchmarks",
+    "section": "",
+    "text": "FastEarth3D is validated against the published GIA community benchmarks — the Charles University / Spada et al. (2011) intercomparison (Spada et al. 2011) and the sea-level-equation intercomparison of Martinec et al. (2018) (Martinec et al. 2018). Validation proceeds along a ladder: each rung is an independent benchmark that exercises one more piece of physics, so a failure localizes to the rung just added.\nThe reference datasets are vendored in the repository under data/benchmarks/ with full provenance and licensing in data/benchmarks/PROVENANCE.md. None of it is FastEarth3D output; it is external reference data, so the validation tests are self-contained.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmarks"
+    ]
+  },
+  {
+    "objectID": "benchmarks/index.html#summary-results",
+    "href": "benchmarks/index.html#summary-results",
+    "title": "Benchmarks",
+    "section": "Summary results",
+    "text": "Summary results\n\n\n\n#\nBenchmark\nPhysics exercised\nReference\nStatus\nAgreement\n\n\n\n\n1\nSH transform round-trip\nspectral kernel\n— (analytic)\n✅\n\\(\\sim 10^{-15}\\)\n\n\n2\nLove numbers \\(h,\\ell,k\\)\nelastic + fluid radial solve, self-gravity\nM3–L70–V01 table (Spada et al. 2011)\n✅\n\\(\\sim 0.1\\%\\), all degrees 2–256\n\n\n3\nDisc-load response\ndeformation + geoid, time relaxation\nSpada disc test (Spada et al. 2011)\n✅\n\\(u\\) \\(\\sim 1\\%\\) near-field; geoid \\(\\sim 1\\%\\) (\\(\\ell\\ge2\\))\n\n\n4\nSea-level equation\nmigrating-coastline SLE, flotation, sub-grid\nMartinec 2018 cases A/C2/D3/E2/F1 (Martinec et al. 2018)\n✅\nwithin inter-code scatter (esl \\(\\lesssim 5\\) m; D3 \\(\\sim 0.2\\) m)\n\n\n5\nRotation / polar motion\nrotational feedback (TPW)\nSpada test 3/2 (Spada et al. 2011)\n✅\npolar motion vs Spada 3/2; on by default\n\n\n6\n3D (lateral viscosity)\nlaterally varying \\(\\eta\\)\nRESP_VE tensor-SH path\n🔧\ncode path implemented + tested; cross-code validation ongoing\n\n\n\nLegend: ✅ implemented and validated · 🔧 implemented, validation ongoing · ⏳ planned. “Agreement” quotes the representative relative error against the reference; see each page for the full breakdown.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmarks"
+    ]
+  },
+  {
+    "objectID": "benchmarks/index.html#how-to-read-the-rungs",
+    "href": "benchmarks/index.html#how-to-read-the-rungs",
+    "title": "Benchmarks",
+    "section": "How to read the rungs",
+    "text": "How to read the rungs\n\nRungs 1–2 isolate the linear-algebra and radial physics: the transform, then the per-degree elastic and fluid Love numbers. The fluid limit is an analytic anchor (\\(h_j\\to-(2j+1)/3\\), \\(k_j\\to-1\\)); the elastic numbers are the stringent test, and they exposed the \\(U\\)–\\(F\\) symmetry bug.\nRung 3 integrates the per-degree response over a spatial load (the disc) and adds the time relaxation, testing the spatial synthesis and the Maxwell stepper together against a spatial reference.\nRung 4 turns on the full self-consistent sea-level equation — ocean function, mass conservation, coastline migration, flotation, and the sub-grid sloping coast — against the dedicated SLE intercomparison. This is the benchmark VILMA itself passed.\nRung 5 (rotation) is implemented and coupled into the SLE, with the Liouville polar-motion solve checked against Spada test 3/2. It is on by default for real-Earth runs (off for the non-rotating benchmarks). Rung 6 (laterally varying viscosity) is implemented in the full viscoelastic solver and exercised by unit tests, with cross-code validation ongoing.\n\n\n\n\n\n\n\nNoteAnalytic vs. inter-code benchmarks\n\n\n\nRungs 2–3 are effectively analytic (normal-mode Love numbers and their spatial synthesis), so tight tolerances (\\(\\sim 0.1\\)–\\(1\\%\\)) are meaningful. Rung 4 is a numerical inter-comparison — the reference (giapy’s SBK curves) is itself one code’s output, not a closed-form solution — so agreement is assessed against the documented inter-code scatter rather than an exact match.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmarks"
+    ]
+  },
+  {
+    "objectID": "benchmarks/index.html#per-benchmark-pages",
+    "href": "benchmarks/index.html#per-benchmark-pages",
+    "title": "Benchmarks",
+    "section": "Per-benchmark pages",
+    "text": "Per-benchmark pages\nThe pages below give the model setup, the comparison metrics, and a place for figures (to be added as the benchmark figures are generated):\n\nLove numbers — elastic and fluid \\(h,\\ell,k\\) for M3–L70–V01.\nDisc-load response — vertical displacement, geoid, and uplift rate for the 10° disc.\nSea-level equation — the five Martinec et al. (2018) cases.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmarks"
+    ]
+  },
+  {
+    "objectID": "benchmarks/sea-level.html",
+    "href": "benchmarks/sea-level.html",
+    "title": "Benchmark: the sea-level equation",
+    "section": "",
+    "text": "Reference: Martinec et al. (2018), the SLE intercomparison (Martinec et al. 2018), cases A and C2/D3/E2/F1 (SBK reference curves). Tests: test_benchmark_martinec (case A, in make check) and test_benchmark_sle (the SLE cases, standalone). Status: ✅ all cases within inter-code scatter.\nThis is the capstone benchmark: the full self-consistent, migrating-coastline sea-level equation driven by the viscoelastic response — the same benchmark VILMA itself passed. It exercises the ocean function, mass conservation, coastline migration, grounded-ice flotation, and the sub-grid sloping coast all together.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: the sea-level equation"
+    ]
+  },
+  {
+    "objectID": "benchmarks/sea-level.html#benchmark-structure",
+    "href": "benchmarks/sea-level.html#benchmark-structure",
+    "title": "Benchmark: the sea-level equation",
+    "section": "Benchmark structure",
+    "text": "Benchmark structure\nThe authority for the case definitions is Martinec et al. (2018), Table 4 (not the differing case labels in third-party reimplementations). The paper defines five cases from a small set of building blocks:\n\nIce (square-root cap \\(h(\\psi) = h_0\\sqrt{(\\cos\\psi-\\cos\\alpha)/(1-\\cos\\alpha)}\\), \\(\\alpha=10°\\)): L0 pole/1500 m; L1 colat 25°/lon 75°, 1500 m; L2 same centre, 500 m.\nBasin (\\(\\zeta^{(0)} = b_{\\max} - b_0\\,e^{-\\psi^2/2\\sigma^2}\\), \\(\\sigma=26°\\)): B0 none; B1 colat 100°/lon 320°, shallow (760/1200); B2 colat 35°/lon 25°, deep (3800/6000, 2200 m at centre).\nTime: T0 Heaviside (load held, \\(t_f = 10\\) kyr); T1 linear growth over 10 kyr then held to 15 kyr.\nOcean: SLE0 none; SLE1 fixed geometry \\(O^{(0)}\\); SLE2 time-varying (migrating coastline).\nDensities \\(\\rho_{\\text{ice}}/\\rho_{\\text{water}} = 931/1000\\ \\mathrm{kg\\,m^{-3}}\\), \\(g_0 = 9.815\\ \\mathrm{m\\,s^{-2}}\\).\n\nThe vendored SBK reference files use a labelling offset by one letter from the paper (SBK letter = paper letter + 1):\n\n\n\n\n\n\n\n\n\n\n\nSBK\npaper\nocean\nice\ntime\nbasin\n\n\n\n\nA\nA\nSLE0 (none)\nL0 (1500 m)\nT0\nB0 (none)\n\n\nC2\nB\nSLE1 fixed\nL1 (1500 m)\nT0\nB1 (shallow)\n\n\nD3\nC\nSLE1 fixed\nL2 (500 m)\nT1\nB2 (deep)\n\n\nE2\nD\nSLE2 migrate\nL2 (500 m)\nT1\nB2 (deep)\n\n\nF1\nE\nSLE2 migrate\nL2 (500 m)\nT1\nB2* (paleo-topo prescribed)",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: the sea-level equation"
+    ]
+  },
+  {
+    "objectID": "benchmarks/sea-level.html#case-a-pure-viscoelastic-loading",
+    "href": "benchmarks/sea-level.html#case-a-pure-viscoelastic-loading",
+    "title": "Benchmark: the sea-level equation",
+    "section": "Case A — pure viscoelastic loading",
+    "text": "Case A — pure viscoelastic loading\nThe simplest case: a spherical cap, Heaviside loading, 10 kyr relaxation, no ocean, with degrees \\(n=0,1\\) dropped — a pure viscoelastic cap response. FastEarth3D matches Martinec (2018) fig. 10 to 0.52 % (uplift) / 0.69 % (horizontal) / 1.94 % (geoid) (peak-normalized). This is the first horizontal-displacement benchmark and confirms the spheroidal \\(V\\) field (test_benchmark_martinec).",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: the sea-level equation"
+    ]
+  },
+  {
+    "objectID": "benchmarks/sea-level.html#sle-cases-c2-d3-e2-f1",
+    "href": "benchmarks/sea-level.html#sle-cases-c2-d3-e2-f1",
+    "title": "Benchmark: the sea-level equation",
+    "section": "SLE cases — C2, D3, E2, F1",
+    "text": "SLE cases — C2, D3, E2, F1\nThese run the full SLE with the time-varying load. The reference files give seven columns: longitude/colatitude, vertical displacement, the two horizontal components, the gravitational potential increment, the sea-surface variation, and the SLE result, sampled along circles of constant longitude/latitude (figs. 10–13).\nMass is conserved to \\(\\sim 10^{-16}\\) per step by construction in every case. Key findings from working through the cases:\n\nFixed vs. migrating ocean is the dominant control for C2/D3. C2 and D3 are fixed-ocean (SLE1) cases; running them with a migrating coastline drains the shallow/fixed basin roughly twice too far (C2 esl \\(-272\\) → \\(-126\\) m vs. data \\(-120\\); D3 \\(-50\\) → \\(-25.7\\) vs. \\(-25.5\\)). Honouring the fixed-ocean mode is what makes them match.\nGrounded-ice masking matters. The SLE load must apply only over grounded ice (\\(\\rho_{\\text{ice}}\\,\\Delta I\\,(1-C)\\)); floating ice over the deep basin is carried by the ocean term, and the ocean-water budget counts only grounded ice. Getting this wrong produced \\(\\sim 70\\) m of spurious flank subsidence.\nThe sub-grid sloping coast collapses the cap-edge grounding-line residual. In E2, switching the binary coastline for the sub-grid water-column load takes the worst local errors from \\(\\sim 14\\)–\\(42\\%\\) down to \\(\\sim 1\\%\\) (esl \\(-30.28\\) vs. data \\(-30.0\\)), because the SBK reference is itself a sub-grid coast.\n\n\nRepresentative agreement\n\n\n\n\n\n\n\n\n\n\n\nCase\nuplift\ngeoid\nsea-surface\nSLE\nnotes\n\n\n\n\nA\n0.52 %\n1.94 %\n—\n—\nhorizontal 0.69 %; no ocean\n\n\nC2\n\\(\\le 2.5\\%\\)\n\\(\\le 7\\%\\)\n\\(5\\%\\)\n\\(7\\%\\)\nfixed ocean; horiz \\(\\le 28\\%\\) on symmetry axis\n\n\nD3\n\\(\\le 7\\%\\)\n\\(\\le 7\\%\\)\n\\(\\le 7\\%\\)\n\\(\\le 7\\%\\)\nbest SLE case (all \\(\\le 7\\%\\))\n\n\nE2\n\\(\\sim 0.7\\%\\)*\n\\(\\sim 1\\%\\)*\n\\(\\sim 1\\%\\)*\n\\(\\sim 1\\%\\)*\n*with sub-grid coast\n\n\nF1\nwithin scatter\nwithin scatter\nwithin scatter\nwithin scatter\nE2 + paleo-topo spin-up\n\n\n\nHorizontal-displacement error is normalized by the peak vector magnitude \\(|(v_\\theta,v_\\phi)|\\) rather than per-component, since a profile through a symmetry axis nulls one component.\n\n\n\n\n\n\nNoteAn inter-code comparison, not an analytic one\n\n\n\nThe SBK reference is one code’s (giapy’s) output, so these tolerances are assessed against the documented inter-code scatter of the Martinec (2018) intercomparison, not against a closed-form solution. The residual few-metre eustatic offsets and the cap-edge grounding-line differences are within that scatter; where a definitional choice (binary vs. sub-grid coast) is involved, matching the reference’s choice removes the discrepancy.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: the sea-level equation"
+    ]
+  },
+  {
+    "objectID": "benchmarks/sea-level.html#figures",
+    "href": "benchmarks/sea-level.html#figures",
+    "title": "Benchmark: the sea-level equation",
+    "section": "Figures",
+    "text": "Figures\nFigures to be added: per-case profiles (figs. 10–13) of uplift, horizontal displacement, geoid/potential, sea-surface, and the SLE result, FastEarth3D vs. the SBK reference; the eustatic-sea-level time series.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: the sea-level equation"
+    ]
+  },
+  {
+    "objectID": "benchmarks/sea-level.html#provenance",
+    "href": "benchmarks/sea-level.html#provenance",
+    "title": "Benchmark: the sea-level equation",
+    "section": "Provenance",
+    "text": "Provenance\nReference: data/benchmarks/sle_martinec2018/*_SBK.dat, from the giapy package (tests/sbk_benchmark_data.tar.gz, MIT), originating in the Martinec et al. (2018) intercomparison. The case ↔︎ paper mapping and column definitions are in data/benchmarks/PROVENANCE.md.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: the sea-level equation"
+    ]
+  }
+]
