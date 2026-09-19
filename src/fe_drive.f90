@@ -47,6 +47,13 @@ module fe_drive
    ! written separately via fe_restart_write when a restart is wanted)
    character(len=8), parameter :: OUT_VARS(5) = &
         [character(len=8) :: "h_ice", "rsl", "z_bed", "C_ocean", "bsl"]
+   ! ... plus the polar motion when the rotation solver is active. Appended at
+   ! runtime rather than made unconditional: with rotation off, or under the
+   ! VILMA backend (which runs its own rotation internally and never updates
+   ! se%rotation), the state is not computed, and writing zeros would be
+   ! indistinguishable from a computed zero.
+   character(len=8), parameter :: ROT_OUT_VARS(2) = &
+        [character(len=8) :: "rot_m_re", "rot_m_im"]
 
 contains
 
@@ -70,6 +77,7 @@ contains
       integer  :: nt, k, k0, k1, np, nl, nlon, nls
       logical  :: remap
       character(len=:), allocatable :: rundir
+      character(len=8), allocatable :: out_names(:)   ! OUT_VARS, + polar motion if active
       integer(kind=8) :: pc0, pc1, prate          ! PROFILE: per-step phase timers
       real(wp) :: t_read = 0.0_wp, t_upd = 0.0_wp, t_wrt = 0.0_wp
       real(wp) :: t_dr, t_mm                      ! PROFILE: solid_earth_update sub-phases
@@ -166,10 +174,18 @@ contains
          end if
       end if
 
+      ! The diagnostic output list. Polar motion is appended only when the
+      ! rotation solver is actually integrating it -- see ROT_OUT_VARS above.
+      if (se%rotation%enabled) then
+         out_names = [OUT_VARS, ROT_OUT_VARS]
+      else
+         out_names = OUT_VARS
+      end if
+
       ! --- march the transient --------------------------------------------------
       t0 = tyr(k0)*sec_per_year
       se%time = tyr(k0);  se%resp%time = t0          ! coupling clock in years; response clock in SI
-      call fe_write_step(se, c%file_out, se%time, nms=OUT_VARS, init=.true.)
+      call fe_write_step(se, c%file_out, se%time, nms=out_names, init=.true.)
 
       se%resp%t_drift = 0.0_wp;  se%resp%t_mem = 0.0_wp   ! PROFILE: time the transient only
       se%resp%n_drift = 0;       se%resp%n_mem = 0
@@ -186,7 +202,7 @@ contains
          call solid_earth_update(se, h_ice, dt)
          call system_clock(pc1);  t_upd = t_upd + real(pc1-pc0,wp)/prate
          call system_clock(pc0)
-         call fe_write_step(se, c%file_out, se%time, nms=OUT_VARS, init=.false.)
+         call fe_write_step(se, c%file_out, se%time, nms=out_names, init=.false.)
          call system_clock(pc1);  t_wrt = t_wrt + real(pc1-pc0,wp)/prate
          nstep = nstep + 1
          ! mass_resid is the native SLE's own residual; the VILMA backend leaves it

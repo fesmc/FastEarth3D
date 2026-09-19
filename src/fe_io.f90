@@ -254,6 +254,15 @@ contains
       case ("z_bed");    call put2d(self, filename, name, self%gg%z_bed, n=n, ncid=ncid)
       case ("C_ocean");  call put2d(self, filename, name, self%gg%C,     n=n, ncid=ncid)
       case ("bsl");      call put_scalar(filename, name, self%bsl, n, ncid)
+      ! Polar motion m = m1 + i*m2 [rad]. Already prognostic and already
+      ! serialized into restarts by write_rotation; these two cases let the
+      ! DIAGNOSTIC output file carry it as well, via an explicit nms list.
+      ! Only meaningful when the rotation solver ran -- fe_drive adds them to
+      ! its list only if se%rotation%enabled, so a rotation=.false. run and the
+      ! VILMA backend (which keeps its own internal rotation and never touches
+      ! this state) omit the variables rather than writing a fabricated zero.
+      case ("rot_m_re"); call put_scalar(filename, name, real(self%rotation%m, wp), n, ncid)
+      case ("rot_m_im"); call put_scalar(filename, name, aimag(self%rotation%m),    n, ncid)
       case ("dt_try");   call put_scalar(filename, name, self%stepper%dt_try/sec_per_year, n, ncid)
       case ("sigma_n_re"); call put_sigma(self, filename, name, want_re=.true.,  n=n, ncid=ncid)
       case ("sigma_n_im"); call put_sigma(self, filename, name, want_re=.false., n=n, ncid=ncid)
