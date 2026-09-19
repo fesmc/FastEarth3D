@@ -18,6 +18,18 @@
     ! everything else is SI.
     ! ====================================================================
 
+    ! --- solid-earth solver backend -----------------------------------
+    ! "fe3d"  = this model's native Gauss-grid FE/SLE solver (default).
+    ! "vilma" = the VILMA library behind the SAME driver, namelist, forcing, remap
+    !           and output, for a like-for-like comparison. Requires a build made
+    !           with `make fastearth vilma=1 VILMAROOT=<install>`; the default
+    !           build aborts with an actionable message if this is selected.
+    !           When it is, the earth-structure / scheme / response / sle / dt /
+    !           rotation / spin-up settings below are IGNORED (VILMA has its own);
+    !           only lmax/nlat/nphi (the coupling + output grid) and l_visc_3d are
+    !           shared. See doc/vilma-backend.md.
+    solver    = "fe3d"
+
     ! --- spectral grid (fe_sht) ---------------------------------------
     lmax      = 64          ! maximum spherical-harmonic degree
     nlat      = 0           ! Gauss latitudes (0 => SHTns default = lmax+2)
@@ -128,4 +140,16 @@
     visc3d_tol     = 1.0e-3  ! lateral log10(eta) spread [dex] above which an element is genuinely
                              ! 3-D (pays the dyadic SHT round-trip); higher => fewer 3-D elements,
                              ! cheaper memory advance, at the cost of approximating weak lateral structure
+
+    ! --- VILMA backend (solver = "vilma" only; fe_vilma) --------------
+    ! INERT unless solver = "vilma". Mirrors what CLIMBER-X's VILMA wrapper
+    ! (src/geo/vilma.F90) hard-codes, so the two can be made to agree exactly.
+    ! VILMA's spectral resolution is a RUNTIME setting, not compiled in.
+    vilma_jmax         = 170                       ! VILMA spectral degree (vg%jmax)
+    vilma_input_dir    = "input/vilma"             ! densi.inp, tint.inp, SLI_data.inp, viscosity files
+    vilma_out_dir      = "vilma"                   ! VILMA scratch/output dir (created if absent)
+    vilma_grid_file    = "input/vilma/vilma_grid.nc" ! lon/lat axes of VILMA's own grid
+    vilma_visc_1d_file = "visko.inp"               ! 1-D radial viscosity, rel. to vilma_input_dir
+    vilma_visc_3d_file = "visc3d_Bagge2021.nc"     ! 3-D viscosity NetCDF, rel. to vilma_input_dir
+                                                   ! (read only when l_visc_3d = .true.)
 /

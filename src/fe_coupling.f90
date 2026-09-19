@@ -44,6 +44,8 @@ module fe_coupling
    use fe_timestep,        only: stepper_advance, adaptive_stepper
    use fe_rotation,        only: rotation_destroy, rotation_update, rotation_s_rot, rotation_begin_step, rotation_init, rotation_state
    use fe_remap,           only: remap_ll_gauss, remap_init, remap_to_gauss, remap_to_ll
+   use fe_vilma,           only: vilma_backend, fe_vilma_init, fe_vilma_update, fe_vilma_finalize, &
+                                 fe_vilma_require
    use coords,             only: grid_class
    implicit none
    private
@@ -51,6 +53,16 @@ module fe_coupling
    public :: solid_earth, gauss_state
    public :: solid_earth_init, solid_earth_update, solid_earth_finalize
    public :: solid_earth_enable_visc_3d, solid_earth_sync_host, solid_earth_spinup
+   public :: solid_earth_check_solver
+   public :: FE_UNSET
+
+   !! Fill value for a diagnostic the ACTIVE backend does not produce. Only the
+   !! VILMA backend leaves anything unset (see the "known gaps" note on the
+   !! solid_earth type); with the native solver every field is populated. It is a
+   !! wildly unphysical number on purpose, so an unset value cannot be mistaken for
+   !! a computed zero, and it matches the missing-value convention used by the
+   !! CLIMBER-X remapping layer. Writers/printers are expected to skip it.
+   real(wp), parameter :: FE_UNSET = -9999.0_wp
 
    ! LGM-memory spin-up controls (the relaxation interval is internal — no user dt).
    real(wp), parameter :: SPINUP_DT0   = 200.0_wp   !! first relaxation interval [years]
@@ -83,6 +95,18 @@ module fe_coupling
 
       type(gauss_state)        :: gg        !! Gauss-grid working state (the physics)
 
+      !! Optional VILMA backend (par%solver = "vilma"), for a like-for-like
+      !! comparison behind this same API. When active, `resp`/`sle`/`stepper`/
+      !! `rotation`/`earth` above are NOT built — VILMA owns the physics — and the
+      !! diagnostics they would otherwise fill are left at FE_UNSET. Specifically:
+      !!   worst_mass_resid : no analogue (VILMA reports no SLE mass residual)   -> FE_UNSET
+      !!   stepper%*        : VILMA does its own internal time stepping          -> FE_UNSET
+      !!   resp%t_* / sle%t_* / stepper%t_guard : those phases do not exist      -> stay 0
+      !! while `rsl`, `z_bed`, `C` and `bsl` ARE populated (see solid_earth_update).
+      !! `t_solver` below is the one timer that is meaningful for both backends.
+      logical                  :: use_vilma = .false.
+      type(vilma_backend)      :: vilma
+
       ! host-grid coupling: remap between the host grid and the model Gauss grid
       logical                  :: remap = .false.  !! host grid /= Gauss grid?
       type(remap_ll_gauss)     :: map               !! conservative-in / bilinear-out map pair
@@ -92,6 +116,10 @@ module fe_coupling
       !! residual bucket. See sle_solver's accumulators for the SLE's own split.
       real(wp)                 :: t_remap = 0.0_wp  !! host<->Gauss remap, in and out
       real(wp)                 :: t_rot   = 0.0_wp  !! polar motion: s_rot + sub-stepped update
+      real(wp)                 :: t_solver = 0.0_wp !! wall-clock [s] inside the backend's own
+         !! solve, comparable across backends: for "vilma" it is VILMA's time_evolution
+         !! (excluding the Gauss<->VILMA remap, which is in %t_remap); for the native
+         !! solver it is left 0 because the finer-grained split above already covers it.
 
       ! host-grid I/O fields (== the gg fields when passthrough); the host reads these
       real(wp), allocatable    :: z_bed_eq(:,:)  !! relaxed bedrock [m], host grid (kept at full host resolution)
@@ -125,6 +153,11 @@ contains
 
       call solid_earth_finalize(self)                       ! clean slate (safe on a fresh object)
 
+      ! which solver sits behind this API (see solid_earth_check_solver; the
+      ! standalone driver calls it earlier still, right after reading the config)
+      call solid_earth_check_solver(self%par)
+      self%use_vilma = (trim(self%par%solver) == "vilma")
+
       ! the model owns its Gauss grid, sized from the parameter record
       allocate(self%sht)
       call build_sht(self%par, self%sht)
@@ -145,7 +178,17 @@ contains
       call to_gauss(self, z_bed_eq, self%gg%z_bed_eq, conserve_mass=.false.)   ! bed: geometry
       call to_gauss(self, h_ice_eq, self%gg%h_ice_eq, conserve_mass=.true.)    ! ice: mass
 
-      call build_solver(self, np, nl)
+      if (self%use_vilma) then
+         ! VILMA owns the physics, so NONE of the native sub-solvers (earth
+         ! structure, response, SLE, adaptive stepper, rotation) are built — that is
+         ! the point of the backend swap. The response is initialised NULL so the I/O
+         ! layer sees a memoryless model and writes only the common diagnostics:
+         ! there is no FastEarth3D Maxwell memory to persist, and VILMA persists its
+         ! own state through its own restart files.
+         call response_init_null(self%resp)
+      else
+         call build_solver(self, np, nl)
+      end if
 
       ! current state — seeded at the reference (or at h_ice_init if given). At the
       ! reference nothing has moved: rsl = 0, z_bed = z_bed_eq, memory zero. The ocean
@@ -166,7 +209,34 @@ contains
       ! host-grid current state at the reference
       allocate(self%rsl(size(z_bed_eq,1), size(z_bed_eq,2)), source=0.0_wp)
       allocate(self%z_bed, source=z_bed_eq)
+
+      ! VILMA backend: hand it the SAME reference and start-slice ice, already on
+      ! the model Gauss grid. fe_vilma owns the second remap leg (model Gauss <->
+      ! VILMA's own grid at par%vilma_jmax) and VILMA's whole file-based setup.
+      if (self%use_vilma) then
+         call fe_vilma_init(self%vilma, self%par, self%sht, &
+                            self%gg%z_bed_eq, self%gg%h_ice_eq, self%gg%h_ice)
+         self%worst_mass_resid = FE_UNSET      ! no analogue in VILMA; see the type
+      end if
    end subroutine solid_earth_init
+
+   subroutine solid_earth_check_solver(par)
+      !! Validate &fe3d solver and, for "vilma", that this binary actually HAS the
+      !! optional VILMA backend. Split out of solid_earth_init so a caller can fail
+      !! the moment it has read the configuration, before doing any work: a namelist
+      !! typo, or asking for VILMA in a default build, should cost nothing.
+      !! fe_vilma_require aborts with an actionable rebuild message — never a link
+      !! error and never a crash.
+      type(fe_param_class), intent(in) :: par
+      select case (trim(par%solver))
+      case ("fe3d")   ! native solver: nothing to check
+      case ("vilma"); call fe_vilma_require()
+      case default
+         write(*,'(a)') ' fe3d: unknown solver "'//trim(par%solver)//'"'
+         write(*,'(a)') '   &fe3d solver must be "fe3d" (native, the default) or "vilma"'
+         error stop 'unknown &fe3d solver (use fe3d|vilma)'
+      end select
+   end subroutine solid_earth_check_solver
 
    subroutine build_solver(self, np, nl)
       !! Build the earth structure and the sub-solvers (response, SLE, adaptive
@@ -283,6 +353,44 @@ contains
       call to_gauss(self, h_ice, ice_new, conserve_mass=.true.)
       call system_clock(pc1);  self%t_remap = self%t_remap + real(pc1-pc0,wp)/prate
 
+      if (self%use_vilma) then
+         ! --- VILMA backend ------------------------------------------------------
+         ! Same contract, different solver: ice in, relative sea level out. fe_vilma
+         ! remaps ice_new (model Gauss grid) onto VILMA's own grid, advances VILMA
+         ! over [time, time+dt_yr], and maps its rsl back onto the model Gauss grid,
+         ! so everything below — and every consumer of se%gg / se%rsl / se%z_bed — is
+         ! on exactly the grids it is for the native solver.
+         call fe_vilma_update(self%vilma, self%sht, ice_new, dt_yr, &
+                              self%gg%rsl, t_remap=self%t_remap, t_solve=self%t_solver)
+         self%gg%h_ice = ice_new
+         self%gg%z_bed = self%gg%z_bed_eq - self%gg%rsl
+         self%time     = self%time + dt_yr
+
+         ! Diagnostics VILMA does not hand back. DERIVED HONESTLY from VILMA's own
+         ! output, using the SAME formulas the native solver uses, so the two
+         ! backends' diagnostics are like-for-like:
+         !   C   — flotation (fe_sle ocean_function) applied to VILMA's updated bed
+         !         and the current ice. This is FastEarth3D's diagnostic of VILMA's
+         !         state, NOT VILMA's internal ocean function (which the library does
+         !         not expose on this grid); it can differ from VILMA's own coastline
+         !         by a grid cell where the two flotation rules disagree.
+         !   bsl — update_bsl's barystatic integral over that C and the ice anomaly.
+         !         Again a FastEarth3D diagnostic of VILMA's state, not VILMA's own
+         !         ocean bookkeeping (vega_oce.dat).
+         call ocean_function(self%gg%z_bed, self%gg%h_ice, self%gg%C)
+         call update_bsl(self)
+         ! NOT derivable: VILMA reports no sea-level-equation mass residual, so this
+         ! stays at the documented fill value rather than a made-up number. The
+         ! driver skips printing it (see fe_drive).
+         self%worst_mass_resid = FE_UNSET
+
+         self%h_ice = h_ice
+         call system_clock(pc0)
+         call solid_earth_sync_host(self)
+         call system_clock(pc1);  self%t_remap = self%t_remap + real(pc1-pc0,wp)/prate
+         return
+      end if
+
       if (self%rotation%enabled) then
          ! Rotational feedback, coupled at the interval level (polar motion relaxes on
          ! ~kyr ≫ the coupling interval; s_rot is held across the interval from the
@@ -363,6 +471,22 @@ contains
       pre_1d = self%par%pre_spinup_1d
       t_max  = self%par%equil_time_max/sec_per_year          ! par stores SI; relax works in years
       if (.not. pre_1d .and. t_max <= 0.0_wp) return         ! nothing to do
+
+      ! KNOWN GAP (documented, not faked): this spin-up relaxes the model's own
+      ! viscous memory while HOLDING the reference as the datum. VILMA owns its
+      ! memory internally and advances it only along its own time axis, so the
+      ! reference-held relaxation cannot be reproduced without silently consuming
+      ! VILMA's clock and desynchronising it from the forcing. Refuse plainly
+      ! rather than run something that looks like a spin-up but is not.
+      if (self%use_vilma) then
+         write(*,'(a)') ' solid_earth_spinup: not available with solver="vilma".'
+         write(*,'(a)') '   VILMA advances its own viscous memory along its own time axis;'
+         write(*,'(a)') '   the reference-held relaxation this routine performs has no VILMA'
+         write(*,'(a)') '   analogue. Set equil_time_max=0 and pre_spinup_1d=.false. in &fe3d,'
+         write(*,'(a)') '   and start the transient from the full (e.g. LGM->present) window,'
+         write(*,'(a)') '   which is how CLIMBER-X drives VILMA. See doc/vilma-backend.md.'
+         error stop 'solid_earth_spinup: unsupported with solver="vilma" (see message above)'
+      end if
 
       call solid_earth_update(self, h_ice_lgm, 0.0_wp)       ! seed the entering ice = start (LGM) ice
 
@@ -457,6 +581,8 @@ contains
 
    subroutine solid_earth_finalize(self)
       type(solid_earth), intent(inout) :: self
+      if (self%use_vilma) call fe_vilma_finalize(self%vilma)
+      self%use_vilma = .false.
       call response_destroy(self%resp)
       call rotation_destroy(self%rotation)
       if (associated(self%sht)) then
