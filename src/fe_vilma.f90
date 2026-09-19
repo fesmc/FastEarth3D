@@ -95,6 +95,7 @@ module fe_vilma
       integer :: nlon = 0, nlat = 0  !! VILMA grid dimensions (lon, lat)
       integer :: nphi = 0, ngauss = 0!! model Gauss grid dimensions
       real(wp) :: t_kyr = 0.0_wp     !! VILMA clock: end of the last completed interval [kyr]
+      integer  :: nsub = 1           !! VILMA sub-steps per coupling interval (p%vilma_nsub)
 
       character(len=512) :: out_dir = ""       !! VILMA scratch/output directory
       real(wp), allocatable :: lon(:), lat(:)  !! VILMA grid axes [degrees]
@@ -217,6 +218,7 @@ contains
       call write_load_hist_index(self)
 
       self%t_kyr   = 0.0_wp
+      self%nsub    = max(1, par%vilma_nsub)
       self%started = .false.
       self%active  = .true.
 
@@ -274,12 +276,22 @@ contains
       call delete_if_present(io_rsl_rs%n)
       call delete_if_present(io_dfgl_rs%n)
 
-      vg%btime = vg%etime
-      vg%etime = vg%btime + real(dt_yr, kind(vg%etime))*1.0d-3
       ! VILMA re-reads the load from its ice-history NetCDF every step (that is what
       ! vg%l_load_hist = .false. buys), so the current slice is published first.
+      ! Once per COUPLING interval, not per sub-step: the load is held across the
+      ! sub-steps, which is VILMA's own convention and the documented difference
+      ! from the native solver's linear ramp within an interval.
       call write_ice_slice(self)
-      call time_evolution
+      block
+        real(wp) :: dt_sub
+        integer  :: ksub
+        dt_sub = dt_yr/real(self%nsub, wp)
+        do ksub = 1, self%nsub
+           vg%btime = vg%etime
+           vg%etime = vg%btime + real(dt_sub, kind(vg%etime))*1.0d-3
+           call time_evolution
+        end do
+      end block
       self%t_kyr = real(vg%etime, wp)
       call system_clock(pc1);  t_solve = t_solve + real(pc1-pc0,wp)/prate
 
@@ -334,7 +346,11 @@ contains
       type(vilma_backend), intent(inout) :: self
       real(wp),            intent(in)    :: dt_yr
 
-      vg%dt = real(dt_yr*sec_per_year, kind(vg%dt))   ! VILMA's dt is in SECONDS
+      ! VILMA's dt is in SECONDS, and it is the SUB-step: VILMA checks this value
+      ! against the shortest Maxwell time in the structure at setup and aborts if
+      ! it is too large. It has no sub-stepping of its own, so the coupling
+      ! interval is divided here instead.
+      vg%dt = real(dt_yr/real(self%nsub, wp)*sec_per_year, kind(vg%dt))
       ! Start of the transient. `setup` takes etime as the initial epoch and the
       ! 9999 sentinel in btime means "no restart" (CLIMBER-X uses the same values).
       vg%btime = 9999.0d0
@@ -344,8 +360,9 @@ contains
       call write_output_epochs(self)
       call create_load_history(self, self%t_kyr, self%t_kyr + dt_yr*1.0e-3_wp)
 
-      write(*,'(a,es10.3,a,f10.4,a)') ' VILMA setup: dt =', dt_yr, ' yr, start epoch =', &
-           self%t_kyr, ' kyr'
+      write(*,'(a,es10.3,a,i0,a,es10.3,a,f10.4,a)') ' VILMA setup: coupling dt =', dt_yr, &
+           ' yr / ', self%nsub, ' sub-step(s) =', dt_yr/real(self%nsub, wp), &
+           ' yr, start epoch =', self%t_kyr, ' kyr'
       call setup
       self%started = .true.
       write(*,'(a)') ' VILMA setup complete.'

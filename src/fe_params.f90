@@ -164,6 +164,19 @@ module fe_params
          !! from these axes; see doc/vilma-backend.md for which grid each field is on.
       character(len=128) :: vilma_visc_1d_file = "visko.inp"
          !! 1-D radial viscosity file, relative to vilma_input_dir (io_visko).
+      integer :: vilma_nsub = 1
+         !! Number of VILMA sub-steps per coupling interval. VILMA enforces its own
+         !! Maxwell stability condition at setup and ABORTS if its time step exceeds
+         !! the shortest Maxwell time in the structure -- it does not sub-step
+         !! itself. With the Bagge (2021) 3-D field that limit is short: measured
+         !! 3.95 yr unfloored, 11.0 yr clamped at 1e19.5 (the clamp FastEarth3D
+         !! applies), 26.2 yr at 1e20 -- all below the 100 yr GLAC-1D coupling
+         !! interval, so the 3-D case cannot run at nsub = 1 with ANY of the
+         !! available floors. Set nsub so that dt_coupling/nsub is below the
+         !! reported minimum Maxwell time; VILMA prints both numbers when it
+         !! refuses, so the required value is read straight off a failed run.
+         !! The ice load is held across the sub-steps of one interval, which is
+         !! VILMA's own convention (see doc/vilma-backend.md).
       character(len=128) :: vilma_visc_3d_file = "visc3d_Bagge2021.nc"
          !! 3-D viscosity NetCDF, relative to vilma_input_dir (io_nc3in). Read only
          !! when l_visc_3d = .true. (which sets VILMA's vg%l_mod=1).
@@ -290,6 +303,8 @@ contains
       p%vilma_grid_file = expand_path(p%vilma_grid_file)
       call nml_read(filename, g, "vilma_visc_1d_file", p%vilma_visc_1d_file, defaults_file=df)
       call nml_read(filename, g, "vilma_visc_3d_file", p%vilma_visc_3d_file, defaults_file=df)
+      call nml_read(filename, g, "vilma_nsub",         p%vilma_nsub,         defaults_file=df)
+      if (p%vilma_nsub < 1) error stop 'fe_params: vilma_nsub must be >= 1'
    end subroutine fe_par_load
 
    function expand_path(path) result(out)
