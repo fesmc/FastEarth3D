@@ -414,7 +414,7 @@ contains
       end if
       write(u,'(2a)') '# ', header
       do i = 1, size(a,1)
-         write(u,'(*(es18.10,1x))') a(i,:)
+         write(u,'(*(es24.16,1x))') a(i,:)
       end do
       close(u)
       write(*,'(3a,i0,a,i0,a)') '   dumped ', trim(path), ' (', size(a,1), ' x ', size(a,2), ')'
