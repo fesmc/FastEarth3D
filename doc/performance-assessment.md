@@ -59,6 +59,27 @@ SLE_fixed_point  ≈  n_outer × n_inner × (~3 SHTs per inner iteration)
   speedup (Amdahl), which is why OpenMP-SHTns (#4) still matters at higher lmax —
   but they do not make the present run single-core.
 
+  > ⚠️ **Superseded (September 2026) — the paragraph above is wrong in three
+  > ways.** It reasons from an end-to-end anchor; the model is now directly
+  > instrumented, and [`performance.md`](performance.md) carries the measured
+  > numbers. In short:
+  >
+  > 1. The SLE transforms do **not** dominate. The residual `SLE + coupling`
+  >    bucket is ~61 % the adaptive stepper's rollback snapshot
+  >    (`response_save_state`), and `sle_solve` itself splits ≈48 % transforms /
+  >    ≈50 % grid-space work.
+  > 2. Cost scales as **ℓmax^1.98** end to end (1-D) and **ℓmax^2.15** for the
+  >    bucket — not O(ℓmax³), which is itself the evidence it is not
+  >    transform-bound.
+  > 3. **SHTns is not linked serial.** `config/common.mk` links `-lshtns_omp`
+  >    whenever `openmp=1` (the default); what is missing is the
+  >    `shtns_use_threads()` call, which appears nowhere in `src/`. The threaded
+  >    library is linked and dormant.
+  >
+  > Amdahl's law is also the wrong frame here: on a Levante node the limit is
+  > NUMA memory bandwidth, and thread *placement* alone is worth up to 1.6× at
+  > fixed core count.
+
 So the two highest-value levers for transient runs are **(a) the step count** (the
 `dt` lever) and **(b) the SLE iteration count × per-SHT cost**. The benchmarks hide
 both: they don't pay the long step count, and their clean coastlines converge the

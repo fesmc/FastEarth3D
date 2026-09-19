@@ -1,126 +1,144 @@
 # FastEarth3D — performance note
 
-> ⚠️ **Superseded numbers (see [`performance-assessment.md`](performance-assessment.md)
-> §Measured results).** The 162.5 s / 216 ms-step anchor below and the
-> "effectively serial" diagnosis do **not** reproduce on a controlled rebuild:
-> measured `-O2` E2 is **58.8 s / 78 ms-step**, and the run **parallelizes ~4×**
-> (`user/real ≈ 4`), not serial. The lmax-scaling table here is therefore optimistic
-> on absolute times and should be rebased before use. Kept for the scaling *shape*
-> and the caveats, which still hold.
+Whole-step cost, where it goes, and what it means for real runs. For the
+per-degree solver micro-optimisations (band LU, degree-grouped memory,
+skip-negligible, OpenMP over the degree loop) see §Performance of
+[`design.md`](design.md); for the roadmap see
+[`performance-assessment.md`](performance-assessment.md).
 
-End-to-end timing of the coupled solid-earth + sea-level solver, and an
-extrapolation to production-scale global domains. For the per-degree solver
-micro-optimisations (band LU, degree-grouped memory, skip-negligible, OpenMP over
-the degree loop) see the "Performance" section of `doc/design.md`; this note is
-about the *whole-step* cost and what it means for real runs.
+> **This note was rewritten in September 2026** against direct instrumentation on
+> DKRZ Levante. The previous version inferred the cost breakdown from an
+> end-to-end anchor on a laptop and got the attribution wrong in three ways; the
+> corrections are in §What changed and why, at the end, because the wrong version
+> was quoted elsewhere and the record matters.
 
-## Measured anchor
+## Where the time goes — measured, not inferred
 
-Martinec-2018 case **E2** (the full migrating-coastline SLE: subgrid coast, basin
-topography, a growing off-pole ice cap), run as `test_benchmark_sle.x E2`:
+The driver reports `solid_earth_update` as **drift solve + memory advance + a
+residual bucket** historically labelled `SLE + coupling`. That residual is now
+decomposed by explicit `system_clock` regions (`fe_sle`'s `t_sht`/`t_apply`/
+`t_total`, `fe_coupling`'s `t_remap`/`t_rot`, `fe_timestep`'s `t_guard`), with an
+`unattributed` remainder printed so a missed phase shows up as a number rather
+than as someone else's cost. Set nothing: it is always on and costs one
+`system_clock` pair per region (~25 ns).
 
-| quantity | value |
-|---|---|
-| resolution | lmax = 128 (≈156 km, grid 256×512) |
-| steps | 750 (T1 history, dt = 20 yr) |
-| wall time | **162.5 s** → **~216 ms / step** |
-| threads | `OMP_NUM_THREADS=8` |
-| machine | 10-core Apple-Silicon laptop (4 performance + 6 efficiency) |
+ℓmax 64, 1-D, 16 threads, 81 coupling steps, Levante (2 × EPYC 7763):
 
-**Key observation:** `user` time (159.6 s) ≈ `real` time (162.5 s). The run is
-**effectively serial**. The band-LU work made the per-degree solves cheap
-(`begin_step` ≈ 58 ms at lmax 128), so the bottleneck has moved to the **SLE
-fixed-point's spherical-harmonic transforms** — roughly 3 SHTs (one analysis, two
-syntheses) per inner iteration, up to `n_outer × n_inner` iterations per step — and
-SHTns is linked in its **serial** variant (deliberately, to avoid OpenMP nesting
-inside a host model). So at lmax 128 the model is SHT-bound and single-core-bound;
-the OpenMP over the degree loop barely moves the wall clock at this resolution.
+| phase | share of the residual bucket |
+|---|---:|
+| `sle_solve` own work | 33 % — of which ≈48 % harmonic transforms, ≈50 % grid-space |
+| stepper rollback bookkeeping | **61 %** |
+| rotation (polar motion) | 4 % |
+| host↔Gauss remap | <1 % |
+| unattributed | 2 % |
 
-## Extrapolation to a global domain
+**The bucket is mostly not the SLE.** The largest single term was
+`response_save_state` — six full-array copies of the `(NLAM,ne,nk)` Maxwell
+memory taken on *every* sub-step, to guard against a step rejection that did not
+occur once in any run measured. It is now threaded (and the arrays are
+first-touched in parallel, so their pages land on the NUMA domain that will read
+them), which is worth **1.50× on the whole solver step**.
 
-The dominant cost (the SHTs) scales as ≈ O(lmax³) on a Gauss grid; the step count is
-(timespan / dt). Taking the measured 216 ms/step at lmax 128 and scaling the SHT
-term by (lmax/128)³:
+## Resolution scaling — ℓmax², not ℓmax³
 
-| resolution | ≈ ms/step | glacial cycle (120 kyr, dt 50 yr → 2400 steps) | deglaciation (20 kyr, dt 20 yr → 1000 steps) |
-|---|---|---|---|
-| **lmax 128** (~156 km) | 216 (measured) | **~9 min** | ~3.6 min |
-| lmax 256 (~78 km)  | ~1.7 s (×8)  | ~1.2 h  | ~30 min |
-| lmax 512 (~39 km)  | ~14 s (×64)  | ~9 h    | ~4 h |
+Fitted over ℓmax 32…512 (1-D) and 32…256 (3-D), Levante, 128 threads:
 
-(At dt = 20 yr the glacial-cycle numbers are ~2.5× larger.)
+| viscosity | fitted exponent | ℓmax 32 | 128 | 256 | 512 |
+|---|---:|---:|---:|---:|---:|
+| 1-D | **ℓmax^1.98** | 12.3 ms | 164.9 | 694.4 | 2985.5 |
+| 3-D | **ℓmax^2.40** | 178.1 ms | 5829.7 | 26076.6 | — |
 
-## Verdict
+The residual bucket on its own scales as **ℓmax^2.15**. A Legendre-transform-bound
+cost must approach ℓmax³, so **the model is not SHT-bound** — which is exactly
+what the ≈50/50 transform/grid-space split inside `sle_solve` says directly.
 
-- **lmax 128 (~150 km) is comfortably production-fast** — a full glacial cycle in
-  ~10–20 min wall on a laptop. For coupling into CLIMBER-X (a fast EMIC that runs
-  glacial cycles in hours), the solid-earth overhead is negligible, and ~150 km is a
-  reasonable GIA resolution.
-- **lmax 256 (~78 km): fine for standalone / offline (~1 h/cycle), acceptable but
-  noticeable when coupled.**
-- **lmax 512 (~39 km): heavy (~hours–day); would need optimisation before routine
-  use.**
+## Thread scaling — the limit is memory bandwidth
 
-## Caveats and levers (in priority order)
+One Levante node is 2 sockets × 64 cores in **eight NUMA domains of 16 cores
+each** (`numactl -H`). With `OMP_PROC_BIND=close` threads pack onto consecutive
+cores, so ≤16 threads share a *single* memory controller however many cores they
+use. The measured curve follows the domain count, not the core count.
 
-1. **SLE iteration count on real coastlines — the biggest uncertainty.** Per-step
-   cost is roughly linear in `n_outer × n_inner`. The benchmark converges the
-   migrating coastline in `n_outer = 3`; the pure-eustatic subgrid test
-   (`test_sle_subgrid`, null response, strongly-migrating shallow basin, no VE
-   stabilisation) needed up to ~60. A real, complex coastline likely sits between,
-   so the table above could move 2–3×. Measure this on a real ICE-6G-style run
-   before trusting the extrapolation.
-2. **It is serial-bound, so a bigger machine does not help as-is.** The clean lever
-   is **parallelising the SHTs**: SHTns has an OpenMP variant we currently avoid for
-   host-nesting reasons, but for a *standalone* driver it could be switched on for a
-   several-× speedup (pushing lmax 256 into comfortable range). Cutting the SLE
-   iteration count (tighter convergence, the skip-negligible trick already in
-   `ve_response`) is the complementary lever.
-3. **Time step / stability.** Larger dt cuts the step count proportionally, but the
-   explicit forward-Euler Maxwell scheme has a stability limit (the ETD0 /
-   exponential-memory alternative was tried and abandoned — see the project notes),
-   so the usable dt must be checked against the fastest relaxation mode at the
-   target resolution.
+Same binary, same thread count, placement the only difference (ℓmax 128, 1-D):
+
+| threads | `close` | `spread` | gain |
+|---:|---:|---:|---:|
+| 8 | 187.2 ms | **126.6** | 1.48× |
+| 16 | 150.4 ms | **93.4** | 1.61× |
+| 32 | 94.3 ms | **76.6** | 1.23× |
+| 64 | 69.4 ms | 68.8 | 1.01× |
+| 128 | 80.0 ms | 80.7 | 0.99× |
+
+**16 threads spread beats 32 threads packed** — the same speed for half the cores.
+The gain vanishes by 64, where four domains already supply more bandwidth than the
+code can use; at 128 both placements regress equally, so that regression is not
+placement but the cost of occupying every core on the node.
+
+> **Run with `OMP_PROC_BIND=spread` and at most 64 threads.** The default `close`
+> costs up to 1.6× at the thread counts an ensemble member actually uses.
+
+Best end-to-end speed-up on one node: **9.2× (1-D)** and **13.2× (3-D)**, both at
+64 threads, against a true single-thread baseline. Amdahl's law is *not* a useful
+model for this curve — it assumes extra cores add only compute, when past 16
+threads here they also add memory controllers; fitting `s + p/n` produces a
+ceiling the measurements then exceed.
+
+## Time to solution — the full last deglaciation
+
+GLAC-1D (Tarasov) LGM→present, 261 coupling steps at 100 yr, ℓmax 128, RTopo-2
+present-day reference, rotation on, migrating coastline. One Levante node:
+
+| viscosity | solver | elapsed | setup | peak RSS |
+|---|---:|---:|---:|---:|
+| 1-D | 39.0 s | **87 s** | 1.5 s | 2.45 GB |
+| 3-D (Bagge 2021) | 1584.6 s | **30 min** | 172.4 s | 10.07 GB |
+
+A full glacial cycle at this resolution is therefore minutes (1-D) to a few hours
+(3-D) — not the tens of hours the previous version of this note projected.
+
+## Caveats
+
+1. **SLE iteration count on real coastlines.** Per-step cost is roughly linear in
+   `n_outer × n_inner`. The outer loop now **exits when the coastline stops
+   moving** rather than always running `n_outer` passes; on the deglaciation that
+   is 1.4 passes/solve instead of 3.0. A pathological coastline that oscillates
+   rather than settles would still hit the `n_outer` cap — `sle_result%n_coast_flip`
+   reports which case you are in.
+2. **These are `ifx -Ofast -march=znver3` numbers on Levante.** Absolute times on
+   other machines will differ; the scaling exponents and the phase attribution
+   should not.
+3. **I/O.** The timing runs write every coupling step, so their `fe_write_step`
+   share is an upper bound on a production run writing every fifth.
 
 ## Reproducing
 
 ```sh
-rm -rf obj && python config/legacy/config.py config/legacy/macbook_gfortran && make openmp=1 test_benchmark_sle
-OMP_NUM_THREADS=8 /usr/bin/time -p bin/test_benchmark_sle.x E2
+make fastearth                                 # ifx, OpenMP, -Ofast
+OMP_NUM_THREADS=64 OMP_PROC_BIND=spread OMP_PLACES=cores \
+    bin/fastearth.x <your deglaciation namelist>
 ```
 
-A firmer scaling curve would come from recompiling at lmax 256 (a compile-time
-parameter in `tests/test_benchmark_sle.f90`) and timing a short segment, and/or
-instrumenting `begin_step` vs the SLE-loop SHT time to confirm the serial-bound
-diagnosis directly.
+The `[PROFILE]` blocks in stdout give the setup/transient split, the
+drift/memory/residual breakdown, and the residual bucket opened up. The driving
+scripts and the analysis that produced the tables above live in the companion
+experiments repository (`experiments/run_sweep2.sh`, `analysis/run_timing.jl`).
 
-## Forced deglaciation runs with 3D lateral viscosity (§14)
+## What changed and why
 
-LGM→present-day Tarasov forcing, RTopo present-day reference (`i_eq=1`), Pan/Bagge
-laterally-varying viscosity, 261 coupling steps (100 yr), 10-core Apple-silicon,
-OpenMP. Two cost components:
+The previous version of this note inferred the breakdown from a single
+end-to-end anchor (162.5 s for Martinec E2 at ℓmax 128, on a 10-core laptop) and
+drew three conclusions that direct measurement contradicts:
 
-- **Startup.** The online conservative RTopo→Gauss map (4.1M source cells) is
-  ~160 s and was built *twice* per run (bed + ice). Prebaked offline instead
-  (`fastearth_mkref` → `data/reference/rtopo_gauss_l*.nc`, read directly by
-  `read_ref2d`): startup drops to ~15 s (forcing remap only).
-- **Per step.** Dominated by the lateral-viscosity tensor advance
-  (`advance_memory_3d`, per-radial-element pseudo-spectral transforms), ~20× the
-  1-D per-step cost. The radial element count is ~lmax-independent, so the per-step
-  cost scales ~lmax² (grid points × SH coefficients).
+| previous claim | measured |
+|---|---|
+| "the bottleneck has moved to the SLE fixed-point's spherical-harmonic transforms" | the residual bucket is **61 % stepper rollback bookkeeping**; `sle_solve` is ≈half grid-space work |
+| "SHT cost scales ≈ O(lmax³)" | **ℓmax^1.98** (1-D end to end), **ℓmax^2.15** (the bucket) |
+| "the run is effectively serial… a bigger machine does not help as-is" | **9.2× / 13.2×** on one node; the limit is NUMA bandwidth, and placement alone is worth 1.6× |
 
-| lmax | Gauss (nphi×nlat) | per step (3D)        | full run (261 steps) |
-|------|-------------------|----------------------|----------------------|
-| 32   | 128×66            | ~20–25 s             | ~1.5 h               |
-| 64   | 256×130           | ~90–110 s (measured) | ~6.5 h               |
-| 128  | 512×258           | ~360–440 s (est. ~4×)| **~26–32 h**         |
-
-Reference: a 1-D run (M3-L70-V01, no lateral viscosity) is ~4.6 s/step (~20 min
-for the full deglaciation) — the lateral viscosity is the entire difference.
-
-Lever: most of the per-step cost is adaptive sub-stepping at `rtol=1e-4`; loosening
-to 1e-3 cuts sub-steps roughly in half for a proof-of-concept.
-
-**TODO — forced runs (not yet run).** Bagge2021 (default, matches CLIMBER-X), Pan2022,
-and Bagge ±1σ (`f_visc_sd=±1`), configs under `runs/s14_*`. Held pending a resolution
-choice; lmax 32 recommended for the first proof-of-concept, then 64/128.
+One factual correction as well: this note and `performance-assessment.md` both
+said **"SHTns is linked serial (deliberately, to avoid OpenMP nesting)"**. It is
+not — `config/common.mk` links `-lshtns_omp` whenever `openmp=1`, which is the
+default. What is true is that `shtns_use_threads()` is **never called** anywhere
+in `src/`, so SHTns keeps `omp_threads=1` and selects its serial kernels. The
+threaded library is linked and dormant; enabling it is one line, and remains an
+untested lever rather than a measured one.
