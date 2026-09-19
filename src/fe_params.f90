@@ -164,6 +164,15 @@ module fe_params
          !! from these axes; see doc/vilma-backend.md for which grid each field is on.
       character(len=128) :: vilma_visc_1d_file = "visko.inp"
          !! 1-D radial viscosity file, relative to vilma_input_dir (io_visko).
+      integer :: vilma_l_prem = 1
+         !! VILMA vg%l_prem. 1 (default, and what CLIMBER-X uses): VILMA generates
+         !! its elastic structure from a polynomial PREM, and densi.inp supplies
+         !! only the layer boundaries and the radial element sizes. 0: the rho and
+         !! mu columns of densi.inp are used as given. Set 0 together with a
+         !! densi.inp written from FastEarth3D's own layer table
+         !! (experiments/make_vilma_densi.jl) to make the two backends share a
+         !! radial structure, which is otherwise NOT matched -- only the
+         !! viscosity is.
       integer :: vilma_nsub = 1
          !! Number of VILMA sub-steps per coupling interval. VILMA enforces its own
          !! Maxwell stability condition at setup and ABORTS if its time step exceeds
@@ -303,6 +312,9 @@ contains
       p%vilma_grid_file = expand_path(p%vilma_grid_file)
       call nml_read(filename, g, "vilma_visc_1d_file", p%vilma_visc_1d_file, defaults_file=df)
       call nml_read(filename, g, "vilma_visc_3d_file", p%vilma_visc_3d_file, defaults_file=df)
+      call nml_read(filename, g, "vilma_l_prem",       p%vilma_l_prem,       defaults_file=df)
+      if (p%vilma_l_prem /= 0 .and. p%vilma_l_prem /= 1) &
+         error stop 'fe_params: vilma_l_prem must be 0 or 1'
       call nml_read(filename, g, "vilma_nsub",         p%vilma_nsub,         defaults_file=df)
       if (p%vilma_nsub < 1) error stop 'fe_params: vilma_nsub must be >= 1'
    end subroutine fe_par_load

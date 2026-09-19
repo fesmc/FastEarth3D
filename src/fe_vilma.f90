@@ -197,7 +197,9 @@ contains
       ! first advancing update, which is also when `setup` runs.
       vg%jmin       = 0
       vg%jmax       = par%vilma_jmax
-      vg%l_prem     = 1        ! earth structure generated from a polynomial PREM
+      ! 1 = elastic structure from a polynomial PREM (densi.inp then supplies only
+      ! layer boundaries and element sizes); 0 = use densi.inp's rho/mu columns.
+      vg%l_prem     = par%vilma_l_prem
       vg%l_mod      = merge(1, 0, par%l_visc_3d)   ! 0 = 1-D radial, 1 = read 3-D field
       vg%l_toro     = 0        ! toroidal loading is irrelevant for GIA
       vg%l_rot      = 31       ! rotational variations in the perturbed potential

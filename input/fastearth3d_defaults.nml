@@ -151,6 +151,10 @@
     vilma_grid_file    = "input/vilma/vilma_grid.nc" ! lon/lat axes of VILMA's own grid
     vilma_visc_1d_file = "visko.inp"               ! 1-D radial viscosity, rel. to vilma_input_dir
     vilma_visc_3d_file = "visc3d_Bagge2021.nc"     ! 3-D viscosity NetCDF, rel. to vilma_input_dir
+    vilma_l_prem       = 1                         ! 1: VILMA's polynomial PREM (densi.inp gives only
+                                                   !    boundaries + element sizes). 0: use densi.inp's
+                                                   !    rho/mu, e.g. one written from FastEarth3D's own
+                                                   !    layer table by experiments/make_vilma_densi.jl
     vilma_nsub         = 1                         ! VILMA sub-steps per coupling interval; raise
                                                    ! until dt/nsub < VILMA's minimum Maxwell time
                                                    ! (it prints both and aborts if too large)
