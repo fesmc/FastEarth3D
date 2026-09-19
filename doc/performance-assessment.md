@@ -91,7 +91,7 @@ high lmax) and in real-coastline iteration counts the benchmark does not exercis
 
 ## Implemented now
 
-### 1. Optimization compiler flags — `config/macbook_gfortran`
+### 1. Optimization compiler flags — `config/legacy/macbook_gfortran`
 
 The only optimization flag was `-O2`; no architecture targeting, unrolling, or
 vectorization. The hot kernels (`dissipative_rhs`, `advance_memory`, the band

@@ -85,7 +85,7 @@ term by (lmax/128)³:
 ## Reproducing
 
 ```sh
-rm -rf obj && python config.py config/macbook_gfortran && make openmp=1 test_benchmark_sle
+rm -rf obj && python config/legacy/config.py config/legacy/macbook_gfortran && make openmp=1 test_benchmark_sle
 OMP_NUM_THREADS=8 /usr/bin/time -p bin/test_benchmark_sle.x E2
 ```
 

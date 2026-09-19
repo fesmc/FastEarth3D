@@ -14,7 +14,7 @@ openmp ?= 1
 defaulttarget: usage
 
 # === Compiler configuration ==================================================
-# Inserted by `python config.py config/<machine>_<compiler>`. The fragment
+# Inserted by `configme` (or the legacy config/legacy/config.py). The fragment
 # defines the compiler (FC), flag sets (FFLAGS_BASE, FFLAGS_OPENMP, MODFLAGS,
 # CPPFLAGS_PP, DFLAGS_*), the netCDF wiring (INC_NC, LIB_NC), and any
 # host-specific link extras (LFLAGS_EXTRA).
