@@ -115,7 +115,7 @@
     l_visc_3d      = .false. ! load a lateral log10(eta) field
     ! Default 3-D field: Bagge et al. (2021), floored at log10 eta = 19.5 (visc_log10_min
     ! below). Preferred over Pan 2022, whose raw min (~13.7 dex) is unphysical and ~6x slower.
-    visc_3d_file   = "/Users/alrobi001/models/isostasy_data/earth_structure/viscosity/bagge2021.nc"
+    visc_3d_file   = "input/bagge2021.nc"  ! vendored from isostasy_data; paths may use ~/ or $HOME/
     name_visc      = "eta"   ! viscosity var (log10 Pa s)
     name_visc_lon  = "lon"
     name_visc_lat  = "lat"

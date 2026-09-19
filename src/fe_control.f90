@@ -13,6 +13,7 @@ module fe_control
    !! BOTH groups — `&fe3d` for the grid/physics, `&ctl` for what to read and write.
    use fe_precision, only: wp
    use fe_constants, only: sec_per_year
+   use fe_params,    only: expand_path
    use nml
    implicit none
    private
@@ -101,16 +102,19 @@ contains
 
       ! forcing
       call nml_read(filename, g, "file_forcing",  c%file_forcing)
+      c%file_forcing = expand_path(c%file_forcing)
       call nml_read(filename, g, "name_ice",      c%name_ice)
       call nml_read(filename, g, "name_time",     c%name_time)
 
       ! legacy Gauss-grid reference file
       call nml_read(filename, g, "file_ref",      c%file_ref)
+      c%file_ref = expand_path(c%file_ref)
       call nml_read(filename, g, "name_zbed_eq",  c%name_zbed_eq)
       call nml_read(filename, g, "name_hice_ref", c%name_hice_ref)
 
       ! output
       call nml_read(filename, g, "file_out",      c%file_out)
+      c%file_out = expand_path(c%file_out)
 
       ! time window (YEARS in the nml -> SI seconds in the record)
       time_init_yr = c%time_init/sec_per_year
@@ -128,16 +132,22 @@ contains
       ! reference / equilibration selector
       call nml_read(filename, g, "i_eq",            c%i_eq)
       call nml_read(filename, g, "z_bed_ref_file",  c%z_bed_ref_file)
+      c%z_bed_ref_file = expand_path(c%z_bed_ref_file)
       call nml_read(filename, g, "h_ice_ref_file",  c%h_ice_ref_file)
+      c%h_ice_ref_file = expand_path(c%h_ice_ref_file)
       call nml_read(filename, g, "z_bed_eq_file",   c%z_bed_eq_file)
+      c%z_bed_eq_file = expand_path(c%z_bed_eq_file)
       call nml_read(filename, g, "h_ice_eq_file",   c%h_ice_eq_file)
+      c%h_ice_eq_file = expand_path(c%h_ice_eq_file)
       call nml_read(filename, g, "rsl_restart_file", c%rsl_restart_file)
+      c%rsl_restart_file = expand_path(c%rsl_restart_file)
       call nml_read(filename, g, "name_z_bed_ref",  c%name_z_bed_ref)
       call nml_read(filename, g, "name_h_ice_ref",  c%name_h_ice_ref)
       call nml_read(filename, g, "name_rsl",        c%name_rsl)
 
       ! restart-in path
       call nml_read(filename, g, "restart_in_file", c%restart_in_file)
+      c%restart_in_file = expand_path(c%restart_in_file)
    end subroutine fe_ctl_load
 
    subroutine fe_ctl_print(c, unit)

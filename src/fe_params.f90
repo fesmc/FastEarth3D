@@ -18,7 +18,7 @@ module fe_params
    implicit none
    private
 
-   public :: fe_param_class, fe_par_load, fe_par_print
+   public :: fe_param_class, fe_par_load, fe_par_print, expand_path
    public :: MAX_LAYER
 
    integer, parameter :: MAX_LAYER = 16   !! cap on custom earth-structure layers
@@ -224,6 +224,7 @@ contains
       ! 3D viscosity + uncertainty
       call nml_read(filename, g, "l_visc_3d",      p%l_visc_3d,      defaults_file=df)
       call nml_read(filename, g, "visc_3d_file",   p%visc_3d_file,   defaults_file=df)
+      p%visc_3d_file = expand_path(p%visc_3d_file)
       call nml_read(filename, g, "visc3d_tol",     p%visc3d_tol,     defaults_file=df)
       call nml_read(filename, g, "name_visc",      p%name_visc,      defaults_file=df)
       call nml_read(filename, g, "name_visc_lon",  p%name_visc_lon,  defaults_file=df)
@@ -235,6 +236,34 @@ contains
       call nml_read(filename, g, "visc_log10_min", p%visc_log10_min, defaults_file=df)
       call nml_read(filename, g, "visc_log10_max", p%visc_log10_max, defaults_file=df)
    end subroutine fe_par_load
+
+   function expand_path(path) result(out)
+      !! Expand a leading `~/` or `$HOME/` in a file path using the HOME
+      !! environment variable. Fortran `open` does no shell expansion, so nml
+      !! paths such as `~/data/visc.nc` would otherwise be opened literally.
+      !! Any other path (relative or absolute) is returned unchanged.
+      character(len=*), intent(in) :: path
+      character(len=512)           :: out   ! matches the path fields' length
+      character(len=512) :: home
+      integer :: n, status
+
+      out = path
+      if (len_trim(path) == 0) return
+      if (path(1:2) == "~/") then
+         n = 1
+      else if (len_trim(path) >= 6) then
+         if (path(1:6) == "$HOME/") then
+            n = 5
+         else
+            return
+         end if
+      else
+         return
+      end if
+      call get_environment_variable("HOME", home, status=status)
+      if (status /= 0 .or. len_trim(home) == 0) return
+      out = trim(home)//path(n+1:len_trim(path))
+   end function expand_path
 
    subroutine fe_par_print(p, unit)
       !! Echo the active configuration (to stdout, or `unit` if given).

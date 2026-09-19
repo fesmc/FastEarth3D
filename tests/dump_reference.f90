@@ -4,7 +4,7 @@ program dump_reference
    !! machine-readable NetCDF reference data (ncio), one file per topic.
    !!
    !! Usage:  dump_reference.x [outdir] [item ...]
-   !!   outdir  default /Users/alrobi001/models/FastEarth3D.jl/test/reference
+   !!   outdir  default ./reference (run from the FastEarth3D root)
    !!   items   any of: sht radial ve_degree response sle disc rotation coupling
    !!           martinec modal visc3d   (default: all)
    !!
@@ -41,7 +41,7 @@ program dump_reference
    use ncio
    implicit none
 
-   character(len=*), parameter :: FE_ROOT = "/Users/alrobi001/models/FastEarth3D/"
+   character(len=*), parameter :: FE_ROOT = "./"   ! run from the FastEarth3D root
    character(len=*), parameter :: EARTH_NAME = "M3-L70-V01"
    integer,  parameter :: LMAX32 = 32
    real(wp), parameter :: DT100 = 100.0_wp*sec_per_year     ! 100 yr in s
@@ -60,7 +60,7 @@ program dump_reference
    logical :: want(12), all_items
    integer :: nargs, i
 
-   outdir = "/Users/alrobi001/models/FastEarth3D.jl/test/reference"
+   outdir = "./reference"
    nargs = command_argument_count()
    if (nargs >= 1) call get_command_argument(1, outdir)
    want = .false.;  all_items = (nargs < 2)

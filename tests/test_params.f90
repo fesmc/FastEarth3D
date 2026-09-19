@@ -9,7 +9,7 @@ program test_params
    !! the defaults file.
    use fe_precision,       only: wp
    use fe_constants,       only: sec_per_year
-   use fe_params,          only: fe_param_class, fe_par_load
+   use fe_params,          only: fe_param_class, fe_par_load, expand_path
    use fe_earth_structure, only: earth_n_layers, earth_model, build_earth, RHEOL_MAXWELL, RHEOL_FLUID
    implicit none
 
@@ -19,6 +19,7 @@ program test_params
    type(earth_model)    :: em, emdef
    integer :: u
    logical :: ok
+   character(len=512) :: home
    real(wp) :: tol
 
    ok = .true.;  tol = 1.0e-6_wp
@@ -75,6 +76,14 @@ program test_params
    ! --- (5) un-overridden values fall through to the defaults file -------------
    call check_int("fallthrough max_couple_iter", p%max_couple_iter, 20)
    call check_int("fallthrough sle_n_inner",     p%sle_n_inner,     20)
+
+   ! --- (6) ~/ and $HOME/ expansion in file paths ------------------------------
+   call get_environment_variable("HOME", home)
+   call check_str("expand ~/",     trim(expand_path("~/x/y.nc")),     trim(home)//"/x/y.nc")
+   call check_str("expand $HOME/", trim(expand_path("$HOME/x/y.nc")), trim(home)//"/x/y.nc")
+   call check_str("expand rel",    trim(expand_path("input/y.nc")),   "input/y.nc")
+   call check_str("expand abs",    trim(expand_path("/data/y.nc")),   "/data/y.nc")
+   call check_str("expand empty",  trim(expand_path("")),             "")
 
    write(*,'(a)') ''
    if (ok) then

@@ -10,7 +10,7 @@ program test_visc_load
    !! the periodic-longitude wrap.
    !!
    !! Part 2 (only if present): load the real Pan et al. (2022) field from
-   !! ~/models/isostasy_data/earth_structure/viscosity/pan2022.nc, enable it via the
+   !! input/pan2022.nc (vendored from isostasy_data), enable it via the
    !! node→element bridge, and check the resulting Maxwell rate field is finite and
    !! that a few forced steps produce a finite, non-trivial uplift.
    use fe_precision,       only: wp
@@ -25,8 +25,7 @@ program test_visc_load
    integer,  parameter :: LMAX = 32, NLATF = 2
    real(wp), parameter :: YR = 3.15576e7_wp, DT = 50.0_wp*YR
    character(len=*), parameter :: SYNTH = 'obj/test_visc_synth.nc'
-   character(len=*), parameter :: PAN   = &
-        '/Users/alrobi001/models/isostasy_data/earth_structure/viscosity/pan2022.nc'
+   character(len=*), parameter :: PAN   = 'input/pan2022.nc'
 
    type(sht_grid)    :: sht
    type(earth_model) :: e

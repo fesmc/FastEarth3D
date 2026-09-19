@@ -22,7 +22,9 @@
     ! this run's resolution (cached), so i_eq=1 measures rsl against today
     ! (rsl ~ 0 at present day).
     ! ====================================================================
-    file_forcing  = "/Users/alrobi001/models/climber-x/input/geo_ice_tarasov_deglac.nc"
+    ! External dataset (~1 GB, not shipped): CLIMBER-X input geo_ice_tarasov_deglac.nc.
+    ! Leading ~/ or $HOME/ is expanded by the model; adjust to your local copy.
+    file_forcing  = "~/models/climber-x/input/geo_ice_tarasov_deglac.nc"
     name_ice      = "ice_thickness"
     name_time     = "time"
     file_ref      = ""

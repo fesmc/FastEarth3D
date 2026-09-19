@@ -29,7 +29,7 @@ obj_fastearth = \
 # --- Inter-module dependencies (so `make -j` stays correct) ------------------
 $(objdir)/fe_constants.o:        $(objdir)/fe_precision.o
 $(objdir)/fe_params.o:           $(objdir)/fe_precision.o $(objdir)/fe_constants.o
-$(objdir)/fe_control.o:          $(objdir)/fe_precision.o $(objdir)/fe_constants.o
+$(objdir)/fe_control.o:          $(objdir)/fe_precision.o $(objdir)/fe_constants.o $(objdir)/fe_params.o
 $(objdir)/fe_sht.o:              $(objdir)/fe_precision.o
 $(objdir)/fe_tensor_sh.o:        $(objdir)/fe_precision.o $(objdir)/fe_sht.o
 $(objdir)/fe_field.o:            $(objdir)/fe_precision.o $(objdir)/fe_sht.o
