@@ -1,0 +1,38 @@
+### FastEarth3D compiler fragment: macOS (Apple Silicon) + Homebrew gfortran ###
+
+# --- Compiler ----------------------------------------------------------------
+FC = gfortran
+
+# --- netCDF (resolved from Homebrew's nf-config / nc-config) -----------------
+# nf-config --flibs names -lnetcdf but omits the netcdf-C lib *path* (a separate
+# Homebrew cellar from netcdf-fortran), so append nc-config --libs for the -L.
+INC_NC = $(shell nf-config --fflags)
+LIB_NC = $(shell nf-config --flibs) $(shell nc-config --libs)
+
+# --- Fortran preprocessor flag (-cpp for GNU, -fpp for Intel) ----------------
+CPPFLAGS_PP = -cpp
+
+# --- Module output/search directory (objdir is set in config/Makefile) -------
+# GNU: -J sets the .mod output dir, -I adds it to the search path.
+MODFLAGS = -I$(objdir) -J$(objdir)
+
+# --- Compiler flag sets ------------------------------------------------------
+FFLAGS_BASE   = -ffree-line-length-none
+FFLAGS_OPENMP = -fopenmp
+
+# -mcpu=native is the aarch64 (Apple Silicon) idiom for "tune+ISA for this host"
+# (the x86 -march=native equivalent); it enables NEON vectorization of the tight
+# element/band-solve kernels. -ffast-math matches the CLIMBER-X production build
+# (the host turns it on, and we cannot reliably configure the coupled build
+# differently), so we keep it on here for parity — NOTE it relaxes IEEE
+# semantics, so re-run `make check` on the target machine to confirm the SLE
+# mass-conservation tests (~1e-16) still pass after a toolchain/flag change.
+DFLAGS_NODEBUG = -O3 -mcpu=native -funroll-loops -ffast-math
+DFLAGS_DEBUG   = -g -O0 -fbacktrace -fcheck=all \
+                 -ffpe-trap=invalid,zero,overflow -finit-real=snan -Wall
+DFLAGS_PROFILE = -O3 -mcpu=native -pg -g
+
+# --- Link extras -------------------------------------------------------------
+# macOS ld rejects the -Wl,-zmuldefs trick used on Linux to tolerate duplicate
+# symbols in static deps, so leave it empty here.
+LFLAGS_EXTRA =

@@ -1,0 +1,17 @@
+# Spada et al. (2011) Table 2 — physical constants used across the benchmark.
+# Source: Spada et al. (2011), Geophys. J. Int. 185, 106-132, Table 2 (p. 109).
+# Vendored for the rotation (Test 3/2) benchmark, which needs the moments of inertia
+# and rotation rate that the loading/SLE tests did not. The Liouville feedback uses
+# C-A (eq. 20) and Omega (eq. 31); the LOD diagnostic (eq. 33) uses C.
+#
+# name        value            unit            note
+sec_per_year  3.15576e7        s               seconds in one year
+G             6.6732e-11       m3 kg-1 s-2      Newton constant (Spada's value; cf.
+#                                               fe_constants grav_G = 6.67430e-11)
+a             6.371e6          m               Earth radius
+rho_water     1000.0           kg m-3
+rho_ice       931.0            kg m-3
+C             8.0394e37        kg m2           polar (axial) moment of inertia
+A             8.0131e37        kg m2           equatorial moment of inertia
+C_minus_A     2.63e35          kg m2           C - A (= 0.0263e37)
+Omega         7.292115e-5      s-1             Earth angular velocity

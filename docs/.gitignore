@@ -1,0 +1,10 @@
+# Quarto build artifacts
+/_site/
+/.quarto/
+# Per-document dependency dirs from single-file renders
+**/*_files/
+
+# Freeze cache is committed (so CI renders deterministically); uncomment to ignore
+# /_freeze/
+
+**/*.quarto_ipynb

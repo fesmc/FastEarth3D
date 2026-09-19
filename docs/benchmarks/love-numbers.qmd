@@ -1,0 +1,83 @@
+---
+title: "Benchmark: Love numbers"
+---
+
+::: {.callout-note appearance="minimal"}
+**Reference:** Spada et al. (2011), the Charles University GIA benchmark, earth
+model **M3–L70–V01** [@Spada2011]. **Test:** `test_benchmark_love` (in
+`make check`). **Status:** ✅ elastic and fluid $h,\ell,k$ match to $\sim 0.1\%$
+at every degree 2–256.
+:::
+
+This benchmark tests the **per-degree radial solver** in isolation: for a
+unit surface load at degree $j$, do the elastic (instantaneous) and fluid
+(fully relaxed) loading Love numbers match the reference?
+
+## Earth model
+
+**M3–L70–V01** — incompressible, self-gravitating, layered Maxwell:
+
+- a 70 km **elastic lithosphere** ($\eta\to\infty$),
+- three viscous **mantle layers**,
+- an inviscid **fluid core** ($\mu=0$).
+
+The layer table (radius, density, shear modulus, viscosity) is the
+incompressible model of the Spada et al. (2011) benchmark. FastEarth3D's
+`fe_earth_structure` reproduces the benchmark's interface gravities, total mass,
+and moment of inertia as an independent check before any Love number is computed.
+
+## Definitions
+
+For a degree-$j$ surface load of coefficient $\sigma$, with the load's own
+surface potential $\varphi^{L} = 4\pi G\,a\,\sigma/(2j+1)$, the loading Love
+numbers are extracted from the surface radial functions (Farrell 1972
+normalization, [@Farrell1972]):
+
+$$
+h_j = \frac{g_0(a)\,U(a)}{\varphi^{L}}, \qquad
+\ell_j = \frac{g_0(a)\,V(a)}{\varphi^{L}}, \qquad
+k_j = -\frac{F(a)}{\varphi^{L}} - 1.
+$$
+
+The $-1$ in $k_j$ follows from Martinec's $\varphi_1 = F$ being the *total*
+perturbation potential, which carries the load's direct potential with the
+opposite sign to $\varphi^{L}$ ($F\to-\varphi^{L}$ for a rigid sphere).
+
+## Analytic anchors
+
+Two limits are exact and are checked first (`test_love`, to $\sim 10^{-5}$):
+
+- **Fluid** ($\mu\to 0$, homogeneous): $h_j\to-(2j+1)/3$, $k_j\to-1$.
+- **Rigid** ($\mu\to\infty$): $h_j,\ell_j,k_j\to 0$.
+
+The fluid limit independently exercises self-gravity, incompressibility, the
+Poisson coupling, and the load forcing; the rigid limit checks the shear block
+and the $F$ sign.
+
+## Result
+
+The elastic and fluid $h,\ell,k$ match the benchmark table to $\sim 0.1\%$
+(the P1 discretization level) at every degree from 2 to 256. The fluid limit
+was always exact ($<0.5\%$); the elastic numbers are the discriminating
+test. Correct discretization of the self-gravity $U$–$F$ block is essential
+for the low-degree elastic numbers — see the
+[typo in @Martinec2000 eq. (81)](../discretization/radial-fe.qmd). TABOO
+(NV=3, CODE=7) served as an independent reference to regenerate the
+M3–L70–V01 table.
+
+## Figures
+
+*Figures to be added: $h_j,\ell_j,k_j$ versus degree (elastic and fluid),
+FastEarth3D vs. the M3–L70–V01 table; relative-error spectra.*
+
+<!--
+![Elastic Love numbers vs degree](figures/love_elastic.png)
+![Relative error vs degree](figures/love_error.png)
+-->
+
+## Provenance
+
+Reference table: `data/benchmarks/love_M3-L70-V01/mod_M3-L70-V01`, from the
+`giapy` package (MIT) [S. B. Kachuck], originating in the Charles University GIA
+benchmark; independently regenerable with TABOO (GPLv3). Full details in
+`data/benchmarks/PROVENANCE.md`.

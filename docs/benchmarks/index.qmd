@@ -1,0 +1,70 @@
+---
+title: "Benchmarks"
+---
+
+FastEarth3D is validated against the **published GIA community benchmarks** — the
+Charles University / Spada et al. (2011) intercomparison [@Spada2011] and the
+sea-level-equation intercomparison of Martinec et al. (2018) [@Martinec2018].
+Validation proceeds along a **ladder**: each rung is an independent benchmark
+that exercises one more piece of physics, so a failure localizes to the rung
+just added.
+
+The reference datasets are vendored in the repository under
+`data/benchmarks/` with full provenance and licensing in
+`data/benchmarks/PROVENANCE.md`. None of it is FastEarth3D output; it is external
+reference data, so the validation tests are self-contained.
+
+## Summary results
+
+| # | Benchmark | Physics exercised | Reference | Status | Agreement |
+|:-:|---|---|---|:-:|---|
+| 1 | SH transform round-trip | spectral kernel | — (analytic) | ✅ | $\sim 10^{-15}$ |
+| 2 | [Love numbers $h,\ell,k$](love-numbers.qmd) | elastic + fluid radial solve, self-gravity | M3–L70–V01 table [@Spada2011] | ✅ | $\sim 0.1\%$, all degrees 2–256 |
+| 3 | [Disc-load response](disc.qmd) | deformation + geoid, time relaxation | Spada disc test [@Spada2011] | ✅ | $u$ $\sim 1\%$ near-field; geoid $\sim 1\%$ ($\ell\ge2$) |
+| 4 | [Sea-level equation](sea-level.qmd) | migrating-coastline SLE, flotation, sub-grid | Martinec 2018 cases A/C2/D3/E2/F1 [@Martinec2018] | ✅ | within inter-code scatter (esl $\lesssim 5$ m; D3 $\sim 0.2$ m) |
+| 5 | [Rotation / polar motion](../physics/rotation.qmd) | rotational feedback (TPW) | Spada test 3/2 [@Spada2011] | ✅ | polar motion vs Spada 3/2; on by default |
+| 6 | 3D (lateral viscosity) | laterally varying $\eta$ | `RESP_VE` tensor-SH path | 🔧 | code path implemented + tested; cross-code validation ongoing |
+
+Legend: ✅ implemented and validated · 🔧 implemented, validation ongoing ·
+⏳ planned. "Agreement" quotes the representative relative error against the
+reference; see each page for the full breakdown.
+
+## How to read the rungs
+
+- **Rungs 1–2** isolate the *linear-algebra and radial physics*: the transform,
+  then the per-degree elastic and fluid Love numbers. The fluid limit is an
+  analytic anchor ($h_j\to-(2j+1)/3$, $k_j\to-1$); the elastic numbers are the
+  stringent test, and they exposed the [$U$–$F$ symmetry
+  bug](love-numbers.qmd).
+- **Rung 3** integrates the per-degree response over a spatial load (the disc)
+  and adds the *time relaxation*, testing the spatial synthesis and the Maxwell
+  stepper together against a spatial reference.
+- **Rung 4** turns on the full *self-consistent sea-level equation* — ocean
+  function, mass conservation, coastline migration, flotation, and the sub-grid
+  sloping coast — against the dedicated SLE intercomparison. This is the
+  benchmark VILMA itself passed.
+- **Rung 5** (rotation) is implemented and coupled into the SLE, with the
+  Liouville polar-motion solve checked against Spada test 3/2. It is on by
+  default for real-Earth runs (off for the non-rotating benchmarks).
+  **Rung 6** (laterally varying viscosity) is implemented in the full
+  viscoelastic solver and exercised by unit tests, with cross-code validation
+  ongoing.
+
+::: {.callout-note title="Analytic vs. inter-code benchmarks"}
+Rungs 2–3 are effectively *analytic* (normal-mode Love numbers and their spatial
+synthesis), so tight tolerances ($\sim 0.1$–$1\%$) are meaningful. Rung 4 is a
+*numerical inter-comparison* — the reference (giapy's SBK curves) is itself one
+code's output, not a closed-form solution — so agreement is assessed against the
+documented inter-code scatter rather than an exact match.
+:::
+
+## Per-benchmark pages
+
+The pages below give the model setup, the comparison metrics, and a place for
+figures (to be added as the benchmark figures are generated):
+
+- **[Love numbers](love-numbers.qmd)** — elastic and fluid $h,\ell,k$ for
+  M3–L70–V01.
+- **[Disc-load response](disc.qmd)** — vertical displacement, geoid, and uplift
+  rate for the 10° disc.
+- **[Sea-level equation](sea-level.qmd)** — the five @Martinec2018 cases.

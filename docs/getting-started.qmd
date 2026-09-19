@@ -1,0 +1,158 @@
+---
+title: "Installation and running"
+---
+
+This page covers getting FastEarth3D built and running a forced simulation. The
+build is driven by **configme** (one source of machine/compiler truth) and runs
+are staged by **runme** (single simulations and ensembles, locally or on SLURM).
+
+## Dependencies
+
+FastEarth3D needs only a small, well-established stack:
+
+| Dependency | Provides | Source |
+|---|---|---|
+| **[fesm-utils](https://github.com/fesm-org/fesm-utils)** (branch `coords-dev`) | FFTW, SHTns, the `fesmutils` helper library (precision, ncio, namelists), and the `coords` module used by the remapper | cloned/linked by configme |
+| **netCDF** (C + Fortran) | restart and output I/O | system package (Homebrew, modules, …) |
+
+The `coords-dev` branch is pinned in `.configme/manifest.toml`, so the checkout
+self-describes the exact ref it needs.
+
+## Install with configme
+
+`configme` clones (or reuses) the dependencies, generates the machine/compiler
+Makefile fragment, and links everything together:
+
+```bash
+configme install FastEarth3D
+```
+
+It resolves the machine and compiler from flags, your `~/.configme/config.toml`,
+hostname detection, or a prompt. To be explicit, or to reuse an existing
+fesm-utils checkout instead of cloning:
+
+```bash
+# pick machine + compiler explicitly
+configme install FastEarth3D -m macbook -c gfortran
+
+# symlink an on-disk fesm-utils rather than cloning it
+configme install FastEarth3D --link fesm-utils=/abs/path/to/fesm-utils
+```
+
+Supported machines include `awi_albedo`, `chinook`, `dkrz_levante`, `linux`,
+`macbook`, `pik_hpc2024`; compilers `gfortran`, `ifort`, `ifx`. Run
+`configme list` for the current set and `configme status` to see what is present
+versus pending. If you only need to (re)generate the Makefile for an
+already-present checkout, `configme config FastEarth3D` does that without
+cloning.
+
+## Build
+
+configme writes the compiler fragment into the `Makefile`; building is then
+plain `make`:
+
+```bash
+make fastearth        # -> bin/fastearth.x        (standalone forced-run driver)
+make fastearth_mkref  # -> bin/fastearth_mkref.x  (build a Gauss-grid reference state)
+make fastearth_remap  # -> bin/fastearth_remap.x  (offline lon-lat -> Gauss remap)
+make check            # build + run the test suite
+```
+
+Build switches: `debug = 0|1|2` (optimized / checks / profile) and
+`openmp = 0|1` (**default 1**). The threaded degree loop is what makes
+production resolutions fast — build `openmp=1` (see [Solver](discretization/solver.qmd)).
+
+## Configuration: the `&fe3d` namelist
+
+All runtime parameters live in a single namelist group **`&fe3d`**.
+[`fastearth.nml`](https://github.com/alex-robinson/FastEarth3D/blob/main/fastearth.nml)
+is the canonical, fully documented defaults set — *every* parameter is present.
+A run can pass a **sparse overlay** that sets only what it overrides (the yelmo
+`defaults_file` convention):
+
+```bash
+./bin/fastearth.x examples/deglac_lgm.nml fastearth.nml
+#                 ^ sparse overlay        ^ complete defaults
+```
+
+A few conventions worth knowing:
+
+- **Time fields** (`dt_*`, `time_*`) are given in **years** in the namelist and
+  converted to SI seconds on load; everything else is SI.
+- **Earth structure** is chosen by `earth` — a named built-in (e.g.
+  `"M3-L70-V01"`) or `"custom"` to assemble from the surface-first layer arrays.
+- **Response solver** is chosen by `earth_response`: `"ve"` (full viscoelastic,
+  default), `"elastic"`, or `"null"`.
+- **Reference state / spin-up** is controlled by `i_eq`, `equil_time_max`, `equil_rate_tol`
+  (LGM-memory spin-up cap, relaxing to bed-stationary equilibrium),
+  `pre_spinup_1d` (run a cheap 1-D pre-equilibration first), and
+  `restart_in_file` (resume full state, interpolated up if lower-resolution).
+- **3-D viscosity** is enabled with `l_visc_3d = .true.` and a lateral
+  `log10(eta)` field (`visc_3d_file`).
+- **Rotational feedback** (`rotation`) is **on by default** for real-Earth runs;
+  set `rotation = .false.` for the non-rotating community benchmarks.
+
+## The drivers
+
+| Executable | Role |
+|---|---|
+| `bin/fastearth.x` | reads a reference state + an ice-thickness forcing `h_ice(lon,lat,time)`, marches the model across the forcing (online lon-lat → Gauss remap by default), and writes the diagnostic surface fields (`rsl`, `z_bed`, `h_ice`, ocean function) to `file_out` |
+| `bin/fastearth_mkref.x` | generates the canonical Gauss-grid present-day reference (e.g. RTopo) used by `i_eq = 1`; other resolutions remap it online (cached) |
+| `bin/fastearth_remap.x` | offline conservative lon-lat → Gauss remap, to preprocess a forcing onto the model grid (`remap_input = .false.`) |
+
+A complete worked configuration — an LGM → present-day deglaciation forced by
+the Tarasov ice/bed reconstruction — is in
+[`examples/deglac_lgm.nml`](https://github.com/alex-robinson/FastEarth3D/blob/main/examples/deglac_lgm.nml).
+
+## Running with runme
+
+`runme` stages a clean run directory (linking in `data` and `input`, copying the
+namelist, recording the parameters), then runs or submits it. The executable
+aliases match the drivers: `main` → `fastearth.x`, `mkref` → `fastearth_mkref.x`,
+`remap` → `fastearth_remap.x`.
+
+```bash
+# single local run, 8 OpenMP threads, overriding a few parameters
+runme -o runs/deglac -e main --omp 8 -r \
+      -p fe3d.lmax=128 fe3d.earth_response=ve fe3d.file_out=out.nc
+```
+
+How a run is launched is set by two flags:
+
+- `-r` run the executable;
+- `-s` prepare a SLURM submit script (and submit it, with `-r`);
+- `-s -r` prepare **and** submit on HPC; `-s` alone stages the script to inspect;
+  omitting both stages the run directory only.
+
+A comma list, range, or distribution in `-p` turns a parameter into an
+**ensemble dimension** (`-p fe3d.lmax=64,128`), with `-a` naming the member
+directories from their parameter values. SLURM settings (cluster, account,
+threads) live in `.runme/config.toml`; bootstrap it with `runme config init` and
+inspect what runme reads with `runme info`.
+
+## Embedding in a host model
+
+The CLIMBER-X coupling path uses the same code behind a single
+`use fastearth3d`. The contract is intentionally narrow — the host passes **ice
+thickness** in and receives **relative sea level** and **bedrock** out, on its
+own grid. The model owns its Gauss grid and the host↔Gauss remap (built from the
+parameter record), and keeps all spherical-harmonic work inside
+(see [Implementation](implementation.qmd)):
+
+```fortran
+use fastearth3d
+type(solid_earth) :: se
+call fe_par_load(se%par, "fastearth.nml")             ! configuration lives in se%par
+call solid_earth_init(se, z_bed_eq, h_ice_eq, grid=host_grid)  ! builds the Gauss grid + remap
+call solid_earth_spinup(se, h_ice_lgm)                ! optional LGM-memory spin-up
+do
+   call solid_earth_update(se, h_ice, dt_yr)          ! advance dt_yr [years]
+   ! ... read se%rsl, se%z_bed on the host grid (se%gg%* on the Gauss grid) ...
+end do
+call solid_earth_finalize(se)                         ! frees the grid too
+```
+
+`grid` (a coords lon-lat grid) is optional: omit it when the fields are already on
+the model's Gauss grid. The full prognostic state (the Maxwell memory, the
+integrator state, and the model clock) is persisted on restart, so a coupled run
+resumes bit-for-bit; the host-grid outputs are re-derived on read.

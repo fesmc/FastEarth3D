@@ -1,0 +1,119 @@
+---
+title: "The sea-level equation"
+---
+
+Surface loading and sea level are coupled: ice and ocean water deform and
+re-gravitate the solid Earth, which moves the geoid and the solid surface, which
+redistributes the ocean water, which changes the load. FastEarth3D solves this
+self-consistently with the **migrating-coastline sea-level equation (SLE)** in
+the pseudo-spectral form of @KMM2005, driven by the viscoelastic response
+operator.
+
+## The response operator
+
+The SLE is built on a thin abstraction. A **response operator**
+maps a spectral surface-mass load $\sigma_{\ell m}$ to the surface uplift
+$u_{\ell m}$ and geoid height $N_{\ell m}$:
+
+$$
+\texttt{apply}:\ \sigma_{\ell m}\ \longmapsto\ (u_{\ell m},\ N_{\ell m}).
+$$
+
+The geoid is obtained from the incremental potential by **Bruns' formula**,
+$N(a) = -F(a)/g$, where $F$ is the radial coefficient of $\varphi_1$. This uses
+only $U$ and $F$ — not the horizontal Love number $\ell$ — so the SLE is never
+blocked by horizontal-displacement conventions. Three implementations share the
+interface:
+
+| Implementation | Response | Use |
+|---|---|---|
+| `elastic_response` | per-degree elastic gains $g_u(\ell), g_N(\ell)$ | instantaneous Earth |
+| `null_response` | $u\equiv N\equiv 0$ | rigid, non-self-gravitating $\to$ eustatic baseline |
+| `ve_response` | viscoelastic field driver (memory history per $(\ell,m)$) | the GIA case |
+
+## The sea-level equation
+
+Let $C(\theta,\phi)$ be the **ocean function** (1 over ocean, 0 over land/grounded
+ice), $\Delta I$ the ice-thickness change, and $S$ the relative sea-level change.
+The SLE is a Fredholm equation of the second kind,
+
+$$
+S \;=\; C\cdot\bigl(N - u + \Delta\phi\bigr),
+$$
+
+where $(N,u)$ is the Earth's response to the **total** load
+$L = \rho_{\text{ice}}\,\Delta I + \rho_{\text{water}}\,C\!\cdot\!S$, and the
+spatial constant $\Delta\phi$ enforces conservation of ocean mass,
+
+$$
+\rho_{\text{water}}\!\int C\!\cdot\!S\,\mathrm{d}A
+\;=\; -\,\rho_{\text{ice}}\!\int_{\text{grounded}} \Delta I\,\mathrm{d}A .
+$$
+
+Fixing $\Delta\phi$ each iteration from this balance makes **mass exactly
+conserved by construction** (to machine precision), rather than as a converged
+residual.
+
+## Pseudo-spectral fixed-point iteration
+
+The equation is solved by **nested fixed-point iteration** [@KMM2005]:
+
+1. **Inner loop** — iterate $S$ at a fixed coastline. The load $\to$ response
+   convolution is done in **spectral space** (it is diagonal per degree), while
+   the ocean-function product $C\!\cdot\!S$ is formed **pointwise on the
+   Gauss–Legendre grid**. Mixing the two representations this way is what kills
+   the Gibbs ringing that a purely spectral coastline product would produce.
+2. **Outer loop** — migrate the coastline by recomputing the ocean function
+   from the updated topography $\text{topo}_0 - S$, then repeat. Convergence is
+   typically reached in $\sim 3$ outer $\times\ \sim 3$ inner iterations.
+
+## Ocean function, flotation, and the coast
+
+The ocean function distinguishes three regimes, each handled explicitly so that
+no mass is double-counted:
+
+- **Grounded vs. floating ice.** A cell is ocean only where it is below sea
+  level *and* the ice does not ground:
+  $\rho_{\text{ice}}\,I < -\rho_{\text{water}}\,\text{topo}$. Only **grounded**
+  ice loads the bed and changes the ocean-water budget; floating ice is already
+  carried by the ocean term.
+- **Two ocean-geometry modes.** A *fixed* ocean (Martinec SLE1) holds
+  $C = O^{(0)} = (\text{topo}_0 < 0)$ for the whole run; the *migrating*
+  coastline (SLE2) updates $C$ every outer iteration.
+- **Sub-grid (sloping-coast) loading.** The binary load
+  $\rho_{\text{water}}\,C\!\cdot\!S$ puts the full sea-level change wherever
+  $C=1$, giving a sharp shoreline. The optional sub-grid mode instead loads the
+  actual water-column change $s = C\!\cdot\!S - \zeta^{(0)}(C - C_0)$, which
+  tapers smoothly to zero as a newly flooded cell fills from its own bed
+  (Martinec 2018, §2.2, eqs. 15–19). This is a *local* correction — one extra
+  field term and one integral — yet it collapses the cap-edge grounding-line
+  residuals in the migrating benchmark cases to the $\sim 1\%$ level.
+
+::: {.callout-note title="Why the affine trick makes the VE driver tractable"}
+The viscoelastic response at a fixed time is **affine** in the current load:
+$u_{\ell m} = g_u(\ell)\,\sigma_{\ell m} + \text{drift}_{\ell m}$, where the
+drift comes from the *frozen* past-relaxation memory. So the SLE fixed point can
+call `apply()` as many times as it likes within a step without corrupting the
+Maxwell state. A `begin_step` freezes the drift (one memory-forcing solve per
+coefficient); `commit_step` advances the memory once, with the converged load.
+This is what lets a viscoelastic Earth sit inside an iterative SLE solver
+cheaply.
+:::
+
+## Reference frame and degree 1
+
+The geocenter (degree-1) terms are physical and frame-dependent. FastEarth3D
+solves degree 1 in the **CM frame** [@Blewitt2003] via a rigid-translation
+constraint, so the displacement degree-1 (and hence the uplift) is
+self-consistent with the geoid. The Spada-2011 disc benchmark uses a *mixed*
+convention — displacement in a CE-like gauge ($h_1\approx 0$), geoid in the CM
+frame ($N_1 = 0$) — which FastEarth3D reproduces by referencing the degree-1
+geoid to CM. See the [disc benchmark](../benchmarks/disc.qmd).
+
+::: {.callout-tip title="Where this lives in the code"}
+`fe_response` defines the response-operator interface and its three
+implementations; `fe_sle` is the fixed-point SLE solver (ocean function,
+flotation, migration, sub-grid load, mass-conserving $\Delta\phi$);
+`fe_field` builds analytic ice caps and basin topographies for the benchmarks.
+Validation is in [Sea-level equation](../benchmarks/sea-level.qmd).
+:::

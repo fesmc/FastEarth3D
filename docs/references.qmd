@@ -1,0 +1,46 @@
+---
+title: "References"
+---
+
+## Primary method
+
+The spectral–finite-element, time-domain method and its rotational extension:
+
+- @Martinec2000 — the spectral–finite-element approach to 3D viscoelastic
+  relaxation in a spherical Earth. **The core method.**
+- @MartinecHagedoorn2014 — time-domain rotational feedback.
+- @KMM2005 — the sea-level equation with moving shorelines (pseudo-spectral
+  fixed point).
+
+## Benchmarks
+
+- @Spada2011 — the GIA-code benchmark (Love numbers, disc-load response, polar
+  motion; Charles University benchmark, earth model M3–L70–V01).
+- @Martinec2018 — the sea-level-equation intercomparison.
+
+## VILMA physics and coupling
+
+- @Albrecht2024 — coupled PISM–VILMA; documents VILMA's physics.
+- @Bagge2021 — VILMA with 3D earth structure.
+- @Willeit2022 — the CLIMBER-X Earth system model (the host).
+
+## Supporting theory
+
+- @Farrell1972 — load Love numbers and the deformation of the Earth by surface
+  loads.
+- @Mitrovica2005 — revised rotational stability theory (fixing $k_f$ from the
+  observed flattening).
+- @Blewitt2003 — reference frames, geocenter, and degree-1 surface loading.
+- @Hanyk1999 — initial-value (time-domain) viscoelastic relaxation.
+
+## Numerical libraries
+
+- @Schaeffer2013 — SHTns, efficient spherical-harmonic transforms.
+- @FrigoJohnson2005 — FFTW3.
+
+---
+
+### Full bibliography
+
+::: {#refs}
+:::

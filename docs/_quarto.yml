@@ -1,0 +1,93 @@
+project:
+  type: website
+  output-dir: _site
+  resources:
+    - tutorial/**
+
+website:
+  title: "FastEarth3D"
+  description: >-
+    An open-source, time-domain spectral–finite-element solid-Earth (GIA)
+    model with a self-consistent sea-level equation.
+  repo-url: https://github.com/alex-robinson/FastEarth3D
+  repo-actions: [source, issue]
+  page-navigation: true
+  back-to-top-navigation: true
+  navbar:
+    background: primary
+    search: true
+    left:
+      - text: "Overview"
+        file: index.qmd
+      - text: "Install & run"
+        file: getting-started.qmd
+      - text: "Physics"
+        menu:
+          - physics/governing-equations.qmd
+          - physics/rheology.qmd
+          - physics/sea-level.qmd
+          - physics/rotation.qmd
+      - text: "Discretization"
+        menu:
+          - discretization/spectral.qmd
+          - discretization/radial-fe.qmd
+          - discretization/time-stepping.qmd
+          - discretization/solver.qmd
+      - text: "Benchmarks"
+        file: benchmarks/index.qmd
+      - text: "Implementation"
+        file: implementation.qmd
+      - text: "References"
+        file: references.qmd
+    right:
+      - icon: github
+        href: https://github.com/alex-robinson/FastEarth3D
+        aria-label: GitHub
+  sidebar:
+    style: floating
+    collapse-level: 2
+    contents:
+      - section: "Getting started"
+        contents:
+          - index.qmd
+          - getting-started.qmd
+          - implementation.qmd
+      - section: "Physics"
+        contents:
+          - physics/governing-equations.qmd
+          - physics/rheology.qmd
+          - physics/sea-level.qmd
+          - physics/rotation.qmd
+      - section: "Discretization"
+        contents:
+          - discretization/spectral.qmd
+          - discretization/radial-fe.qmd
+          - discretization/time-stepping.qmd
+          - discretization/solver.qmd
+      - section: "Benchmarks"
+        contents:
+          - benchmarks/index.qmd
+          - benchmarks/love-numbers.qmd
+          - benchmarks/disc.qmd
+          - benchmarks/sea-level.qmd
+      - references.qmd
+
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    toc: true
+    toc-depth: 3
+    number-sections: false
+    code-copy: true
+    code-overflow: wrap
+    grid:
+      sidebar-width: 280px
+      body-width: 900px
+
+bibliography: references.bib
+link-citations: true
+
+execute:
+  freeze: auto

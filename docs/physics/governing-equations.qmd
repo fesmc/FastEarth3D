@@ -1,0 +1,158 @@
+---
+title: "Governing equations"
+---
+
+FastEarth3D solves the equations of a **self-gravitating, incompressible,
+Maxwell-viscoelastic** sphere $\mathcal{B}$ of radius $a$ subject to a surface
+mass load. The formulation is the incremental, quasi-static field theory of
+@Martinec2000; the equation numbers in this section refer to that paper.
+
+## Incremental field equations
+
+We work with the *incremental* (perturbation) fields superimposed on a
+hydrostatic reference state with density $\rho_0(r)$ and gravity
+$g_0(r)$. The unknowns are the displacement $\mathbf{u}$, the incremental
+gravitational potential $\varphi_1$, and the incompressibility pressure
+(Lagrange multiplier) $\Pi$.
+
+### Momentum balance
+
+In the quasi-static limit the linearized, pre-stressed momentum balance reads
+(Martinec 2000, eq. 1)
+
+$$
+\operatorname{div}\boldsymbol{\tau}
+\;-\; \rho_0\,\nabla\varphi_1
+\;+\; \operatorname{div}(\rho_0\mathbf{u})\,\nabla\varphi_0
+\;-\; \nabla\!\left(\rho_0\,\mathbf{u}\cdot\nabla\varphi_0\right)
+\;=\; \mathbf{0},
+$$
+
+where $\boldsymbol{\tau}$ is the incremental (Cauchy) stress and
+$\varphi_0$ the reference potential ($\nabla\varphi_0 = \mathbf{g}_0$). The last
+three terms are the **self-gravity body force**: the perturbed-potential
+gradient $-\rho_0\nabla\varphi_1$, the advected-density buoyancy
+$\operatorname{div}(\rho_0\mathbf{u})\,\nabla\varphi_0$, and the
+material/pre-stress advection term. These couple deformation to gravity and are
+the reason GIA is a *global*, self-gravitating problem rather than a local
+flexure problem.
+
+### Poisson equation
+
+The incremental potential is sourced by the advected density via Poisson's
+equation (eq. 2),
+
+$$
+\nabla^2\varphi_1 \;+\; 4\pi G \,\operatorname{div}(\rho_0\mathbf{u}) \;=\; 0,
+\qquad
+\rho_1 = -\operatorname{div}(\rho_0\mathbf{u}),
+$$
+
+valid throughout the interior. Outside the body $\varphi_1$ is harmonic and
+decays as $r^{-(\ell+1)}$ for each degree $\ell$; this exterior matching becomes
+a boundary condition at the surface (see
+[Radial finite elements](../discretization/radial-fe.qmd)). The applied surface
+load contributes its own Newtonian potential, which enters $\varphi_1$ through
+the surface forcing.
+
+### Constitutive law
+
+The stress splits into an isotropic part carried by the pressure and a
+deviatoric part carried by shear:
+
+$$
+\boldsymbol{\tau} \;=\; \Pi\,\mathbf{I} \;+\; 2\mu\,\boldsymbol{\varepsilon}^{\mathrm{dev}},
+\qquad
+\boldsymbol{\varepsilon} = \tfrac{1}{2}\!\left(\nabla\mathbf{u} + \nabla\mathbf{u}^{\mathsf T}\right).
+$$
+
+For the **elastic** problem this is Hooke's law with shear modulus $\mu(r)$. For
+the **viscoelastic** Maxwell body the deviatoric stress acquires a relaxing
+memory term, described in [Rheology](rheology.qmd). The bulk response is taken
+**incompressible** ($K\to\infty$), so $\Pi$ is a Lagrange multiplier enforcing
+the kinematic constraint below rather than a state variable.
+
+### Incompressibility
+
+$$
+\operatorname{div}\mathbf{u} \;=\; 0 \qquad\text{(eq. 5).}
+$$
+
+Incompressibility is the standard idealization for mantle GIA on glacial
+timescales: it removes the seismic compressional modes (irrelevant here),
+simplifies the rheology to a single shear modulus, and makes the degree-0
+(radial breathing) displacement vanish identically.
+
+## Reference structure
+
+The reference state is a layered, spherically symmetric model. Within each layer
+the density $\rho_k$ and shear modulus $\mu_k$ are piecewise constant, and the
+reference gravity follows from the enclosed mass,
+
+$$
+g_0(r) = \frac{4\pi G}{3}\left(\rho_k\, r + \frac{R_k}{r^2}\right),
+\qquad
+R_k = \sum_{i\le k}(\rho_{i-1}-\rho_i)\,r_i^{3},
+\quad R_1 = 0,
+$$
+
+(Martinec 2000, eqs. 76–77). The inviscid fluid **core is meshed explicitly**
+with $\mu = 0$, so free-slip at the core–mantle boundary *emerges* from the
+weak form rather than being imposed as an explicit boundary condition. The
+elastic **lithosphere is the $\eta\to\infty$ limit** of the Maxwell layers
+(taken exactly, never large-but-finite — a finite value would inject a spurious
+slow relaxation mode).
+
+The benchmark earth model used throughout validation is **M3–L70–V01**
+(70 km elastic lithosphere, three viscous mantle layers, inviscid core), the
+incompressible model of the Charles University GIA benchmark [@Spada2011].
+
+## Weak (energy) form
+
+Rather than discretizing the strong PDEs directly, the solver discretizes the
+**second variation of an energy functional** — this is what guarantees a
+*symmetric* operator. One seeks $(\mathbf{u},\varphi_1,\Pi)$ such that
+$\delta E = \delta F$ for all admissible test functions (Martinec 2000, eq. 47),
+with
+
+$$
+E = E_{\text{press}} + E_{\text{shear}} + E_{\text{grav}} + E_{\text{uniq}},
+$$
+
+| Term | Expression (schematic) | Role |
+|---|---|---|
+| $E_{\text{press}}$ | $\displaystyle\int \Pi\,\operatorname{div}\mathbf{u}\,\mathrm{d}V$ | couples pressure $\leftrightarrow$ incompressibility |
+| $E_{\text{shear}}$ | $\displaystyle\int \mu\,(\boldsymbol{\varepsilon}\!:\!\boldsymbol{\varepsilon})\,\mathrm{d}V$ | elastic shear energy |
+| $E_{\text{grav}}$ | self-gravity body force $+\ \tfrac{1}{8\pi G}\!\int|\nabla\varphi_1|^2$ | gravitational coupling |
+| $E_{\text{uniq}}$ | rigid-mode penalty | removes translation/rotation null space — **degree 1 only** |
+
+and surface forcing
+$F_{\text{surf}} = \int_{\partial\mathcal{B}}(\mathbf{b}_0\cdot\mathbf{u} + b_1\varphi_1)\,\mathrm{d}S$
+with $\mathbf{b}_0 = -g_0(a)\,\sigma\,\mathbf{e}_r$ (eqs. 36–38). The
+viscoelastic problem adds a dissipative forcing $F_{\text{diss}}$ built from the
+memory stress (see [Rheology](rheology.qmd)).
+
+Because the discrete operator is the Hessian of this functional, it is
+symmetric by construction. Enforcing that symmetry term-by-term was, in
+practice, the key to getting the low-degree elastic Love numbers right — see the
+[Love-numbers benchmark](../benchmarks/love-numbers.qmd).
+
+## Conventions and constants
+
+- **Densities:** the benchmark density set is fixed once,
+  $\rho_{\text{ice}} = 931$, $\rho_{\text{water}} = 1000\ \mathrm{kg\,m^{-3}}$;
+  surface gravity $g_0 = 9.815\ \mathrm{m\,s^{-2}}$. Mass — not volume — is
+  conserved, applying $\rho_{\text{ice}}/\rho_{\text{water}}$ exactly once in
+  each of the flotation criterion, the eustatic conversion, and the sea-level
+  equation.
+- **Degree 1 is frame-dependent.** The geocenter (degree-1) signal is physical
+  and is *not* hard-coded; it is solved in the **CM frame** [@Blewitt2003]. See
+  [Sea-level equation](sea-level.qmd) and
+  [Radial finite elements](../discretization/radial-fe.qmd).
+
+::: {.callout-tip title="Where this lives in the code"}
+The governing equations are realized in `fe_earth_structure` (reference layers
+and gravity), `fe_radial_fe` (the assembled energy-Hessian operator), and
+`fe_viscoelastic` (the Maxwell memory term). The continuous-to-discrete
+mapping is documented term-by-term in the repository's `doc/formulation.md`.
+:::

@@ -1,0 +1,131 @@
+&fe3d
+    ! ====================================================================
+    ! FastEarth3D physics + numerics DEFAULTS (fe_params / &fe3d).
+    !
+    ! This is the CANONICAL, COMPLETE defaults set: every &fe3d parameter is
+    ! present. The program loads it automatically (DEFAULTS_FILE in fe_control);
+    ! a run config passed on the command line is overlaid on top, setting only
+    ! the parameters it overrides (yelmo defaults_file convention).
+    !
+    ! Do NOT put run-management settings here — forcing/reference/output files,
+    ! the time window, online-remap / i_eq selectors, and the restart-in path
+    ! live in the &ctl group of the run config (fastearth.nml), never here.
+    !
+    ! A host model (CLIMBER-X) does not read this file at all: it fills the
+    ! record in memory, relying on the in-code type defaults plus its own &fe3d.
+    !
+    ! Δt fields (dt_*) are in YEARS here and converted to SI seconds on load;
+    ! everything else is SI.
+    ! ====================================================================
+
+    ! --- spectral grid (fe_sht) ---------------------------------------
+    lmax      = 64          ! maximum spherical-harmonic degree
+    nlat      = 0           ! Gauss latitudes (0 => SHTns default = lmax+2)
+    nphi      = 0           ! longitudes      (0 => SHTns default)
+    mmax      = -1          ! maximum order   (<0 => = lmax)
+    mres      = 1           ! order stride
+    eps_polar = -1.0        ! polar-optimization threshold (<0 => library default)
+
+    ! --- earth structure (fe_earth_structure) -------------------------
+    ! earth = a named built-in model ("M3-L70-V01", "PREM"), or "custom" to
+    ! assemble from the surface-first layer arrays below (rheology: 0=elastic
+    ! 1=Maxwell 2=fluid). The arrays here are the M3-L70-V01 layers, shown as a
+    ! worked example; they are inert unless earth = "custom" or "PREM".
+    !   "PREM" reuses the same n_layer/r_bot/r_top/eta/rheology arrays, but fills
+    !   rho and mu from the r^2-weighted shell average of incompressible PREM
+    !   (Dziewonski & Anderson 1981) — see the ready-to-use PREM block below.
+    earth    = "M3-L70-V01"
+    n_layer  = 5
+    r_earth  = 6371.0e3
+    r_core   = 3480.0e3
+    r_bot    = 6301.0e3, 5951.0e3, 5701.0e3, 3480.0e3,    0.0
+    r_top    = 6371.0e3, 6301.0e3, 5951.0e3, 5701.0e3, 3480.0e3
+    rho      =   3037.0,   3438.0,   3871.0,   4978.0,  10750.0
+    mu       = 5.0605e10, 7.0363e10, 1.0549e11, 2.2834e11, 0.0
+    eta      = 1.0e40,    1.0e21,    1.0e21,    2.0e21,    0.0
+    rheology = 0, 1, 1, 1, 2
+
+    ! --- PREM (incompressible) — to use, set earth = "PREM" and copy this -----
+    ! block over the arrays above. 11 layers: 80 km elastic lithosphere + 9
+    ! Maxwell mantle layers + inviscid fluid core, with boundaries on the major
+    ! PREM discontinuities. rho/mu are AUTO-FILLED from the r^2-weighted shell
+    ! average of PREM (the values shown are for reference only and are ignored);
+    ! only the geometry, eta, and rheology are read. The eta column is the
+    ! CLIMBER-X/VILMA "Clemens" 1-D radial reference (lower mantle 1e22, upper
+    ! mantle 4e20, elastic lithosphere); for production overlay the Bagge 3-D
+    ! field via l_visc_3d below — exactly as CLIMBER-X runs VILMA.
+    !   n_layer  = 11
+    !   r_bot    = 6291.0e3, 6151.0e3, 5971.0e3, 5771.0e3, 5701.0e3, 5600.0e3, 4943.0e3, 4287.0e3, 3630.0e3, 3480.0e3,    0.0
+    !   r_top    = 6371.0e3, 6291.0e3, 6151.0e3, 5971.0e3, 5771.0e3, 5701.0e3, 5600.0e3, 4943.0e3, 4287.0e3, 3630.0e3, 3480.0e3
+    !   rho      =   3175.1,   3367.3,   3489.4,   3848.4,   3984.9,   4411.9,   4628.0,   4986.1,   5318.7,   5538.8,  10987.2   ! auto-filled; ignored
+    !   mu       = 5.727e10, 6.655e10, 7.732e10, 1.051e11, 1.225e11, 1.638e11, 1.926e11, 2.313e11, 2.690e11, 2.913e11,      0.0   ! auto-filled; ignored
+    !   eta      = 1.0e40,   4.0e20,   4.0e20,   4.0e20,   4.0e20,   1.0e22,   1.0e22,   1.0e22,   1.0e22,   1.0e22,      0.0
+    !   rheology = 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2
+
+    ! --- viscoelastic memory scheme (fe_response) ---------------------
+    scheme          = "fe"     ! fe | etd1 | trap | be  (fe = 1st-order explicit, default; trap = 2nd-order adaptive)
+    max_couple_iter = 20       ! SLE<->memory co-convergence cap (implicit schemes)
+
+    ! --- response kind selector (fe_response / fe_modal) --------------
+    earth_response  = "ve"     ! ve | modal | elastic | null  (ve = full Martinec FE, default)
+    n_modes         = -1       ! modal: # relaxation modes per degree (<=0 => all above tol)
+    mode_rank       = "isostatic" ! modal rank metric: isostatic | rate | residue
+    lat_method      = "coupled" ! modal lateral-η: coupled (default, stable) | lie | strang
+    dt_be           = 1000.0   ! modal eigensolve backward-Euler Δt [years]
+    n_krylov        = 20       ! modal: Arnoldi/Krylov block size (caps modes/degree found; raise so all->VE)
+    modal_adaptive  = .false.  ! modal: sub-step each interval to rtol (A3). false=1 exact step/interval (fast); only helps 1-D temporal accuracy, not 3-D
+
+    ! --- sea-level equation (fe_sle) ----------------------------------
+    sle_n_outer      = 3
+    sle_n_inner      = 20
+    sle_tol          = 1.0e-7
+    sle_max_mem_iter = 20
+    sle_fixed_ocean  = .false. ! .true. => coastline held fixed (no migration)
+    sle_subgrid      = .true.  ! sloping-coast (mass-correct) ocean load
+
+    ! --- adaptive time stepping (fe_timestep) -------------------------
+    ! The coupling cadence is NOT a parameter: the host (or the driver's forcing
+    ! axis) passes each interval to solid_earth_update. These tune the internal
+    ! adaptive sub-stepping within an interval.
+    dt_init    = 0.0           ! first trial Δt [years] (0 => try the whole interval)
+    dt_min     = 0.0           ! Δt floor [years] (0 => none)
+    dt_max     = 1.0e30        ! Δt ceiling [years] (huge => no ceiling)
+    rtol       = 1.0e-4        ! relative local-error tolerance (memory norm)
+    atol       = 1.0e-3        ! absolute local-error floor
+    safety     = 0.9
+    grow_max   = 5.0
+    shrink_min = 0.2
+    cfl        = 1.0           ! explicit (fe) sub-step Maxwell-number ceiling M=mu*dt/eta
+
+    ! --- rotational feedback (fe_rotation) ----------------------------
+    rotation = .true.          ! TPW feedback: on for real runs; set .false. for
+                               ! the non-rotating community benchmarks
+
+    ! --- LGM-memory spin-up (fe_coupling solid_earth_spinup) ----------
+    ! A model capability the host opts into; holds the reference as the datum and
+    ! relaxes under the start-slice ice so the transient enters with viscous memory.
+    equil_time_max = 0.0     ! [years] >0: full-model LGM-memory spin-up cap (hold start ice,
+                             ! relax to bed-stationary, exit early or warn at this cap)
+    equil_rate_tol = 1.0e-3  ! [m/yr] spin-up convergence: mean bed velocity over a pass below
+                             ! which the relaxation is taken to have converged
+    pre_spinup_1d  = .false. ! run a cheap 1-D pre-equilibration first (geomean radial visc),
+                             ! then the full model carrying the spun-up memory
+
+    ! --- 3D viscosity field + uncertainty (fe_earth_structure) --------
+    l_visc_3d      = .false. ! load a lateral log10(eta) field
+    ! Default 3-D field: Bagge et al. (2021), floored at log10 eta = 19.5 (visc_log10_min
+    ! below). Preferred over Pan 2022, whose raw min (~13.7 dex) is unphysical and ~6x slower.
+    visc_3d_file   = "/Users/alrobi001/models/isostasy_data/earth_structure/viscosity/bagge2021.nc"
+    name_visc      = "eta"   ! viscosity var (log10 Pa s)
+    name_visc_lon  = "lon"
+    name_visc_lat  = "lat"
+    name_visc_r    = "r"
+    name_visc_sd   = ""      ! optional sigma(log10 eta) var; "" => relative sigma
+    f_visc_sd      = 0.0     ! perturbation in units of sigma (0 = mean field)
+    f_visc_rel     = 0.1     ! relative sigma = f_visc_rel*log10(eta) when no sd var
+    visc_log10_min = 19.5    ! floor on log10(eta) after read + perturbation [dex]
+    visc_log10_max = 30.0    ! ceiling on log10(eta) after read + perturbation [dex]
+    visc3d_tol     = 1.0e-3  ! lateral log10(eta) spread [dex] above which an element is genuinely
+                             ! 3-D (pays the dyadic SHT round-trip); higher => fewer 3-D elements,
+                             ! cheaper memory advance, at the cost of approximating weak lateral structure
+/

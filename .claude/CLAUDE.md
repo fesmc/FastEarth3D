@@ -1,0 +1,1 @@
+State of the art, but simple and fast 3D Solid Earth model (visco-elastic model combined with sea level equation). Needs to handle changing bathymetry/load over time and flexibly load input data and change parameters.

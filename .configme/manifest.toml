@@ -1,0 +1,5 @@
+# configme manifest for FastEarth3D.
+package = "FastEarth3D"
+deps = [
+    "fesm-utils:dev",
+]

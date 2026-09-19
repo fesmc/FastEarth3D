@@ -1,0 +1,84 @@
+! ====================================================================
+! FastEarth3D run configuration — the file you edit / pass on the command line:
+!     bin/fastearth.x [this-file.nml]      (default: fastearth.nml)
+! It is overlaid on the physics defaults in input/fastearth3d_defaults.nml
+! (loaded automatically). Only the parameters here override the defaults, so
+! anything present in this file is an ensemble knob you can sweep with `-p`.
+!
+! &ctl  : standalone-run control (forcing/reference/output, window, i_eq, ...).
+!         The full group lives here — a host model (CLIMBER-X) does not use it.
+! &fe3d : the curated subset of physics/numerics parameters we tune in ensembles.
+!         Everything else falls through to input/fastearth3d_defaults.nml.
+! ====================================================================
+
+&ctl
+    ! --- ice-thickness forcing, h_ice(lon,lat,time) -------------------
+    file_forcing  = ""
+    name_ice      = "h_ice"
+    name_time     = "time"             ! time axis [years]
+
+    ! --- legacy Gauss-grid reference file (remap_input=.false.) -------
+    file_ref      = ""                 ! reference state (z_bed_eq, h_ice_eq)
+    name_zbed_eq  = "z_bed_eq"
+    name_hice_ref = "h_ice_ref"
+
+    ! --- step output --------------------------------------------------
+    file_out      = "fastearth_out.nc"
+    time_init     = -1.0e30            ! [years] (<= forcing start => full range)
+    time_end      =  1.0e30            ! [years] (>= forcing end   => full range)
+
+    ! --- online lon-lat -> Gauss remap of the forcing -----------------
+    remap_input   = .true.   ! .true.: forcing is lon-lat, remap to Gauss on the fly
+                             ! .false.: forcing already on the Gauss grid (legacy)
+    name_lon      = "lon"    ! source longitude axis variable [deg] (remap mode)
+    name_lat      = "lat"    ! source latitude  axis variable [deg] (remap mode)
+
+    ! --- reference / equilibration selector ---------------------------
+    i_eq          = 1        ! 0: start slice is the equilibrium
+                             ! 1: present-day reference (z_bed_ref_file/h_ice_ref_file)
+                             ! 2: equilibrium from z_bed_eq_file/h_ice_eq_file
+                             ! 3: present-day ref bed + rsl from rsl_restart_file
+    z_bed_ref_file  = ""     ! present-day reference bed  (i_eq=1,3) [lon,lat]
+    h_ice_ref_file  = ""     ! present-day reference ice  (i_eq=1,3) [lon,lat]
+    z_bed_eq_file   = ""     ! equilibrium bed (i_eq=2)
+    h_ice_eq_file   = ""     ! equilibrium ice (i_eq=2)
+    rsl_restart_file = ""    ! rsl field added to reference bed (i_eq=3)
+    name_z_bed_ref  = "bedrock_topography"  ! bed var in the ref/eq files
+    name_h_ice_ref  = "ice_thickness"       ! ice var in the ref/eq files
+    name_rsl        = "rsl"                 ! rsl var in rsl_restart_file
+
+    ! --- restart-in path ----------------------------------------------
+    restart_in_file = ""     ! full-state restart to resume from (skips/precedes spin-up);
+                             ! lower-res restart is interpolated up to the model grid
+/
+
+&fe3d
+    ! Curated physics/numerics knobs (override input/fastearth3d_defaults.nml).
+    ! Values here match the defaults — edit / sweep what you need.
+
+    ! --- resolution + scheme ------------------------------------------
+    lmax           = 64        ! maximum spherical-harmonic degree
+    nlat           = 0         ! Gauss latitudes (0 => default = lmax+2)
+    nphi           = 0         ! longitudes      (0 => default)
+    scheme         = "fe"      ! fe (1st-order, default) | trap (2nd-order adaptive) | etd1 | be
+    cfl            = 1.0       ! explicit (fe) sub-step Maxwell-number ceiling M=mu*dt/eta
+    rtol           = 1.0e-4    ! relative local-error tolerance (adaptive schemes)
+    rotation       = .true.    ! TPW rotational feedback (off for non-rotating benchmarks)
+
+    ! --- response kind (1-D VE vs reduced modal) ----------------------
+    earth_response = "ve"      ! ve | modal | elastic | null
+    n_modes        = -1        ! modal: # modes/degree (<=0 => all above tol)
+    mode_rank      = "isostatic" ! modal rank metric: isostatic | rate | residue
+    lat_method     = "coupled" ! modal lateral-η: coupled | lie | strang
+    n_krylov       = 20        ! modal: Arnoldi/Krylov block size
+    modal_adaptive = .false.   ! modal: sub-step each interval to rtol (1-D accuracy only)
+
+    ! --- LGM-memory spin-up -------------------------------------------
+    equil_time_max = 0.0       ! [years] >0: full-model spin-up cap (else no spin-up)
+    pre_spinup_1d  = .false.   ! cheap 1-D pre-equilibration first
+
+    ! --- 3-D viscosity + uncertainty sampling -------------------------
+    l_visc_3d      = .false.   ! load a lateral log10(eta) field (Bagge 2021 by default)
+    f_visc_sd      = 0.0       ! perturbation in units of sigma (0 = mean field)
+    visc3d_tol     = 1.0e-3    ! [dex] lateral spread above which an element is treated 3-D
+/

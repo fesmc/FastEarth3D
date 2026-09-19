@@ -1,0 +1,91 @@
+---
+title: "Spectral reduction and the SH transform"
+---
+
+Horizontally, every field is expanded in **spherical harmonics**; the angular
+dependence is handled analytically and each degree decouples. This page covers
+the spectral reduction of the field equations and the transform kernel that
+moves between grid and spectral space.
+
+## Vector spherical-harmonic expansion
+
+The displacement, potential, and pressure are expanded as (Martinec 2000,
+eqs. 55–57)
+
+$$
+\mathbf{u} = \sum_{j\ge 1}\Bigl[\,U_{jm}(r)\,\mathbf{S}^{(-1)}_{jm}
+ + V_{jm}(r)\,\mathbf{S}^{(1)}_{jm}
+ + W_{jm}(r)\,\mathbf{S}^{(0)}_{jm}\,\Bigr],
+\qquad
+\varphi_1 = \sum_{j\ge 0} F_{jm}(r)\,Y_{jm},
+\quad
+\Pi = \sum_{j\ge 0}\Pi_{jm}(r)\,Y_{jm},
+$$
+
+where $\mathbf{S}^{(-1)},\mathbf{S}^{(1)},\mathbf{S}^{(0)}$ are the spheroidal
+(radial, consoidal) and toroidal vector harmonics. Two simplifications follow
+from the physics:
+
+- **No degree 0 in $\mathbf{u}$** — incompressibility forbids the radial
+  breathing mode.
+- **Spheroidal-only for loading** — a surface mass load excites no toroidal
+  ($W$) motion on a radially symmetric Earth; the $W$ block decouples and is
+  dropped (eq. 110). The divergence reduces to
+  $\operatorname{div}\mathbf{u} = \sum (U' + 2U/r - J\,V/r)\,Y_{jm}$, $J=j(j+1)$
+  (eq. 58).
+
+Each degree $j$ then reduces to an **independent 1D radial problem** in
+$\{U_{jm},V_{jm},F_{jm},\Pi_{jm}\}$ — the central economy of the method. The
+order $m$ enters only through the (real) load coefficients, so the operator is
+assembled and factored once per degree and reused across all $m$.
+
+## Real, orthonormal harmonics
+
+FastEarth3D uses **fully normalized real spherical harmonics with no
+Condon–Shortley phase**, on a Gauss–Legendre latitude grid with a $\phi$-contiguous
+layout; spectral arrays store $m \ge 0$. This convention (`SHT_ORTHONORMAL`,
+`SHT_NO_CS_PHASE`) is pinned across the whole code so that quadrature
+($\int\!\mathrm{d}\Omega$), the orthonormality of $Y_{10}$, and round-trip
+transforms all hold to machine precision.
+
+## The transform kernel (SHTns + FFTW)
+
+The grid$\leftrightarrow$spectral transform is the workhorse of a
+pseudo-spectral method — it is called many times per time step — so it is built
+on **[SHTns](https://nschaeffer.name/?lang=en&page=shtns)** [@Schaeffer2013], a
+high-performance spherical-harmonic transform library, which in turn uses
+**[FFTW](https://www.fftw.org/)** [@FrigoJohnson2005] for the longitudinal FFTs.
+FastEarth3D wraps SHTns in a thin Fortran module (`fe_sht`) that exposes:
+
+- forward / inverse scalar transforms (analysis and synthesis);
+- quadrature on the sphere, $\int f\,\mathrm{d}\Omega$;
+- **arbitrary-point evaluation** of a spectral field (used to sample the
+  benchmark profiles at exact colatitudes/longitudes), via SHTns'
+  point-evaluation routine;
+- **spheroidal (horizontal-gradient) evaluation** — the surface gradient field
+  $(\partial_\theta,\ (\sin\theta)^{-1}\partial_\phi)$ — used for the horizontal
+  displacement output. SHTns' spheroidal synthesis *is* the direct surface
+  gradient (no $\ell(\ell+1)$ factor), which matches the analytic case-A
+  horizontal response.
+
+The round-trip transform, quadrature, normalization, and point/gradient
+evaluation are validated to $\sim 10^{-15}$ in `test_sht` and `test_field`.
+
+::: {.callout-note title="Why a library, and which convention"}
+Re-implementing a fast, accurate, well-tested Legendre transform is a project in
+itself; SHTns is the de-facto standard for pseudo-spectral geodynamo/GIA work
+and is many times faster than a naive transform at the resolutions of interest
+(SH degree $\sim 170$, grid $1024\times 2048$ at VILMA resolution). The one
+non-negotiable is pinning the normalization and phase convention everywhere, so
+that Love numbers, quadrature, and benchmark comparisons all use the same
+$Y_{jm}$.
+:::
+
+## Resolution
+
+The reference VILMA-scale configuration is SH degree 170 with a
+$1024\times 2048$ SLE grid. The benchmark cases here run at degree 32–128;
+the Love-number and disc benchmarks synthesize spatial profiles by summing the
+per-degree response against Legendre polynomials. **All spherical-harmonic
+transforms stay inside this model** — a host such as CLIMBER-X exchanges only
+grid-space ice thickness and bedrock/sea-level fields.

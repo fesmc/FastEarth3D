@@ -1,0 +1,72 @@
+# Spada et al. (2011) GIA benchmark — Test 3/2: polar motion and rate of polar motion
+# Source: Spada et al. (2011), Geophys. J. Int. 185, 106-132, Table 14 (p. 129).
+#   doi:10.1111/j.1365-246X.2011.04952.x  (Charles University GIA Benchmark)
+# Earth model: M3-L70-V01 (Table 3; = fe_earth_structure build_M3L70V01).
+# Load: three axisymmetric ice models (Table 4), Heaviside time history f(t)=H(t),
+#   centroid at colatitude theta_c = 25 deg, longitude lambda_c = 75 deg.
+#
+# Quantities:  |m|    = modulus of polar motion        [degrees]
+#              |mdot| = modulus of rate of polar motion [degrees / Ma]   (Ma = 1e6 yr)
+# Two contributors (both NORMAL-MODE codes; VILMA/Vk did NOT provide m for this test):
+#   Vb = Mathematica matrix-propagator (Sabadini & Vermeersen)
+#   Gs = TABOO (Spada), code PMTF
+# Two cases:
+#   incl = Chandler wobble INCLUDED (Cw != 0): m(0+)=0; large early-time |mdot|
+#          excursions as the Heaviside step abruptly excites the ~1 kyr Chandler mode.
+#   excl = Chandler wobble EXCLUDED (Cw = 0): the quasi-static GIA limit (Liouville
+#          term i*mdot/sigma_r dropped, Spada eq. 7); m(0+)=Gsigma*Ae (elastic offset).
+#          *** This (excl) is the column a time-domain quasi-static solver targets. ***
+#
+# Geometrical factors Gsigma (Table 14 caption; Spada eq. 31), complex, Arg = 105 deg W:
+#   cap   : -(0.541e-4 + i 0.202e-3)
+#   disc  : -(0.539e-4 + i 0.201e-3)
+#   point : -(0.152e-4 + i 0.570e-4)
+#
+# NOTE on the source notation: Table 14 prints values in a compact power-of-ten form
+# where a trailing SUBSCRIPT digit d means x10^-d and a trailing SUPERSCRIPT digit d
+# means x10^+d (e.g. |m|_cap "0.132_1" = 0.0132 deg; |mdot| "0.681^5" = 6.81e4 deg/Ma;
+# Gsigma "0.541_4" = 0.541e-4). Verified three ways: the Cw-included |mdot|(t=0)=x10^5
+# Chandler spike the text describes; finite-differencing |m| matches |mdot|; and Gsigma
+# Arg = 105 deg W (eq. 31). Values below are FULLY EXPANDED to decimal — three
+# significant figures, as published.
+#
+# columns:
+#   load   cw     t_kyr      m_Vb        m_Gs        mdot_Vb      mdot_Gs
+#   [-]    [-]    [kyr]      [deg]       [deg]       [deg/Ma]     [deg/Ma]
+#
+cap    incl     0      0.0         0.0         6.81e4       6.84e4
+cap    incl     1      0.0133      0.0173      2.45e4       2.46e4
+cap    incl     2      0.0182      0.0197      8.83e3       8.87e3
+cap    incl     5      0.0211      0.0211      4.11e2       4.13e2
+cap    incl    10      0.0240      0.0240      2.99e0       2.97e0
+cap    incl    20      0.0292      0.0292      4.86e-1      5.03e-1
+cap    excl     0      0.0132      0.0132      3.71e0       3.71e0
+cap    excl     1      0.0161      0.0161      2.32e0       2.32e0
+cap    excl     2      0.0180      0.0180      1.55e0       1.55e0
+cap    excl     5      0.0211      0.0211      7.17e-1      7.17e-1
+cap    excl    10      0.0240      0.0240      5.30e-1      5.30e-1
+cap    excl    20      0.0292      0.0292      5.03e-1      5.03e-1
+disc   incl     0      0.0         0.0         6.77e4       6.81e4
+disc   incl     1      0.0132      0.0172      2.44e4       2.45e4
+disc   incl     2      0.0181      0.0196      8.79e3       8.83e3
+disc   incl     5      0.0210      0.0210      4.09e2       4.11e2
+disc   incl    10      0.0239      0.0239      2.98e0       2.96e0
+disc   incl    20      0.0290      0.0290      4.84e-1      5.01e-1
+disc   excl     0      0.0131      0.0131      3.69e0       3.69e0
+disc   excl     1      0.0160      0.0160      2.31e0       2.31e0
+disc   excl     2      0.0179      0.0179      1.54e0       1.54e0
+disc   excl     5      0.0210      0.0210      7.13e-1      7.13e-1
+disc   excl    10      0.0239      0.0239      5.28e-1      5.28e-1
+disc   excl    20      0.0290      0.0290      5.01e-1      5.01e-1
+point  incl     0      0.0         0.0         1.92e4       1.93e4
+point  incl     1      0.00376     0.00488     6.92e3       6.96e3
+point  incl     2      0.00514     0.00557     2.49e3       2.50e3
+point  incl     5      0.00598     0.00597     1.16e2       1.16e2
+point  incl    10      0.00679     0.00679     8.46e-1      8.40e-1
+point  incl    20      0.00824     0.00824     1.37e-1      1.42e-1
+point  excl     0      0.00373     0.00373     1.04e0       1.04e0
+point  excl     1      0.00456     0.00456     6.55e-1      6.55e-1
+point  excl     2      0.00510     0.00510     4.38e-1      4.38e-1
+point  excl     5      0.00596     0.00596     2.02e-1      2.02e-1
+point  excl    10      0.00679     0.00679     1.49e-1      1.49e-1
+point  excl    20      0.00824     0.00824     1.42e-1      1.42e-1

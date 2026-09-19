@@ -1,0 +1,120 @@
+---
+title: "Benchmark: the sea-level equation"
+---
+
+::: {.callout-note appearance="minimal"}
+**Reference:** Martinec et al. (2018), the SLE intercomparison [@Martinec2018],
+cases A and C2/D3/E2/F1 (SBK reference curves). **Tests:**
+`test_benchmark_martinec` (case A, in `make check`) and `test_benchmark_sle`
+(the SLE cases, standalone). **Status:** ✅ all cases within inter-code scatter.
+:::
+
+This is the capstone benchmark: the full **self-consistent, migrating-coastline
+sea-level equation** driven by the viscoelastic response — the same benchmark
+VILMA itself passed. It exercises the ocean function, mass conservation,
+coastline migration, grounded-ice flotation, and the sub-grid sloping coast all
+together.
+
+## Benchmark structure
+
+The authority for the case definitions is **Martinec et al. (2018), Table 4**
+(not the differing case labels in third-party reimplementations). The paper
+defines five cases from a small set of building blocks:
+
+- **Ice** (square-root cap $h(\psi) = h_0\sqrt{(\cos\psi-\cos\alpha)/(1-\cos\alpha)}$,
+  $\alpha=10°$): **L0** pole/1500 m; **L1** colat 25°/lon 75°, 1500 m; **L2** same
+  centre, 500 m.
+- **Basin** ($\zeta^{(0)} = b_{\max} - b_0\,e^{-\psi^2/2\sigma^2}$, $\sigma=26°$):
+  **B0** none; **B1** colat 100°/lon 320°, shallow (760/1200); **B2** colat 35°/lon
+  25°, deep (3800/6000, 2200 m at centre).
+- **Time**: **T0** Heaviside (load held, $t_f = 10$ kyr); **T1** linear growth
+  over 10 kyr then held to 15 kyr.
+- **Ocean**: **SLE0** none; **SLE1** fixed geometry $O^{(0)}$; **SLE2**
+  time-varying (migrating coastline).
+- Densities $\rho_{\text{ice}}/\rho_{\text{water}} = 931/1000\ \mathrm{kg\,m^{-3}}$,
+  $g_0 = 9.815\ \mathrm{m\,s^{-2}}$.
+
+The vendored SBK reference files use a labelling offset by one letter from the
+paper (SBK letter = paper letter + 1):
+
+| SBK | paper | ocean | ice | time | basin |
+|:-:|:-:|---|---|---|---|
+| **A** | A | SLE0 (none) | L0 (1500 m) | T0 | B0 (none) |
+| **C2** | B | SLE1 fixed | L1 (1500 m) | T0 | B1 (shallow) |
+| **D3** | C | SLE1 fixed | L2 (500 m) | T1 | B2 (deep) |
+| **E2** | D | SLE2 migrate | L2 (500 m) | T1 | B2 (deep) |
+| **F1** | E | SLE2 migrate | L2 (500 m) | T1 | B2* (paleo-topo prescribed) |
+
+## Case A — pure viscoelastic loading
+
+The simplest case: a spherical cap, Heaviside loading, 10 kyr relaxation, **no
+ocean**, with degrees $n=0,1$ dropped — a pure viscoelastic cap response.
+FastEarth3D matches Martinec (2018) fig. 10 to **0.52 % (uplift) / 0.69 %
+(horizontal) / 1.94 % (geoid)** (peak-normalized). This is the **first
+horizontal-displacement** benchmark and confirms the spheroidal $V$ field
+(`test_benchmark_martinec`).
+
+## SLE cases — C2, D3, E2, F1
+
+These run the full SLE with the time-varying load. The reference files give seven
+columns: longitude/colatitude, vertical displacement, the two horizontal
+components, the gravitational potential increment, the sea-surface variation, and
+the SLE result, sampled along circles of constant longitude/latitude (figs. 10–13).
+
+Mass is conserved to $\sim 10^{-16}$ per step by construction in every case. Key
+findings from working through the cases:
+
+- **Fixed vs. migrating ocean is the dominant control** for C2/D3. C2 and D3 are
+  fixed-ocean (SLE1) cases; running them with a migrating coastline drains the
+  shallow/fixed basin roughly twice too far (C2 esl $-272$ → $-126$ m vs. data
+  $-120$; D3 $-50$ → $-25.7$ vs. $-25.5$). Honouring the fixed-ocean mode is what
+  makes them match.
+- **Grounded-ice masking matters.** The SLE load must apply only over *grounded*
+  ice ($\rho_{\text{ice}}\,\Delta I\,(1-C)$); floating ice over the deep basin is
+  carried by the ocean term, and the ocean-water budget counts only grounded ice.
+  Getting this wrong produced $\sim 70$ m of spurious flank subsidence.
+- **The sub-grid sloping coast** collapses the cap-edge grounding-line residual.
+  In E2, switching the binary coastline for the sub-grid water-column load takes
+  the worst local errors from $\sim 14$–$42\%$ down to $\sim 1\%$ (esl $-30.28$
+  vs. data $-30.0$), because the SBK reference is itself a sub-grid coast.
+
+### Representative agreement
+
+| Case | uplift | geoid | sea-surface | SLE | notes |
+|:-:|:-:|:-:|:-:|:-:|---|
+| A | 0.52 % | 1.94 % | — | — | horizontal 0.69 %; no ocean |
+| C2 | $\le 2.5\%$ | $\le 7\%$ | $5\%$ | $7\%$ | fixed ocean; horiz $\le 28\%$ on symmetry axis |
+| D3 | $\le 7\%$ | $\le 7\%$ | $\le 7\%$ | $\le 7\%$ | best SLE case (all $\le 7\%$) |
+| E2 | $\sim 0.7\%$\* | $\sim 1\%$\* | $\sim 1\%$\* | $\sim 1\%$\* | \*with sub-grid coast |
+| F1 | within scatter | within scatter | within scatter | within scatter | E2 + paleo-topo spin-up |
+
+Horizontal-displacement error is normalized by the peak *vector* magnitude
+$|(v_\theta,v_\phi)|$ rather than per-component, since a profile through a
+symmetry axis nulls one component.
+
+::: {.callout-note title="An inter-code comparison, not an analytic one"}
+The SBK reference is one code's (giapy's) output, so these tolerances are
+assessed against the documented **inter-code scatter** of the Martinec (2018)
+intercomparison, not against a closed-form solution. The residual few-metre
+eustatic offsets and the cap-edge grounding-line differences are within that
+scatter; where a definitional choice (binary vs. sub-grid coast) is involved,
+matching the reference's choice removes the discrepancy.
+:::
+
+## Figures
+
+*Figures to be added: per-case profiles (figs. 10–13) of uplift, horizontal
+displacement, geoid/potential, sea-surface, and the SLE result, FastEarth3D vs.
+the SBK reference; the eustatic-sea-level time series.*
+
+<!--
+![Case E2, fig. 10 profiles](figures/sle_E2_fig10.png)
+![Eustatic sea level vs time](figures/sle_esl_series.png)
+-->
+
+## Provenance
+
+Reference: `data/benchmarks/sle_martinec2018/*_SBK.dat`, from the `giapy` package
+(`tests/sbk_benchmark_data.tar.gz`, MIT), originating in the Martinec et al.
+(2018) intercomparison. The case ↔ paper mapping and column definitions are in
+`data/benchmarks/PROVENANCE.md`.

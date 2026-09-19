@@ -1,0 +1,131 @@
+---
+title: "Maxwell rheology and the memory stress"
+---
+
+The mantle is modelled as an **incompressible Maxwell** body: it responds
+elastically on short timescales and viscously on long ones, with a single
+Maxwell time $\tau_M = \eta/\mu$ per layer. FastEarth3D integrates this
+constitutive law **explicitly in the time domain** — there is no normal-mode
+decomposition and no Laplace transform. This is the structural choice that
+makes laterally varying (3D) viscosity essentially free.
+
+## The Maxwell body
+
+For a deviatoric stress $\boldsymbol{\tau}$ and deviatoric strain
+$\boldsymbol{\varepsilon}$, the Maxwell rheology is
+
+$$
+\dot{\boldsymbol{\tau}} + \frac{\mu}{\eta}\,\boldsymbol{\tau}
+\;=\; 2\mu\,\dot{\boldsymbol{\varepsilon}},
+$$
+
+with $\mu(r)$ the shear modulus and $\eta(r)$ the viscosity. Two limits are
+exact and are used as validation anchors:
+
+- **Elastic / lithosphere:** $\eta\to\infty \Rightarrow$ Hooke's law
+  $\boldsymbol{\tau} = 2\mu\boldsymbol{\varepsilon}$. The lithosphere is taken
+  as $\eta = \infty$ *exactly*; a large-but-finite value would seed a spurious
+  slow mode that contaminates multi-cycle runs.
+- **Fluid / inviscid core:** $\mu\to 0 \Rightarrow$ the layer carries no
+  deviatoric stress (free-slip).
+
+## Explicit memory-stress scheme
+
+Following @Martinec2000 (§3, eqs. 23–25), the total stress at time step $i$ is
+the **instantaneous elastic stress** — computed by the *same* elastic operator
+every step — plus a **memory stress** $\boldsymbol{\tau}^{V}$ that encodes the
+relaxation history:
+
+$$
+\boldsymbol{\tau}^{V,i}
+\;=\; (1 - M)\,\boldsymbol{\tau}^{V,i-1}
+\;-\; 2\mu\,M\,\boldsymbol{\varepsilon}^{\,i},
+\qquad
+M \equiv \frac{\mu\,\Delta t}{\eta}.
+$$
+
+This is the $\omega = 1$ (fully explicit) update. The memory stress enters the
+*right-hand side* of the field equations as a dissipative forcing
+
+$$
+F_{\text{diss}} \;=\; -\!\int \boldsymbol{\tau}^{V,i} : \delta\boldsymbol{\varepsilon}\ \mathrm{d}V
+\qquad\text{(eq. 35).}
+$$
+
+The crucial consequence: **the left-hand-side operator never changes in time.**
+It is assembled, equilibrated, and LU-factored *once*, then reused at every step
+with a fresh right-hand side. Each step costs a back-substitution, not a
+re-factorization (see [Solver](../discretization/solver.qmd)).
+
+::: {.callout-note title="Why explicit, not implicit or normal-mode"}
+With the explicit update, the memory stress at step $i$ depends only on the
+*previous* step's stress and strain — both known. Nothing in the operator
+depends on viscosity, so a spatially varying $\eta(r,\theta,\phi)$ changes only
+the scalar $M$ that multiplies known fields pointwise. The angular harmonics
+stay decoupled in the solve. A normal-mode method, by contrast, must re-solve a
+degree-by-degree eigenvalue problem whenever the radial structure changes and
+cannot represent lateral viscosity at all without abandoning the mode basis.
+:::
+
+## From layers to the same kernel in 1D and 3D
+
+In the **1D** (radially symmetric) case the memory stress evolves directly on
+the tensor spherical-harmonic coefficients (Martinec 2000, §9): there is no
+spatial grid. Per radial element it is stored for the four spheroidal tensor
+components $\lambda\in\{1,2,5,6\}$ (eq. 109), and the strain coefficients follow
+from the nodal radial functions $U,V$ via eq. 87–88. The dissipative
+right-hand side is a two-point radial Gauss quadrature of the spectral
+double-dot $\sum_\lambda \lVert Z^\lambda\rVert^2\,\tau^{V,\lambda}\,\delta\varepsilon^\lambda$
+with the component norms $\{1,\ J/2,\ 2J^2,\ 2J(J-2)\}$, $J = \ell(\ell+1)$
+(eqs. 110, B13).
+
+In the **3D** (laterally varying viscosity) case, the *identical* kernel runs,
+but the memory update $M = \mu\Delta t/\eta$ is evaluated **pointwise on the
+Gauss–Legendre grid** and transformed back to spectral space each step
+(pseudo-spectral). The per-element Maxwell routines —
+`strain_coeffs`, `ve_strain_constants`, `dissipative_rhs`, `advance_memory` —
+are shared verbatim between the 1D stepper and the field driver. There is no
+duplicated algorithm and no separate "3D solver".
+
+## Stability
+
+The explicit scheme is conditionally stable: the step is bounded by the
+shortest Maxwell time present,
+
+$$
+\Delta t \;\lesssim\; \frac{2\,\eta_{\min}}{\mu}.
+$$
+
+In practice a **viscosity floor** (e.g. $\sim 10^{19}\ \mathrm{Pa\,s}$) caps the
+fastest relaxation and sets a usable step (VILMA-scale runs use
+$\Delta t \approx 2.5$ yr; the benchmark cases here use 20 yr). Elastic layers
+($M\to 0$) freeze and carry no memory; fluid layers ($\mu = 0$) carry no memory
+either.
+
+::: {.callout-tip title="Where this lives in the code"}
+`fe_viscoelastic` holds both the 1D per-degree stepper (`ve_degree`) and the
+shared per-element kernel. The memory state is the only prognostic field carried
+across a restart (`fe_io`). Time integration is validated by `test_relax`
+(a held load relaxes elastic $\to$ fluid, $t_{\text{relax}}\propto\eta$,
+step-converged) and is benchmarked in
+[Sea-level equation](../benchmarks/sea-level.qmd).
+:::
+
+## A modal reduction was tried
+
+For an incompressible layered Maxwell Earth the per-degree response is a
+finite sum of exponential relaxation modes, with only a handful of modes
+dominating the surface response at each degree. This suggests a natural
+reduction: replace the full radial memory tensor by $K$ scalar amplitudes
+$\xi_k(\ell,m)$ per coefficient, each advancing by its exact exponential.
+Radially varying viscosity is then exact in the limit $K \to \infty$, and
+lateral viscosity is folded in as a rate modulation of each mode by the
+local viscosity in the depth band that mode samples.
+
+We implemented and validated such a reduced solver, but decided against
+retaining it. The measured speed-up over the full explicit scheme was modest,
+and the approximation error grew rapidly once lateral viscosity contrasts or
+strongly time-varying loads were introduced. Since the explicit memory-stress
+scheme is already cheap — one back-substitution per step, with no angular
+coupling — the added complexity of maintaining a second response operator was
+not justified. The full solver is retained as the single response path.

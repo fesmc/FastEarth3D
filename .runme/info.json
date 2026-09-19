@@ -1,0 +1,25 @@
+{
+    "exe_default" : "bin/fastearth.x",
+
+    "par_path_as_argument" : true,
+
+    "exe_aliases" :
+        {   "main"  : "bin/fastearth.x",
+            "mkref" : "bin/fastearth_mkref.x",
+            "remap" : "bin/fastearth_remap.x"
+        },
+
+    "grp_aliases" : {},
+
+    "par_paths" :
+        {   "all" : "fastearth.nml"
+        },
+
+    "files" :
+        [],
+
+    "dir-special" : {},
+
+    "links" :
+        ["data", "input"]
+}

@@ -1,0 +1,115 @@
+---
+title: "Radial finite elements and the per-degree operator"
+---
+
+After the [spectral reduction](spectral.qmd), each spherical-harmonic degree $j$
+is an independent 1D radial boundary-value problem. FastEarth3D discretizes it
+with **finite elements in radius**, assembling the symmetric saddle-point
+operator that is the Hessian of the energy functional.
+
+## Mesh and bases
+
+The mesh spans the **whole sphere** $\langle 0, a\rangle$ — the inviscid core is
+meshed too — with piecewise-constant $\rho_k,\mu_k$ per element. The benchmark
+M3–L70–V01 model uses 218 nodes (VEGA 5/10/40 km radial spacing). Two
+finite-element bases are used (Martinec 2000, §6):
+
+- **P1 "tent" functions** $\psi_k(r)$ for the nodal fields:
+  $U,V,F = \sum_k [\,\cdot\,]_k\,\psi_k$ (continuous, one value per node).
+- **P0 (piecewise-constant) functions** $\xi_k(r)$ for the pressure:
+  $\Pi = \sum_k \Pi_k\,\xi_k$ (one value per element).
+
+This **P1(U,V,F) / P0($\Pi$)** pairing is the inf–sup-stable choice for the
+incompressible saddle-point problem: the pressure enforces $\operatorname{div}\mathbf{u}=0$
+weakly through its coupling block.
+
+## Element bilinear forms
+
+The element matrices are built from the closed-form radial integrals of
+Martinec's Appendix C (the $I_1\ldots I_7$, $K_1\ldots K_3$ families),
+implemented and unit-tested in `fe_radial_integrals`:
+
+| Block | Equation | Integrals | Couples |
+|---|---|---|---|
+| Pressure / incompressibility $\delta E_{\text{press}}$ | eq. 82 | $K_1,K_2$ | $\Pi \leftrightarrow (U' + 2U/r - JV/r)$ |
+| Shear stiffness $\delta E_{\text{shear}}$ | eq. 80 | $I_1,I_3,I_6$ ($\times\mu_k$) | $U,V$ |
+| Self-gravity $\delta E_{\text{grav}}$ | eq. 81 | $I_2,I_4,I_5,I_7$, $\tfrac{1}{4\pi G}$ | $U,V,F$ |
+| Rigid-mode penalty $\delta E_{\text{uniq}}$ | eq. 83 | $K_3$ | $U,V$ at $j=1$ |
+
+The singular $I_7$ (the $1/r$ term carrying $R_k$) is **skipped in the innermost
+element** where $R_1 = 0$, avoiding a $0\cdot\infty$; the $r^2$ weighting handles
+regularity at the centre so **no explicit centre boundary condition** is needed.
+
+## A symmetric operator — and the bug that hid in it
+
+Laid out node-interleaved as $[U\ V\ F\mid\Pi]$, the per-degree system is
+
+$$
+\begin{bmatrix} A & B^{\mathsf T}\\ B & 0\end{bmatrix}
+\begin{bmatrix} d\\ \Pi\end{bmatrix}
+=
+\begin{bmatrix} f\\ 0\end{bmatrix},
+$$
+
+with $A$ the shear+gravity stiffness and $B$ the incompressibility coupling. The
+whole operator is **symmetric** — it is the second variation (Hessian) of the
+energy functional $E$, hence self-transpose by construction. In particular the
+self-gravity $U\!\leftrightarrow\! F$ coupling is a *transpose pair*: the
+potential-gradient body force $\int\rho_0(\mathrm{d}F/\mathrm{d}r)\,\delta U\,r^2$
+and the Poisson source $\int\rho_0 U(\mathrm{d}\,\delta F/\mathrm{d}r)\,r^2$
+discretize to $I^2_{\beta\alpha}$ and $I^2_{\alpha\beta}$ respectively.
+
+::: {.callout-warning title="Typo in Martinec (2000), eq. (81)"}
+The discretized self-gravity block written out in @Martinec2000 eq. (81)
+appears to contain a typo: it gives the $U$–$F$ coupling as
+$I^2_{\alpha\beta}$ where the symmetric partner $I^2_{\beta\alpha}$ is
+required. Because the full operator is the Hessian of the energy functional
+$E$, it must be symmetric; the corresponding term in the *continuous* form
+(eq. 65) makes this clear on term-by-term inspection. Using eq. (81) as
+written breaks the operator symmetry and softens the elastic low-degree
+Love numbers markedly — $h_e(2)$ was $\sim 47\%$ below the benchmark in
+our own tests, while every analytic limit and the fluid limit still
+passed. Anyone implementing this block should take eq. (65) as the arbiter,
+use $I^2_{\beta\alpha}$ for the $U$–$F$ coupling, and assert
+$\lVert A - A^{\mathsf T}\rVert = 0$ on the assembled matrix.
+:::
+
+## Boundary and regularity conditions
+
+- **Surface** — the exterior potential match ($\varphi_1\propto r^{-(j+1)}$
+  outside) adds a $(j+1)F(a)$ term on the $F\!-\!F$ diagonal at the surface node;
+  the load enters as the right-hand side $-a^2\sigma\,g_0(a)$ on $U(a)$ and
+  $-a^2\sigma$ on $F(a)$ (eq. 84).
+- **Centre $r=0$** — no explicit BC (meshed through, $r^2$ weighting + $R_1=0$).
+- **Core–mantle boundary** — none imposed; free-slip emerges from $\mu=0$ in the
+  meshed core.
+- **Density-jump interfaces** — natural conditions of the weak form.
+
+## Degree 1: the geocenter, kept sparse
+
+Degree 1 carries the rigid-translation null space, removed by $E_{\text{uniq}}$
+(eq. 83). That penalty is a rank-1 term whose coefficient is $\sim 10^{16}\times$
+the band entries — i.e. it is already a *hard constraint* $w^{\mathsf T}d = 0$
+(the CM/geocenter frame, [@Blewitt2003]) in all but name. Imposing it as a dense
+penalty would fill the band; instead it borders the band with **one KKT
+row/column**:
+
+$$
+\begin{bmatrix} A_{\text{band}} & w\\ w^{\mathsf T} & 0\end{bmatrix}
+\begin{bmatrix} d\\ \lambda\end{bmatrix}
+=
+\begin{bmatrix} f\\ 0\end{bmatrix}.
+$$
+
+The solve runs at $\text{ndof}+1$ internally but keeps the physical $\text{ndof}$
+interface, so the time stepper needs no degree-1 special case. The geocenter is
+thus the physical degree-1 signal, not a hard-coded $\{h_1,l_1,k_1\}$.
+
+::: {.callout-tip title="Where this lives in the code"}
+`fe_radial_fe` assembles `build_dense_operator` (the reference dense operator,
+with the dense $E_{\text{uniq}}$ penalty for cross-checking) and the banded
+operator used in production; `fe_radial_integrals` holds the Appendix-C element
+integrals. Love numbers are extracted by `loading_love` — see
+[Love numbers](../benchmarks/love-numbers.qmd). Validated by `test_assembly`,
+`test_love`.
+:::

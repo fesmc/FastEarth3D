@@ -1,0 +1,86 @@
+---
+title: "Rotational feedback (polar motion)"
+---
+
+A redistribution of surface mass (ice, ocean water) and the resulting solid-Earth
+deformation change the planet's inertia tensor, which perturbs the rotation
+vector — **true polar wander** (TPW). The shifted rotation in turn alters the
+centrifugal potential, itself a **degree-2** surface load that drives further
+deformation and sea-level change. FastEarth3D implements this two-way
+**rotational feedback** in the time domain, consistent with the explicit
+memory-stress machinery.
+
+::: {.callout-note title="Status: implemented, on by default"}
+Rotation is implemented (`fe_rotation`), coupled self-consistently into the
+[sea-level equation](sea-level.qmd), persisted across restarts, and tested against
+the Spada et al. (2011) polar-motion benchmark (`test_rotation`,
+`test_rotation_sle`). It is **on by default** (`rotation = .true.`) for real-Earth
+runs; the non-rotating community benchmarks set `rotation = .false.` explicitly.
+:::
+
+## Formulation
+
+The rotational theory follows the **time-domain** approach of
+@MartinecHagedoorn2014, which composes with a viscoelastic, 3D-viscosity solver.
+On the GIA timescale the Chandler wobble is neglected, leaving a **quasi-static
+Liouville equation** for the polar-motion vector $\mathbf{m}$,
+
+$$
+\Bigl[\,1 - \tfrac{k^{T}(t)}{k_{s}}\,\Bigr] * \mathbf{m}(t) = \Psi_{L}(t),
+\qquad
+\Psi_{L}(t) = \frac{I(t)}{C-A},
+\qquad
+I(t) = \bigl[\delta(t) + k^{L}(t)\bigr] * I_{\rm rigid}(t),
+$$
+
+where $*$ is time convolution, $I_{\rm rigid}$ is the rigid-body inertia
+perturbation from the surface load, $k^{L}$ and $k^{T}$ are the **loading** and
+**tidal** degree-2 Love numbers, $k_s$ is the secular (fluid-limit) number, and
+$C-A$ is the moment difference.
+
+The implementation carries **two degree-2 viscoelastic channels** on the same
+per-degree operator — a *loading* channel forced by the rigid inertia (a direct
+Gauss-grid quadrature of the load, so no axisymmetry is assumed) and a *tidal*
+channel forced by the centrifugal potential. Each carries its own Maxwell memory.
+The polar motion $\mathbf{m}$ is solved algebraically each step and is **affine**
+in the load, so it sits inside the SLE ↔ rotation fixed point safely; the
+channel memories are committed once with the converged $\mathbf{m}$.
+
+## Coupling through the sea-level equation
+
+The centrifugal potential of the perturbed rotation,
+
+$$
+\Lambda = \Omega^{2} a^{2}\,\sin\theta\cos\theta\,(m_1\cos\phi + m_2\sin\phi),
+$$
+
+is a degree-2, order-1 field. It enters the SLE as the rotational sea-surface
+contribution $s_{\rm rot} = (1+k^{T})\Lambda/g - h^{T}\Lambda/g$ (geoid minus
+uplift), held constant across the SLE solve while the caller iterates the
+rotation ↔ SLE fixed point. The rotational potential is thus treated as a load
+like any other — self-consistent, not a bolt-on correction.
+
+## Design constraints honoured
+
+- **Degree-2, tidal Love numbers.** The rotational deformation uses *tidal*
+  (not loading) Love numbers; the centrifugal forcing is purely degree 2.
+- **The secular number $k_s$.** Computing $k_s$ from the assumed lithosphere
+  thickness leads to the well-known "lithosphere-thickness paradox" in rotational
+  stability; the model can instead pin $k_s$ to the observed hydrostatic
+  flattening [@Mitrovica2005], recommended for deep time.
+- **Couple through the SLE.** The rotational potential enters the sea-level
+  equation self-consistently (above).
+
+## Validation
+
+The Liouville polar-motion solve is checked against **Spada et al. (2011) test
+3/2** [@Spada2011] (model fluid $k_s \approx 0.93$–$0.94$), and the
+rotation ↔ SLE per-step fixed point is exercised by `test_rotation_sle`. See the
+[validation ladder](../benchmarks/index.qmd).
+
+::: {.callout-tip title="Where this lives in the code"}
+`fe_rotation` holds the two degree-2 channels, the Liouville solve, and the
+`s_rot` SLE contribution; `fe_coupling` drives the rotation ↔ SLE fixed point;
+`fe_io` persists the polar motion and channel memory on restart. On by default
+(`rotation = .true.`); set `rotation = .false.` for non-rotating benchmarks.
+:::

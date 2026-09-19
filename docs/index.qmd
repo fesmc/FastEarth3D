@@ -1,0 +1,69 @@
+---
+title: "FastEarth3D"
+subtitle: "A fast, open-source, time-domain spectral–finite-element solid-Earth model"
+toc: false
+---
+
+**FastEarth3D** is a fast, open-source 3D solid-Earth model: a
+self-gravitating, incompressible, Maxwell-viscoelastic sphere coupled to a
+self-consistent **sea-level equation** with migrating coastlines. It is
+designed as an open-source replacement for VILMA inside the
+[CLIMBER-X](https://doi.org/10.5194/gmd-15-5905-2022) Earth system model
+[@Willeit2022], and more generally as a reusable glacial isostatic adjustment
+(GIA) engine for ice-sheet and sea-level work.
+
+The numerical method follows the **spectral–finite-element, time-domain**
+approach of @Martinec2000: spherical harmonics horizontally, finite elements
+radially, and an explicit memory-stress integration of the Maxwell rheology in
+time. The solver is **3D-ready from the start** — laterally varying viscosity
+costs nothing extra — and is validated first in 1D against the published GIA
+community benchmarks [@Spada2011; @Martinec2018].
+
+## Why this method
+
+The structural advantage of this approach is that, with an **explicit**
+Maxwell time scheme, the stiffness solve has **no angular coupling**. Each
+spherical-harmonic degree $\ell$ decouples into an independent, small, banded
+radial system. This makes the solver embarrassingly parallel and cheap, and
+lateral (3D) viscosity is free: it never couples the harmonics in the solve,
+entering only through the explicitly-known memory stress. That memory stress
+is evaluated pointwise on the Gauss–Legendre grid and transformed back to
+spectral space each step, a pseudo-spectral treatment. The **1D and 3D code
+paths are therefore the same solver**.
+
+| Method family | Examples | 3D viscosity | Speed | Fit for purpose |
+|---|---|:---:|:---:|---|
+| Normal-mode + Love numbers + SLE | SELEN, TABOO, ALMA3 | no (1D only) | fast (1D) | dead end for 3D |
+| **Time-domain spectral–FE** | **VILMA** [@Martinec2000] | **yes** | **fast** | **chosen** |
+| Full 3D FE/FV | CitcomSVE, ASPECT, Elmer | yes | slow, heavy | too complex |
+
+## What is in these docs
+
+- **[Install & run](getting-started.qmd)** — building with `configme`, the
+  `&fe3d` namelist, the drivers, and staging runs with `runme`.
+- **[Physics](physics/governing-equations.qmd)** — the governing equations
+  (momentum, Poisson, incompressibility), the Maxwell rheology and its memory
+  stress, the sea-level equation, and rotational feedback.
+- **[Discretization](discretization/spectral.qmd)** — the spectral reduction,
+  the P1/P0 radial finite-element operator, the explicit time scheme, and the
+  banded direct solver.
+- **[Benchmarks](benchmarks/index.qmd)** — a summary table of validation
+  results, with one page per benchmark (Love numbers, the disc-load response,
+  and the sea-level-equation intercomparison).
+- **[Implementation](implementation.qmd)** — the libraries the model builds
+  on, and the codebases and datasets that informed the validation.
+
+## Status
+
+The full model is implemented. The core includes the spectral–finite-element
+solver, the viscoelastic time stepping and response operator, the
+self-consistent migrating-coastline sea-level equation, rotational feedback
+(polar motion), and laterally varying (3D) viscosity. It also supports
+restart and spin-up, online remapping of lon-lat forcing, and a host-coupling
+API.
+
+Validation against the @Spada2011 and @Martinec2018 community benchmarks
+covers the radial solver, the disc-load response, and the sea-level equation.
+Rotation is checked against the Spada test 3/2. Cross-code validation of the
+3D viscosity path is ongoing (see the
+[validation ladder](benchmarks/index.qmd)).

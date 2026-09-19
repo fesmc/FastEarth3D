@@ -1,0 +1,68 @@
+---
+title: "Benchmark: disc-load response"
+---
+
+::: {.callout-note appearance="minimal"}
+**Reference:** Spada et al. (2011), disc-load test, earth model **M3–L70–V01**
+[@Spada2011]. **Test:** `test_benchmark_disc` (in `make check`). **Status:** ✅
+displacement $\sim 1\%$ near-field; geoid $\sim 1\%$ for $\ell\ge 2$; transient
+to $\sim 0.5\%$.
+:::
+
+This benchmark integrates the per-degree response over a **spatial load** and
+adds the **time relaxation**, testing the spatial synthesis and the Maxwell
+stepper together against a spatial reference.
+
+## Load and setup
+
+- A **10° radius disc** of **1000 m ice** ($\rho_{\text{ice}} = 931\
+  \mathrm{kg\,m^{-3}}$) on elevated bedrock — **no ocean load**.
+- Earth model **M3–L70–V01** (as for the [Love numbers](love-numbers.qmd)).
+- The disc is expanded in Legendre coefficients
+  $\sigma_n = \tfrac{\sigma_0}{2}\,[P_{n-1}-P_{n+1}]$ and the spatial response is
+  synthesized as $u(\theta) = \sum_n U_n(a)\,\sigma_n\,P_n(\cos\theta)$.
+
+## Reference data and metrics
+
+The reference is the spatial response at colatitudes $\theta = 0$:$0.1$:$20°$
+(201 points) and times $t = [0,1,2,5,10,100]$ kyr (column 1, $t=0$, is the
+elastic response). Three fields are compared: vertical displacement $u$, geoid
+$n$, and uplift rate $\mathrm{d}u/\mathrm{d}t$.
+
+The reference uses a **mixed reference frame**: displacement in a CE-like
+gauge ($h_1\approx 0$, geocenter), geoid in the CM frame ($N_1 = 0$).
+FastEarth3D reproduces both by referencing the degree-1 geoid to CM
+(`fe_response`).
+
+All three reference files in this repository (`u_*`, `n_*`, `dudt_*`) are
+stored in ascending $\theta$ order and match the ordering used by the
+model, so they can be paired with the $\theta$ grid directly.
+
+## Result
+
+- **Elastic uplift** ($t=0$): centre $-19.81$ m vs. reference $-20.57$ m
+  ($3.7\%$, dominated by the Gibbs ripple at the sharp 10° disc edge); the
+  profile is $<2\%$ across $\theta=1$–$9°$.
+- **Viscoelastic transient**: the centre uplift matches to $\sim 0.5\%$ at
+  $t=0,1,2,5,10$ kyr (ratio 0.997–1.005).
+- **Geoid**: matches to $\sim 1\%$ for degrees $\ge 2$ (centre 32.57 vs. 33.05;
+  far field 2.88 vs. 2.92).
+- The far-field forebulge ($\theta\gtrsim 12°$) is small-amplitude and
+  low-degree-truncation sensitive, so it shows larger *relative* differences.
+
+## Figures
+
+*Figures to be added: $u(\theta)$ at $t=0,1,2,5,10,100$ kyr; geoid $n(\theta)$;
+centre uplift time series; FastEarth3D vs. Spada disc reference.*
+
+<!--
+![Disc uplift profiles](figures/disc_uplift.png)
+![Centre uplift time series](figures/disc_centre_series.png)
+-->
+
+## Provenance
+
+Reference: `data/benchmarks/disc_spada2011/{u,n,dudt}_disc.txt`, from the
+`isostasy_data` repository [J. Jereczek], `model_outputs/Spada-2011/`, originating
+in the Spada et al. (2011) benchmark. Full details in
+`data/benchmarks/PROVENANCE.md`.

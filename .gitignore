@@ -1,0 +1,46 @@
+# Generated build artifacts
+/Makefile
+/obj/
+/bin/
+*.o
+*.mod
+*.a
+*.x
+*.dSYM/
+
+# configme related artifacts
+.install.sh
+.upgrade.sh
+
+# runme related machine-specific config file
+.runme/config.toml
+
+# fesm-utils is symlinked in per-machine, not committed
+/fesm-utils
+
+# Disposable, worktree-local logs
+/logs/
+
+# Editor / OS
+*~
+.DS_Store
+
+# Reference papers (copyrighted — never commit)
+*.pdf
+doc/refs/
+.claude/worktrees/
+
+# experiment run outputs (configs may be tracked under examples/)
+/runs/
+
+# Prebake run logs (regenerable)
+data/reference/*.log
+
+# generated analysis figures
+/analysis/figs/
+
+# coords remap weight cache
+maps/
+
+# analysis result caches (regenerable via analysis/*.jl)
+*.jld2

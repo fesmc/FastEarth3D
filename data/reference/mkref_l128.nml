@@ -1,0 +1,32 @@
+! Reference generation for fastearth_mkref (overlaid on input/fastearth3d_defaults.nml):
+!     bin/fastearth_mkref.x data/reference/mkref_l128.nml
+! &fe3d sets the grid; the tool reads the reference source + output from &ctl
+! (the &ctl group is complete — the run config owns it in full).
+&fe3d
+    lmax           = 128
+/
+
+&ctl
+    file_forcing  = ""
+    name_ice      = "h_ice"
+    name_time     = "time"
+    file_ref      = ""
+    name_zbed_eq  = "z_bed_eq"
+    name_hice_ref = "h_ice_ref"
+    file_out      = "data/reference/rtopo_gauss_l128.nc"
+    time_init     = -1.0e30
+    time_end      =  1.0e30
+    remap_input   = .true.
+    name_lon      = "lon"
+    name_lat      = "lat"
+    i_eq          = 1
+    z_bed_ref_file = "data/reference/rtopo_0.5deg.nc"
+    h_ice_ref_file = "data/reference/rtopo_0.5deg.nc"
+    z_bed_eq_file  = ""
+    h_ice_eq_file  = ""
+    rsl_restart_file = ""
+    name_z_bed_ref = "bedrock_topography"
+    name_h_ice_ref = "ice_thickness"
+    name_rsl       = "rsl"
+    restart_in_file = ""
+/

@@ -1,0 +1,79 @@
+---
+title: "The banded direct solver and performance"
+---
+
+The per-degree saddle-point system is small, banded, and reused unchanged across
+all orders $m$, all loads, and every time step. FastEarth3D therefore solves it
+with a **dependency-free, re-entrant, pivoted banded LU** — factor once, solve
+many times — which is both faster and structurally simpler than the iterative
+solver used in early versions.
+
+## Why a banded direct solve fits
+
+Laid out node-interleaved as $[U\ V\ F\mid\Pi]$, the operator has a
+**half-bandwidth of $\sim 6$**. Its entries span $\sim 20$ orders of magnitude
+($\mu r^2/h$ versus the pressure couplings versus $1/4\pi G$), so it is first
+**geometric-mean row/column equilibrated**. Two facts then make a direct band
+solve ideal:
+
+- The operator depends on degree only through $J = j(j+1)$, so it is assembled
+  and factored **once per degree** and reused for all $m$, all loads, and all
+  time steps. A step costs only a band back-substitution.
+- It is **indefinite** (zero pressure block), so **partial pivoting is
+  required**; the `fe_band` LU pivots within the band.
+
+Degree 1 carries the dense KKT border (the rigid-mode constraint), giving that
+one degree a near-full bandwidth — it factors as a dense LU through the *same*
+code path. The result is $\sim 20\ \mu\mathrm{s}$ per solve, versus $\sim 700\
+\mu\mathrm{s}$ for the earlier iterative (GMRES+ILU) solver, with no
+preconditioner fill to evict from cache.
+
+## No external linear-algebra dependency
+
+`fe_band` is hand-rolled and **dependency-free**: it pulls in no LAPACK and no
+LIS. This is a deliberate design choice driven by linking into a larger,
+OpenMP-parallel host:
+
+::: {.callout-note title="Why LIS (and LAPACK) were removed"}
+An earlier version used the LIS iterative-solver library. Linking LIS into an
+OpenMP host (CLIMBER-X) would pull in `lis-omp`, nesting OpenMP regions, and
+concurrent LIS solves are **not re-entrant** (global solver state). The
+hand-rolled band LU has no global state, so it is **re-entrant** and the
+per-degree loop parallelizes cleanly with OpenMP. With LIS gone there is no
+serial-vs-OpenMP variant to reconcile. The project also avoids LAPACK for the
+same dependency-minimization reason — the band solver is small and fully tested
+(`test_band` against a dense reference).
+:::
+
+## Performance of the SLE driver
+
+The cost driver for a coupled run is `ve_response%begin_step`, which performs
+two real per-degree solves for every $(\ell,m)$ each step ($\mathcal{O}(n_{\ell m})$
+solves). Four changes — all exact (results unchanged) except the
+threshold-controlled skip — brought this from impractical to routine:
+
+| Change | Effect |
+|---|---|
+| **Banded LU** replaces GMRES+ILU on the per-degree solve | $\sim 35\times$ per solve; cache-light |
+| **Degree-grouped storage** of per-$(\ell,m)$ memory/drift (slot $k$) | contiguous + operator reuse |
+| **Skip-negligible** coefficients (memory $< \texttt{skip\_tol}\times\max$) | $\sim 2\times$ for a localized cap |
+| **OpenMP** over the degree loop (safe via the re-entrant LU) | $\sim 5.4\times$ at 8 threads |
+
+Net effect on `begin_step`:
+
+| Resolution | Original (LIS) | Band LU, 1 thread | Band LU, 8 threads |
+|---|---|---|---|
+| $\ell_{\max}=64$ | $7.9$ s/step | $84$ ms/step | — |
+| $\ell_{\max}=128$ | (hours/run) | $310$ ms/step | $58$ ms/step |
+
+The full sea-level benchmark ($\ell_{\max}=128$, $\sim 750$ steps) thus runs in
+**minutes rather than hours**, which is what makes the
+[Martinec (2018) SLE cases](../benchmarks/sea-level.qmd) feasible as routine
+validation. At VILMA resolution (SH degree 170) the same machinery applies.
+
+::: {.callout-tip title="Where this lives in the code"}
+`fe_band` (pivoted banded LU + equilibration), `fe_radial_fe` (assembly,
+factorization, reuse), `fe_response` (`skip_tol`, degree-grouped slots,
+OpenMP loop). Build with `make openmp=1` for the threaded degree loop
+(serial dependencies + `-fopenmp`).
+:::
