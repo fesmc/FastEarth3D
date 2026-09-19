@@ -30,7 +30,8 @@ location, so it still works unchanged when run from the repository root:
 python config/legacy/config.py config/legacy/macbook_gfortran
 ```
 
-It is kept because `macbook_gfortran` also records the intended production
-optimization flags (`-O3 -mcpu=native -funroll-loops -ffast-math`, see
-`doc/performance-assessment.md` §1), which configme's generic `gfortran.mk`
-does not carry.
+It is kept as the record of the pre-configme build path. The production
+optimization flags it carried (`-O3 -mcpu=native -funroll-loops -ffast-math`,
+see `doc/performance-assessment.md` §1) now live in the project-tier configme
+fragment `.configme/machines/macbook.mk`, which is what the build actually
+uses.
