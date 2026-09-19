@@ -60,6 +60,24 @@ vertical displacement `u`, geoid `n`, and uplift rate `dudt`, for the
   only; `u_*` and `dudt_*` are not reversed there. The `n_disc.txt` shipped
   here has been reversed once at ingest so that all three files use the same
   ascending-θ convention.
+- **Sampling — important when quoting errors against these files.** The stored
+  curves are **piecewise linear on a 1° θ grid**, linearly interpolated onto the
+  0.1° grid they are distributed on. Only every tenth row is data; the nine
+  between are straight-line fill. The signature is unambiguous: all six time
+  columns of `u_disc.txt` consist of exactly 40 linear segments whose slope
+  breaks fall at the *same* 35 colatitudes, at integer degrees (0.9/1.0,
+  1.9/2.0, 6.0/6.1, 7.0/7.1, …) — a smooth physical field cannot have slope
+  discontinuities at the same colatitudes at every epoch. `n_disc.txt` has the
+  same structure with slightly different breakpoints. The files are stored at
+  full double precision, which disguises this.
+
+  Consequence: the reference's own roughness (RMS second difference along θ) is
+  **2.4–2.8× the model's** at every epoch, so a point-by-point comparison on the
+  0.1° grid charges the model for the reference's interpolation error. Quoted
+  peak-normalized errors against these files are therefore an **upper bound** on
+  the model's true error. A comparison restricted to the ~21 reference nodes
+  would be the honest measure. (Whether the 1° data was digitized from the
+  published figures or taken from a table is not recorded upstream.)
 - **Degree-1 / geoid frame:** the displacement is in the CE-like gauge (h₁≈0,
   geocenter), the geoid in the CM frame (N₁=0). FastEarth3D reproduces both: u to
   ~1% near-field, n to ~1% once the degree-1 geoid is referenced to CM (N₁=0; see
