@@ -118,8 +118,8 @@ phase, Gauss grid, phi-contiguous layout; spectral arrays hold `m >= 0`.
 
 ## 7. Build system
 
-`configme`-style: `config.py` inserts a machine fragment
-(`config/<machine>_<compiler>`) into the template `config/Makefile`; shared
+`configme` inserts a compiler/machine fragment into the template
+`config/Makefile` (the pre-configme generator is kept in `config/legacy/`); shared
 dependency wiring is in `config/common.mk`, source/rule lists in
 `config/Makefile_fastearth.mk`. Dependencies come from a `fesm-utils` symlink
 (FFTW, SHTns, `fesmutils`) plus system netCDF (`nf-config`). SHTns was added to

@@ -1,9 +1,13 @@
 """
-Generate the top-level Makefile for a given machine/compiler by inserting a
-compiler-configuration fragment into the template at config/Makefile.
+LEGACY. Superseded by configme -- see config/legacy/README.md. Kept because it
+still works and because the fragment beside it records the intended production
+optimization flags.
 
-Usage:
-    python config.py config/<machine>_<compiler>      # e.g. config/macbook_gfortran
+Generate the top-level Makefile for a given machine/compiler by inserting a
+compiler-configuration fragment into the template at config/Makefile. Paths are
+resolved relative to the working directory, so run it from the repository root:
+
+    python config/legacy/config.py config/legacy/<machine>_<compiler>
 
 This mirrors the "configme" approach used by CLIMBER-X and Yelmo: the template
 (config/Makefile) carries the build logic and a single <COMPILER_CONFIGURATION>
@@ -23,7 +27,7 @@ parser.add_argument(
     "config",
     metavar="CONFIG",
     type=str,
-    help="path to the compiler config fragment (e.g. config/macbook_gfortran)",
+    help="path to the compiler config fragment (e.g. config/legacy/macbook_gfortran)",
 )
 args = parser.parse_args()
 
