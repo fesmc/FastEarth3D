@@ -40,6 +40,8 @@ module fe_sle
       integer  :: n_outer_done = 0      !! coastline iterations performed
       integer  :: n_couple_done = 0     !! SLE<->memory co-convergence passes (§3c 3b)
       integer  :: n_inner_last = 0      !! inner iterations in the last outer pass
+      integer  :: n_coast_flip = 0      !! cells that changed ocean/land state in the last pass
+                                        !! (0 = the coastline converged; see sle_solve)
       real(wp) :: resid        = 0.0_wp !! last inner max|ΔS| [m]
       real(wp) :: mass_resid   = 0.0_wp !! relative ocean-mass-conservation error
       real(wp) :: ocean_frac   = 0.0_wp !! ∫C dΩ / 4π
@@ -49,6 +51,8 @@ module fe_sle
    end type sle_result
 
    type :: sle_solver
+      !! Cap on the paleotopography / coastline iterations, not a fixed count: the
+      !! loop exits as soon as the migrated coastline stops moving (see sle_solve).
       integer  :: n_outer = 3          !! paleotopography / coastline iterations
       integer  :: n_inner = 20         !! water-load fixed-point iterations
       real(wp) :: tol     = 1.0e-7_wp  !! inner convergence on max|ΔS| / max|S| [-]
@@ -166,7 +170,7 @@ contains
       real(wp),         optional, intent(in)  :: s_rot(:,:)
 
       real(wp), allocatable :: load(:,:), u(:,:), N(:,:), Sraw(:,:), rsl_new(:,:)
-      real(wp), allocatable :: C0(:,:), wcorr(:,:)
+      real(wp), allocatable :: C0(:,:), wcorr(:,:), C_next(:,:)
       complex(wp), allocatable :: load_lm(:), u_lm(:), N_lm(:)
       real(wp) :: rho_ratio, ice_int, dphi, C_int, Cs_int, zeta_int, smax, dmax
       integer  :: im, io, ii, np, nl, n_mem
@@ -178,7 +182,7 @@ contains
 
       np = sht%nphi;  nl = sht%nlat
       allocate(load(np,nl), u(np,nl), N(np,nl), Sraw(np,nl), rsl_new(np,nl))
-      allocate(C0(np,nl), wcorr(np,nl))
+      allocate(C0(np,nl), wcorr(np,nl), C_next(np,nl))
       allocate(load_lm(sht%nlm), u_lm(sht%nlm), N_lm(sht%nlm))
 
       rho_ratio = rho_ice/rho_water
@@ -188,6 +192,7 @@ contains
       u = 0.0_wp;  N = 0.0_wp;  dphi = 0.0_wp;  ice_int = 0.0_wp
       zeta_int = 0.0_wp;  wcorr = 0.0_wp
       res%n_inner_last = 0;  res%resid = 0.0_wp;  res%n_outer_done = 0
+      res%n_coast_flip = 0
 
       ! Initial ocean function O⁽⁰⁾ — the reference (t0) coastline against which the
       ! subgrid term measures newly flooded / emerged cells, and the held coastline
@@ -220,12 +225,17 @@ contains
             ! Fixed ocean geometry (Martinec 2018 §2.1): hold the coastline at the
             ! reference O⁽⁰⁾ for all time (no migration). Computed once.
             if (io == 1) C = C0
-         else
+         else if (io == 1) then
             ! migrate the coastline using the current (full-field) sea level: ocean
             ! where the deformed solid surface topo0 − rsl is below the sea surface
             ! AND the ice there floats rather than grounds (grounded ice keeps a
             ! subsided cell as land).
             call ocean_function(topo0 - rsl, ice, C)
+         else
+            ! the coastline the previous pass's converged rsl implies; it was built
+            ! at the foot of that pass by the convergence test, from this same rsl,
+            ! so this is the identical field the old unconditional call produced.
+            C = C_next
          end if
          C_int = sht_grid_surface_integral(sht, C)
          if (C_int <= 0.0_wp) exit          ! no ocean: nothing to redistribute
@@ -283,6 +293,27 @@ contains
          self%n_outer_tot = self%n_outer_tot + 1
          self%n_inner_tot = self%n_inner_tot + res%n_inner_last
          if (self%fixed_ocean) exit         ! C is fixed: one coastline pass converges
+
+         ! Coastline convergence. Migrating C is the outer loop's ONLY job — every
+         ! other quantity in a pass (C_int, ice_int, wcorr, zeta_int, and the inner
+         ! fixed point itself) is a function of C and the rsl converged against it.
+         ! So if the updated rsl implies the same ocean function, the next pass
+         ! would reproduce this one exactly: the test below is not a tolerance, it
+         ! is the fixed point. Without it the loop always ran n_outer passes, which
+         ! for the default n_outer = 3 is up to two redundant ones per solve.
+         !
+         ! ocean_function assigns the literals 0 and 1, so the comparison is exact
+         ! and n_coast_flip counts cells that changed state — a diagnostic worth
+         ! having: a count that never reaches 0 means the coastline is oscillating
+         ! between two states rather than settling, and n_outer is then a genuine
+         ! cap rather than a formality.
+         !
+         ! C_next is promoted to C at the TOP of the next pass, never here. On the
+         ! final pass C must stay the coastline that rsl was converged against,
+         ! because the closing load (and wcorr, zeta_int) below are built from both.
+         call ocean_function(topo0 - rsl, ice, C_next)
+         res%n_coast_flip = count(C_next /= C)
+         if (res%n_coast_flip == 0) exit
       end do
 
       ! Advance the relaxation memory one co-convergence pass with the converged
