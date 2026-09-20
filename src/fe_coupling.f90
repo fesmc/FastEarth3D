@@ -571,12 +571,22 @@ contains
 
    subroutine update_bsl(self)
       !! Diagnose the barystatic sea level from the current (Gauss-grid) state.
+      !!
+      !! The grounded-ice increment is masked exactly as fe_sle masks it: the
+      !! current column by the current ocean function, the REFERENCE column by
+      !! the reference one. Masking the raw difference by the current C alone
+      !! drops the whole column of any cell that carried grounded marine
+      !! reference ice and has since flooded -- see the ΔI_g note in fe_sle.
       type(solid_earth), intent(inout) :: self
       real(wp) :: c_int
+      real(wp), allocatable :: C0(:,:)
       c_int = sht_grid_surface_integral(self%sht, self%gg%C)
       if (c_int > 0.0_wp) then
-         self%bsl = -(rho_ice/rho_water) &
-              * sht_grid_surface_integral(self%sht, (self%gg%h_ice - self%gg%h_ice_eq)*(1.0_wp - self%gg%C)) / c_int
+         allocate(C0, mold=self%gg%C)
+         call ocean_function(self%gg%z_bed_eq, self%gg%h_ice_eq, C0)
+         self%bsl = -(rho_ice/rho_water) * sht_grid_surface_integral(self%sht, &
+                       self%gg%h_ice   *(1.0_wp - self%gg%C) &
+                     - self%gg%h_ice_eq*(1.0_wp - C0)) / c_int
       else
          self%bsl = 0.0_wp
       end if

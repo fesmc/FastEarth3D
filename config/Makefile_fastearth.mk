@@ -317,6 +317,11 @@ test_flotation_load: fastearth-static | $(bindir)
 		-o $(bindir)/test_flotation_load.x $(objdir)/libfastearth.a $(LFLAGS)
 	@echo "    $(bindir)/test_flotation_load.x is ready."
 
+test_marine_reference: fastearth-static | $(bindir)
+	$(FC) $(DFLAGS) $(CPPFLAGS) $(FFLAGS) $(testdir)/test_marine_reference.f90 \
+		-o $(bindir)/test_marine_reference.x $(objdir)/libfastearth.a $(LFLAGS)
+	@echo "    $(bindir)/test_marine_reference.x is ready."
+
 # Standalone SLE benchmark (Martinec-2018 case E2): ~750 steps at lmax=128, runs
 # in minutes -- intentionally NOT in TESTS / `make check`. Build with `make
 # openmp=1 test_benchmark_sle` and run $(bindir)/test_benchmark_sle.x directly.
@@ -377,7 +382,7 @@ diag_modal_latvisc: fastearth-static | $(bindir)
 		-o $(bindir)/diag_modal_latvisc.x $(objdir)/libfastearth.a $(LFLAGS)
 	@echo "    $(bindir)/diag_modal_latvisc.x is ready."
 
-TESTS = test_params test_drive test_band test_sht test_earth test_mesh test_integrals test_assembly test_love test_relax test_tidal test_rotation test_rotation_sle test_response test_sle test_flotation test_flotation_load test_ve_response test_tensor_sh test_response_3d test_sle_ve test_benchmark_love test_coupling test_couple_remap test_spinup test_restart test_benchmark_disc test_benchmark_martinec test_field test_sle_subgrid test_visc_load test_rotinv test_remap test_modal test_modal_resp test_modal_visc3d
+TESTS = test_params test_drive test_band test_sht test_earth test_mesh test_integrals test_assembly test_love test_relax test_tidal test_rotation test_rotation_sle test_response test_sle test_flotation test_flotation_load test_marine_reference test_ve_response test_tensor_sh test_response_3d test_sle_ve test_benchmark_love test_coupling test_couple_remap test_spinup test_restart test_benchmark_disc test_benchmark_martinec test_field test_sle_subgrid test_visc_load test_rotinv test_remap test_modal test_modal_resp test_modal_visc3d
 
 check: $(TESTS)
 	@echo ""

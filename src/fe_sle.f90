@@ -15,11 +15,15 @@ module fe_sle
    !!     S = C·( N − u + Δφ ) ,
    !!
    !! where N (geoid) and u (uplift) are the response to the TOTAL surface load
-   !! L = ρ_i ΔI + ρ_w (C·S), and the spatial constant Δφ (a uniform shift of the
-   !! equipotential) is fixed each iteration by ocean-mass conservation,
+   !! L = ρ_i ΔI_g + ρ_w (C·S), and the spatial constant Δφ (a uniform shift of
+   !! the equipotential) is fixed each iteration by ocean-mass conservation,
    !!
-   !!     ρ_w ∫ C·S dA = −ρ_i ∫ ΔI dA   (melt water volume) ,
-   !!     Δφ = [ −(ρ_i/ρ_w) ∫ΔI dΩ − ∫ C(N−u) dΩ ] / ∫ C dΩ .
+   !!     ρ_w ∫ C·S dA = −ρ_i ∫ ΔI_g dA   (melt water volume) ,
+   !!     Δφ = [ −(ρ_i/ρ_w) ∫ΔI_g dΩ − ∫ C(N−u) dΩ ] / ∫ C dΩ .
+   !!
+   !! ΔI_g is the GROUNDED-ice increment, I·(1−C) − I⁽⁰⁾·(1−C⁽⁰⁾): each endpoint
+   !! masked by its own ocean function, because only grounded ice loads the bed
+   !! and only grounded ice exchanges mass with the ocean. See sle_solve.
    !!
    !! Because Δφ is built to satisfy that balance, mass is conserved to machine
    !! precision at every iteration. The inner loop iterates S (the water load
@@ -132,12 +136,15 @@ contains
       !! topo0 − rsl everywhere.
       !!
       !! The absolute grounded-ice thickness ice [m] is passed alongside the
-      !! change d_ice: d_ice drives the surface load, while ice enters the
-      !! coastline test in ocean_function so that ice thick enough to ground on
-      !! the bed is excluded from the ocean (it bears on the solid surface, it
-      !! does not float — even where the bed has subsided below the sea surface).
-      !! Both are needed because the load is incremental but flotation is an
-      !! absolute condition.
+      !! change d_ice: both are needed because the load is incremental but
+      !! flotation is an absolute condition. ice enters the coastline test in
+      !! ocean_function so that ice thick enough to ground on the bed is excluded
+      !! from the ocean (it bears on the solid surface, it does not float — even
+      !! where the bed has subsided below the sea surface), and ice together with
+      !! the reference ice − d_ice gives the two absolute columns whose difference,
+      !! each masked by its own coastline, is the grounded-ice load increment ΔI_g
+      !! that actually drives the load and the melt source (see ΔI_g below). The
+      !! raw d_ice is never used unmasked.
       type(sle_solver),        intent(inout) :: self
       type(sht_grid),           intent(in)    :: sht
       type(response), intent(inout) :: resp
@@ -170,7 +177,7 @@ contains
       real(wp),         optional, intent(in)  :: s_rot(:,:)
 
       real(wp), allocatable :: load(:,:), u(:,:), N(:,:), Sraw(:,:), rsl_new(:,:)
-      real(wp), allocatable :: C0(:,:), wcorr(:,:), C_next(:,:)
+      real(wp), allocatable :: C0(:,:), wcorr(:,:), C_next(:,:), d_ice_g(:,:)
       complex(wp), allocatable :: load_lm(:), u_lm(:), N_lm(:)
       real(wp) :: rho_ratio, ice_int, dphi, C_int, Cs_int, zeta_int, smax, dmax
       integer  :: im, io, ii, np, nl, n_mem
@@ -182,7 +189,7 @@ contains
 
       np = sht%nphi;  nl = sht%nlat
       allocate(load(np,nl), u(np,nl), N(np,nl), Sraw(np,nl), rsl_new(np,nl))
-      allocate(C0(np,nl), wcorr(np,nl), C_next(np,nl))
+      allocate(C0(np,nl), wcorr(np,nl), C_next(np,nl), d_ice_g(np,nl))
       allocate(load_lm(sht%nlm), u_lm(sht%nlm), N_lm(sht%nlm))
 
       rho_ratio = rho_ice/rho_water
@@ -190,6 +197,7 @@ contains
       ! guess (the caller's previous converged solution — see %warm_start).
       if (.not. self%warm_start) rsl = 0.0_wp
       u = 0.0_wp;  N = 0.0_wp;  dphi = 0.0_wp;  ice_int = 0.0_wp
+      d_ice_g = 0.0_wp
       zeta_int = 0.0_wp;  wcorr = 0.0_wp
       res%n_inner_last = 0;  res%resid = 0.0_wp;  res%n_outer_done = 0
       res%n_coast_flip = 0
@@ -237,13 +245,39 @@ contains
             ! so this is the identical field the old unconditional call produced.
             C = C_next
          end if
+         ! GROUNDED-ice thickness increment. Only grounded ice loads the bed and
+         ! only grounded ice exchanges mass with the ocean, so the increment that
+         ! drives both is the difference of the two grounded columns, each masked
+         ! by ITS OWN ocean function — the endpoint's by C, the reference's by
+         ! C⁽⁰⁾ — not the raw increment masked by the endpoint's alone:
+         !
+         !     ΔI_g = I·(1 − C) − I⁽⁰⁾·(1 − C⁽⁰⁾)      [this]
+         !     ΔI_g = (I − I⁽⁰⁾)·(1 − C)               [WRONG unless C ≡ C⁽⁰⁾]
+         !
+         ! The two agree while the cell does not change state, and for an ice-free
+         ! reference (I⁽⁰⁾ = 0) they are identical — which is why every benchmark
+         ! in the suite, all of which reference an essentially ice-free state,
+         ! passes either way. They differ by I⁽⁰⁾·(C − C⁽⁰⁾): a cell carrying
+         ! grounded reference ice (C⁽⁰⁾ = 0) that loses it and becomes ocean
+         ! (C = 1). The old form masked that cell's whole column out of the melt
+         ! source at the moment it flooded, so marine-grounded reference ice
+         ! silently delivered no meltwater. Over the last deglaciation referenced
+         ! to the LGM that is 45 m of missing barystatic rise, concentrated in
+         ! Hudson Bay, the Canadian Arctic, the Baltic and West Antarctica.
+         !
+         ! The below-flotation part is not double counted: the water that fills
+         ! such a newly flooded cell from its bed is removed again by the subgrid
+         ! term ζ⁽⁰⁾(C − C⁽⁰⁾) below, leaving exactly the above-flotation volume.
+         d_ice_g = ice*(1.0_wp - C) - (ice - d_ice)*(1.0_wp - C0)
+
          C_int = sht_grid_surface_integral(sht, C)
          if (C_int <= 0.0_wp) exit          ! no ocean: nothing to redistribute
 
-         ! water-equivalent melt source ∝ −(ρ_i/ρ_w)∫ΔI dΩ over GROUNDED ice only:
-         ! floating ice (C=1) is already in the ocean, so it does not change the
-         ! ocean-water budget. Recomputed per coastline pass (grounded set shifts).
-         ice_int = -rho_ratio * sht_grid_surface_integral(sht, d_ice*(1.0_wp - C))
+         ! water-equivalent melt source ∝ −(ρ_i/ρ_w)∫ΔI_g dΩ over GROUNDED ice
+         ! only: floating ice (C=1) is already in the ocean, so it does not change
+         ! the ocean-water budget. Recomputed per coastline pass (grounded set
+         ! shifts).
+         ice_int = -rho_ratio * sht_grid_surface_integral(sht, d_ice_g)
 
          ! Subgrid sloping-coast correction (Martinec 2018 eq 17): the ocean water
          ! column change is C·rsl − ζ⁽⁰⁾·(C − C⁽⁰⁾), not C·rsl. The −ζ⁽⁰⁾(C−C⁽⁰⁾)
@@ -263,10 +297,11 @@ contains
             ! total surface mass load = GROUNDED ice + ocean water. Ice over ocean
             ! cells (C=1: open ocean or floating ice) does not press its full weight
             ! on the bed -- it is borne by buoyancy and carried by the ocean term
-            ! ρ_w·C·rsl. The (1−C) mask keeps the ice load only where it grounds
-            ! (C=0). Without it, ice overhanging a deep basin over-loads the bed.
+            ! ρ_w·C·rsl. That masking is already inside ΔI_g (built above, each
+            ! endpoint against its own coastline); without it, ice overhanging a
+            ! deep basin over-loads the bed.
             ! wcorr is the subgrid sloping-coast term (zero unless self%subgrid).
-            load = rho_ice*d_ice*(1.0_wp - C) + rho_water*(C*rsl) + wcorr
+            load = rho_ice*d_ice_g + rho_water*(C*rsl) + wcorr
             call system_clock(pca)
             call sht_grid_analysis(sht, load, load_lm)            ! analysis overwrites load
             call system_clock(pcb);  self%t_sht = self%t_sht + real(pcb-pca,wp)/prate
@@ -322,7 +357,7 @@ contains
       ! sloping-coast term (wcorr) as the inner load. advance_endpoint also refreshes
       ! the report drift to the new τ_{n+1}, so the next im pass's σ-convergence and
       ! coastline migration see the advanced memory.
-      load = rho_ice*d_ice*(1.0_wp - C) + rho_water*(C*rsl) + wcorr
+      load = rho_ice*d_ice_g + rho_water*(C*rsl) + wcorr
       call system_clock(pca)
       call sht_grid_analysis(sht, load, load_lm)
       call system_clock(pcb);  self%t_sht = self%t_sht + real(pcb-pca,wp)/prate
