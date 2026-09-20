@@ -82,7 +82,8 @@ module fe_vilma
    public :: fe_vilma_available, fe_vilma_require
 
    integer, parameter :: BIL_NEIGHBORS = 8     !! neighbour pool for the bilinear leg
-   integer, parameter :: VILMA_PATH_LEN = 120  !! VILMA's io_*%n is character(len=120)
+   integer, parameter :: VILMA_PATH_LEN = 120  !! observed limit: paths longer than
+                                               !! this are silently truncated
    real(wp), parameter :: FOURPI = 12.566370614359172_wp
 
    type :: vilma_backend

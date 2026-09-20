@@ -400,14 +400,28 @@ check: $(TESTS)
 # test_rotinv re-runs the off-pole rotational-invariance check at full resolution
 # (lmax 128, vs lmax 16 in `make check`).
 SLOW = test_benchmark_sle test_rotinv test_benchmark_lvz
+# STACK: the 3-D tensor path (fe_tensor_sh) holds several whole-grid automatic
+# arrays per thread. At lmax >= 128 that overruns the default 8 MB stack and the
+# run dies with SIGSEGV at an address just below the stack top -- a failure that
+# looks like a code bug and is not one. Raise the limit here so the target works
+# out of the box; an external user should not have to know this. (`make check`
+# needs none of it: test_rotinv runs at lmax 16 there.)
+BIGSTACK = ulimit -s unlimited 2>/dev/null || ulimit -s 262144 2>/dev/null || true
+
 check-slow: $(SLOW)
 	@echo ""
 	@echo "=== Running FastEarth3D slow benchmarks ==="
 	@for c in C2 D3 E2 F1; do \
 		echo "--- test_benchmark_sle $$c ---"; \
-		$(bindir)/test_benchmark_sle.x $$c || exit 1; \
+		( $(BIGSTACK); OMP_STACKSIZE=$${OMP_STACKSIZE:-256M} \
+		  $(bindir)/test_benchmark_sle.x $$c ) || exit 1; \
 	done
-	@echo "--- test_rotinv (lmax 128) ---"; $(bindir)/test_rotinv.x 128 || exit 1
+	@echo "--- test_rotinv (lmax 128) ---"
+	@( $(BIGSTACK); OMP_STACKSIZE=$${OMP_STACKSIZE:-256M} \
+	   $(bindir)/test_rotinv.x 128 ) || exit 1
+	@echo "--- test_benchmark_lvz (Weerdesteijn 2023 LVZ, lmax 512) ---"
+	@( $(BIGSTACK); OMP_STACKSIZE=$${OMP_STACKSIZE:-256M} \
+	   $(bindir)/test_benchmark_lvz.x ) || exit 1
 	@echo ""
 	@echo "=== All slow benchmarks passed ==="
 

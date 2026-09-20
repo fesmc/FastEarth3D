@@ -116,16 +116,21 @@ contains
    end function build_layered
 
    pure subroutine prem_rho_mu(r, rho, mu)
-      !! Incompressible-PREM density and shear modulus at radius r [m]
-      !! (Dziewonski & Anderson 1981), as realized by VILMA's mod_polyprem.f90 —
-      !! coefficients copied verbatim for parity; the canonical D&A-1981 Table I
-      !! differs only in a few digits (e.g. the 5600-5701 km region). Returns
-      !! rho [kg m^-3] and the shear modulus mu = rho*Vs^2 [Pa]; the incompressible
-      !! model needs no bulk modulus, so Vp is not evaluated. The normalized radius
-      !! is x = r / R_PREM with R_PREM = 6371 km (PREM's reference surface), keeping
-      !! the polynomials true to PREM regardless of the model's r_earth. The values
-      !! returned in the fluid core (r <= 3480 km) follow VILMA's fixed mu; callers
-      !! set mu = 0 for fluid layers, so only rho is used there.
+      !! Incompressible-PREM density and shear modulus at radius r [m], from the
+      !! published polynomial coefficients of Dziewonski & Anderson (1981),
+      !! Table I. Returns rho [kg m^-3] and the shear modulus mu = rho*Vs^2 [Pa];
+      !! the incompressible model needs no bulk modulus, so Vp is not evaluated.
+      !!
+      !! The normalized radius is x = r / R_PREM with R_PREM = 6371 km (PREM's
+      !! reference surface), so the polynomials stay true to PREM regardless of
+      !! the model's own r_earth.
+      !!
+      !! Two deliberate departures from the published profile, both flagged in
+      !! situ below: PREM's 3 km surface ocean is replaced by a continuation of
+      !! the upper crust (this is a solid-Earth model; the ocean is carried by the
+      !! sea-level equation, not by the radial structure), and the fluid core is
+      !! given a fixed nonzero mu that callers never use — every caller sets
+      !! mu = 0 for a layer whose rheology is fluid, so only rho matters there.
       real(wp), intent(in)  :: r
       real(wp), intent(out) :: rho, mu
       real(wp) :: x, vs
