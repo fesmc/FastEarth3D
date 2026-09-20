@@ -128,6 +128,19 @@ module fe_params
       ! Mirrors the CLIMBER-X VILMA scheme (src/geo/vilma.F90) but with a RELATIVE
       ! 1-sigma instead of a constant floor: perturb log10(eta) by f_visc_sd*sigma,
       ! sigma read from the file if name_visc_sd is set, else f_visc_rel*log10(eta).
+      ! Degree-1 reference frame. "cf" (default) keeps the historical behaviour:
+      ! the degree-1 displacement gauge is the solver's own w'd = 0 (no
+      ! volume-integrated translation, centre-of-figure-like) while the geoid is
+      ! referenced to CM (N1 = 0), so rsl carries NO degree 1 at all. "cm" puts
+      ! both in the centre-of-mass frame, in which the solid Earth translates --
+      ! geocenter motion, a real part of the degree-1 sea-level fingerprint, and
+      ! what VILMA computes (it reports the term in vega_deg1.dat).
+      !
+      ! This changes degree 1 ONLY; every degree >= 2 is bit-identical. It is off
+      ! by default because the block A disc benchmark was validated with N1
+      ! dropped, and because degree 1 has no community reference: Spada's tables
+      ! and tests/test_benchmark_love both start at degree 2.
+      character(len=8) :: deg1_frame = "cf"   !! "cf" | "cm"
       logical  :: l_visc_3d   = .false.   !! load a lateral log10(eta) field
       character(len=512) :: visc_3d_file  = ""       !! lon-lat-r log10(eta) field
       character(len=64)  :: name_visc     = "eta"    !! viscosity var (log10 Pa s)
@@ -288,6 +301,9 @@ contains
       call nml_read(filename, g, "pre_spinup_1d",  p%pre_spinup_1d,  defaults_file=df)
 
       ! 3D viscosity + uncertainty
+      call nml_read(filename, g, "deg1_frame",     p%deg1_frame,     defaults_file=df)
+      if (trim(p%deg1_frame) /= "cf" .and. trim(p%deg1_frame) /= "cm") &
+         error stop 'fe_params: deg1_frame must be "cf" or "cm"'
       call nml_read(filename, g, "l_visc_3d",      p%l_visc_3d,      defaults_file=df)
       call nml_read(filename, g, "visc_3d_file",   p%visc_3d_file,   defaults_file=df)
       p%visc_3d_file = expand_path(p%visc_3d_file)

@@ -124,6 +124,7 @@ module fe_response
       ! so the 3-D run costs the same as 1-D. e3d lists the 3-D elements; active1d(e) is
       ! .true. for the spectrally-advanced (1-D-effective + elastic/fluid) elements.
       real(wp) :: visc3d_tol = 1.0e-3_wp                !! lateral log10(η) spread → "3-D" (dex)
+      logical  :: deg1_cm = .false.                    !! degree-1 in the CM frame (geocenter motion kept)
       integer  :: ne3d = 0                              !! # genuinely-3-D elements
       integer,  allocatable :: e3d(:)                   !! (ne3d) indices of the 3-D elements
       logical,  allocatable :: active1d(:)              !! (ne) advance spectrally (skip in 3-D path)
@@ -443,6 +444,42 @@ contains
       n_lm = (0.0_wp, 0.0_wp)
    end subroutine null_response_apply
 
+   subroutine response_deg1_to_cm(op, x)
+      !! Put a solved degree-1 state into the CENTRE-OF-MASS frame.
+      !!
+      !! Degree 1 has a rigid-translation null space, so the solve needs a gauge
+      !! and the gauge IS the reference frame. radial_operator constrains
+      !! w'd = 0 (Martinec 2000 eq 83): zero volume-integrated displacement, a
+      !! centre-of-FIGURE-like frame in which the solid Earth does not translate.
+      !! The CM frame instead holds the centre of mass of Earth+load fixed and
+      !! lets the solid Earth translate — geocenter motion, which is a real part
+      !! of the degree-1 sea-level fingerprint.
+      !!
+      !! Because the translation is a null direction, changing frame is a
+      !! post-solve projection and cannot disturb the deformation: add c·n with
+      !! n the null mode (stored by radial_operator_assemble).
+      !!
+      !! c is fixed by the CM condition on the POTENTIAL. Outside the Earth the
+      !! degree-1 potential of the whole system vanishes in the CM frame, which
+      !! in Martinec's variables is F(a) = 0 — equivalently 1 + k₁ = 0, k₁ = −1.
+      !! So c = −F(a)/F_n(a), and F(a) comes out exactly zero afterwards.
+      !!
+      !! This is the same condition the code already ASSERTED for the geoid by
+      !! setting ngain(1) = 0 while leaving the displacement in the w'd = 0
+      !! frame. That mixture is what this removes: here the condition is imposed
+      !! once, on the state, so the geoid and the displacement refer to one frame.
+      type(radial_operator), intent(in)    :: op
+      real(wp),              intent(inout) :: x(:)
+      real(wp) :: fa_n, c
+      integer  :: nr
+      if (.not. allocated(op%nullmode)) return          ! not the bordered degree
+      nr   = op%nr
+      fa_n = op%nullmode(idx_f(nr))
+      if (fa_n == 0.0_wp) return                        ! translation carries no potential: nothing to fix
+      c = -x(idx_f(nr)) / fa_n
+      x = x + c*op%nullmode
+   end subroutine response_deg1_to_cm
+
    subroutine response_init_elastic(self, earth, lmax)
       !! Precompute the per-degree elastic surface gains for degrees 0..lmax.
       !!
@@ -474,20 +511,42 @@ contains
       call radial_mesh_build(mesh, earth)
       do l = 1, lmax
          call radial_operator_assemble(op, earth, mesh, l)
-         call radial_operator_solve(op, 1.0_wp, ua, va, fa)     ! unit surface load coefficient
+         if (l == 1 .and. self%deg1_cm) then
+            ! CM frame: solve for the whole state so the frame projection can be
+            ! applied, then read the surface coefficients back off it.
+            block
+               real(wp), allocatable :: x1(:)
+               allocate(x1(op%ndof))
+               call radial_operator_solve_vec(op, radial_operator_load_rhs(op, 1.0_wp), x1)
+               call response_deg1_to_cm(op, x1)
+               ua = x1(idx_u(op%nr));  va = x1(idx_v(op%nr));  fa = x1(idx_f(op%nr))
+               deallocate(x1)
+            end block
+         else
+            call radial_operator_solve(op, 1.0_wp, ua, va, fa)  ! unit surface load coefficient
+         end if
          self%ugain(l) = ua
          self%ngain(l) = -fa / self%g
          self%vgain(l) = va
          call radial_operator_destroy(op)
       end do
 
-      ! degree-1 geoid frame: the per-degree solve fixes the displacement gauge
-      ! (wᵀd=0, geocenter/CE-like, h₁≈0), but the geoid (sea surface) is referenced
-      ! to the CM frame, in which the degree-1 external potential vanishes ⇒ N₁≡0.
-      ! (The benchmark M3-L70-V01 table has k₁=−1 exactly, i.e. N₁=(1+k₁)φ^L/g=0;
-      ! validated against the Spada-2011 disc n_disc, which matches once N₁ is
-      ! dropped.) Displacement degree-1 (ugain(1)) is left as solved.
-      if (lmax >= 1) self%ngain(1) = 0.0_wp
+      ! degree-1 frame. Two conventions, `deg1_frame` in the namelist:
+      !
+      !   "cf" (default): the per-degree solve fixes the displacement gauge
+      !        (wᵀd=0, no volume-integrated translation, centre-of-figure-like)
+      !        while the geoid is referenced to CM, where the degree-1 external
+      !        potential vanishes ⇒ N₁≡0. Validated against the Spada-2011 disc
+      !        n_disc, which matches once N₁ is dropped. The two halves are in
+      !        DIFFERENT frames, so rsl carries no degree 1 at all.
+      !   "cm": response_deg1_to_cm has already put the state in the CM frame, so
+      !        F(a)=0 came out of the projection and ngain(1) is zero as a RESULT,
+      !        not an override — and the displacement carries geocenter motion.
+      !
+      ! VILMA runs in CM and reports the term in vega_deg1.dat; the F−V residual
+      ! on the disc benchmark is 98–99.7 % degree 1 with "cf". See
+      ! paper-fastearth3d-experiments notes/vilma-comparison.md §11.
+      if (lmax >= 1 .and. .not. self%deg1_cm) self%ngain(1) = 0.0_wp
    end subroutine response_init_elastic
 
    subroutine elastic_response_apply(self, sht, sigma_lm, u_lm, n_lm)
@@ -1111,6 +1170,7 @@ contains
                                   self%sa(:,:,l), self%sb(:,:,l), self%sc(:,:,l))
          call radial_operator_assemble(self%ops(l), earth, mesh, l)
          call radial_operator_solve_vec(self%ops(l), radial_operator_load_rhs(self%ops(l), 1.0_wp), x)
+         if (l == 1 .and. self%deg1_cm) call response_deg1_to_cm(self%ops(l), x)
          self%gu(l) = x(idx_u(self%nr))
          self%gn(l) = -x(idx_f(self%nr))/self%g
          self%gv(l) = x(idx_v(self%nr))         ! surface horizontal V(a)
@@ -1124,7 +1184,7 @@ contains
       ! to the CM frame ⇒ N₁≡0. Zero the degree-1 geoid gain here; the degree-1
       ! relaxation drift is likewise zeroed in begin_step. Displacement (gu(1),
       ! xUn/xVn) is left as solved (CE-like geocenter, h₁≈0).
-      if (self%lmax >= 1) self%gn(1) = 0.0_wp
+      if (self%lmax >= 1 .and. .not. self%deg1_cm) self%gn(1) = 0.0_wp
 
       ! Degree-grouped coefficient map: slot k = 1..nk over (l>=1, m=0..min(l,mmax)),
       ! l ascending then m ascending. k2lm bridges back to the SHTns lm index for
@@ -1249,10 +1309,16 @@ contains
                  self%Cim(:,:,k), fim)
             call radial_operator_solve_vec(self%ops(l), fre, xre)
             call radial_operator_solve_vec(self%ops(l), fim, xim)
+            if (l == 1 .and. self%deg1_cm) then
+               ! The relaxation drift is a degree-1 state like any other and needs
+               ! the same frame projection; its F(a) then vanishes by itself.
+               call response_deg1_to_cm(self%ops(l), xre)
+               call response_deg1_to_cm(self%ops(l), xim)
+            end if
             self%dUa(k) = cmplx(xre(idx_u(self%nr)), xim(idx_u(self%nr)), wp)
             self%dFa(k) = cmplx(xre(idx_f(self%nr)), xim(idx_f(self%nr)), wp)
             self%dVa(k) = cmplx(xre(idx_v(self%nr)), xim(idx_v(self%nr)), wp)
-            if (l == 1) self%dFa(k) = (0.0_wp, 0.0_wp)   ! N₁≡0 (CM frame; see init)
+            if (l == 1 .and. .not. self%deg1_cm) self%dFa(k) = (0.0_wp, 0.0_wp)   ! N₁≡0 (see init)
             do node = 1, self%nr
                Un_re(node,k) = xre(idx_u(node))
                Un_im(node,k) = xim(idx_u(node))

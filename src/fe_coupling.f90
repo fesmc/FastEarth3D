@@ -252,6 +252,9 @@ contains
       ! per sub-step (resp%set_dt) — so the init Δt is just a nominal seed (the host
       ! passes the real interval to solid_earth_update; this only seeds the assembly).
       dt0 = self%par%dt_init;  if (dt0 <= 0.0_wp) dt0 = kyr
+      ! Degree-1 frame: read BEFORE the response is built, because the elastic and
+      ! viscoelastic gains are computed at init and the frame is part of them.
+      self%resp%deg1_cm = (trim(self%par%deg1_frame) == "cm")
       select case (trim(self%par%earth_response))
       case ("ve")
          call response_init_ve(self%resp, self%earth, self%sht, dt0)

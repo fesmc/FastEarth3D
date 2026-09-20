@@ -124,6 +124,11 @@
                              ! then the full model carrying the spun-up memory
 
     ! --- 3D viscosity field + uncertainty (fe_earth_structure) --------
+    ! Degree-1 reference frame: "cf" (default, historical) leaves the degree-1
+    ! displacement in the solver's own w'd = 0 gauge while referencing the geoid
+    ! to CM, so rsl carries no degree 1; "cm" puts both in the centre-of-mass
+    ! frame, keeping geocenter motion. Degrees >= 2 are unaffected either way.
+    deg1_frame = "cf"
     l_visc_3d      = .false. ! load a lateral log10(eta) field
     ! Default 3-D field: Bagge et al. (2021), floored at log10 eta = 19.5 (visc_log10_min
     ! below). Preferred over Pan 2022, whose raw min (~13.7 dex) is unphysical and ~6x slower.

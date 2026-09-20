@@ -85,6 +85,13 @@ module fe_radial_fe
       !     [ wᵀ      0 ] [λ] = [0]   ⇒  A_band d + w λ = f,  wᵀ d = 0.
       logical               :: bordered = .false.
       real(wp), allocatable :: w(:)              !! degree-1 KKT constraint vector (ndof)
+      ! Degree-1 rigid-translation null mode of A, recovered from the KKT system
+      ! itself: with a zero physical RHS and border value 1, the solution IS the
+      ! null direction (A d = -w*lambda, w'd = 1). Nonzero only for j = 1. Adding
+      ! any multiple of it changes the FRAME, not the deformation, which is what
+      ! makes a degree-1 frame choice a post-solve projection (see
+      ! response_deg1_to_cm in fe_response).
+      real(wp), allocatable :: nullmode(:)       !! (ndof) degree-1 null direction
       logical  :: ready = .false.
    end type radial_operator
 
@@ -477,6 +484,19 @@ contains
          end block
       end block
       self%ready = .true.
+
+      ! --- degree-1 rigid-translation null mode --------------------------------
+      ! Zero physical RHS, unit constraint value: the solution is the null
+      ! direction itself. One extra banded solve per degree-1 operator, at setup.
+      if (self%bordered) then
+         block
+            real(wp), allocatable :: zero_b(:)
+            allocate(zero_b(nd), self%nullmode(nd))
+            zero_b = 0.0_wp
+            call radial_operator_solve_vec(self, zero_b, self%nullmode, border=1.0_wp)
+            deallocate(zero_b)
+         end block
+      end if
    end subroutine radial_operator_assemble
 
    function radial_operator_load_rhs(self, sigma) result(b)
@@ -510,7 +530,7 @@ contains
       b(idx_f(self%nr)) = -self%r_earth/(4.0_wp*pi*grav_G) * real(2*self%j+1, wp) * phi_t
    end function radial_operator_tidal_rhs
 
-   subroutine radial_operator_solve_vec(self, b, x, iters, resid, info, options)
+   subroutine radial_operator_solve_vec(self, b, x, iters, resid, info, options, border)
       !! Solve A x = b for an arbitrary physical RHS b (length ndof), returning
       !! the full physical solution x. Applies the stored row/column equilibration
       !! around the direct banded-LU solve. The viscoelastic time stepper uses this
@@ -521,6 +541,7 @@ contains
       integer,  optional,     intent(out) :: iters, info
       real(wp), optional,     intent(out) :: resid
       character(len=*), optional, intent(in) :: options  !! ignored (precon built at assemble)
+      real(wp), optional,     intent(in)  :: border  !! j=1 KKT constraint value w'd (default 0)
       ! Reusable scratch for the equilibrated RHS / solution. SAVEd (allocated once,
       ! grown only if a larger system appears) so the per-degree field driver's
       ! many thousands of solves per step don't each pay a heap allocation — under
@@ -537,6 +558,11 @@ contains
       end if
       bs(1:ns) = 0.0_wp                          ! border RHS (j=1 multiplier) is 0
       bs(1:nd) = self%dr * b                     ! equilibrate physical rows: b̂ = Dr b
+      ! A non-zero constraint value slides the solution along the rigid-translation
+      ! null space: d(c) = d(0) + c*n. Used once per degree-1 operator to recover
+      ! n itself; the equilibration of this single row is irrelevant because every
+      ! use rescales n by a ratio of its own components.
+      if (present(border) .and. self%bordered) bs(ns) = border
       call band_solve(self%band, bs(1:ns), y(1:ns))    ! direct banded LU (j=1: bordered)
       if (present(iters)) iters = 1              ! direct solve
       if (present(resid)) resid = 0.0_wp
@@ -567,6 +593,7 @@ contains
       if (allocated(self%dr))   deallocate(self%dr)
       if (allocated(self%dc))   deallocate(self%dc)
       if (allocated(self%w))    deallocate(self%w)
+      if (allocated(self%nullmode)) deallocate(self%nullmode)
       self%bordered   = .false.
       self%ndof_solve = 0
       self%ready      = .false.
