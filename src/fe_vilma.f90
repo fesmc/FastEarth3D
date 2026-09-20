@@ -176,7 +176,13 @@ contains
       self%out_dir = trim(par%vilma_out_dir)
       call require_dir(self%out_dir)
       call require_dir(trim(self%out_dir)//'/restart')
-      call check_path_len(trim(self%out_dir)//'/mos_acompl.nc')
+      ! Check the LONGEST path the backend will build, which lives under
+      ! out_dir/restart/ -- not out_dir itself. The guard used to test
+      ! out_dir//'/mos_acompl.nc' (od+14) while the restart scratch names are
+      ! od+22, so an out_dir in that 8-character window passed the check and then
+      ! truncated into VILMA's character(len=120) fields -- which surfaces as a
+      ! bare "No such file or directory", the exact failure this guard prevents.
+      call check_path_len(trim(self%out_dir)//'/restart/nwl_struct.nc')
 
       ! --- grids + the model-Gauss <-> VILMA map pair --------------------------
       call build_maps(self, par, sht)
@@ -202,7 +208,10 @@ contains
       vg%l_prem     = par%vilma_l_prem
       vg%l_mod      = merge(1, 0, par%l_visc_3d)   ! 0 = 1-D radial, 1 = read 3-D field
       vg%l_toro     = 0        ! toroidal loading is irrelevant for GIA
-      vg%l_rot      = 31       ! rotational variations in the perturbed potential
+      ! Follow par%rotation rather than hardwiring it on: otherwise rotation=.false.
+      ! gives a non-rotating FastEarth3D against a rotating VILMA, the highest-order
+      ! physics term differing silently in an F-V pair.
+      vg%l_rot      = merge(31, 0, par%rotation)   ! rotational variations in the potential
       vg%l_grid     = 2        ! loading supplied as a spatial grid
       vg%l_envonly  = 0
       vg%ntime      = 10000000 ! no cap: the driver's window decides
@@ -343,8 +352,9 @@ contains
       !!
       !! vg%dt is fixed here from the FIRST coupling interval and written into
       !! io.tmp, because that is what VILMA's setup consumes. A forcing axis with a
-      !! non-uniform cadence would therefore hand VILMA a step it was not configured
-      !! for, so that is rejected in fe_vilma_update's caller cadence check below.
+      !! non-uniform cadence therefore hands VILMA sub-steps it was not configured
+      !! for. That is NOT currently detected: there is no cadence check anywhere in
+      !! this wrapper (see doc/vilma-backend.md).
       type(vilma_backend), intent(inout) :: self
       real(wp),            intent(in)    :: dt_yr
 

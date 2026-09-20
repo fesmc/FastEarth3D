@@ -28,7 +28,6 @@ module fe_tensor_sh
    !! swapped — normalised by a per-degree factor calibrated once at init. Validated by
    !! the round trip and the physical ∫τ:ε double-dot vs the B13 norms (test_tensor_sh).
    use fe_precision, only: wp
-   use fe_constants, only: pi
    use fe_sht,       only: sht_grid, sht_free_cfg, sht_grid_lmidx, sht_grid_clone_cfg, sht_grid_synthesis, sht_grid_sph_synthesis, sht_grid_analysis, sht_grid_sph_analysis
    use, intrinsic :: iso_c_binding, only: c_ptr
    !$ use omp_lib
@@ -89,7 +88,9 @@ contains
       allocate(c6(self%nlm), craw(self%nlm))
       allocate(tt(self%nphi,self%nlat), pp(self%nphi,self%nlat), tp(self%nphi,self%nlat))
       do l = 2, self%lmax
-         m = min(l, sht%mmax*sht%mres)
+         ! Round DOWN to a multiple of mres: shtns_lmidx assumes it, and with
+         ! mres > 1 the bare min() would name an order the config does not carry.
+         m = (min(l, sht%mmax*sht%mres)/sht%mres)*sht%mres
          if (m < 1) cycle                     ! need m≥1 for H (else stays axisymmetric)
          lm = sht_grid_lmidx(sht, l, m)
          c6 = (0.0_wp, 0.0_wp);  c6(lm) = (1.0_wp, 0.0_wp)
@@ -127,6 +128,16 @@ contains
       integer :: tid
       tid = 0
       !$ tid = omp_get_thread_num()
+      ! The pool is sized at init from omp_get_max_threads(). A host that raises
+      ! the thread count afterwards, or that calls us from inside its OWN parallel
+      ! region (where nested parallelism is off, so every host thread reports
+      ! tid = 0 and would share pool(1)), breaks the one-config-per-thread
+      ! contract this exists to keep. Fail loudly rather than transform on a
+      ! garbage handle or silently share one config.
+      if (tid < 0 .or. tid >= self%npool) error stop &
+         'tensor_sh_thread_cfg: thread id outside the config pool — the thread &
+         &count changed after tensor_sh_init, or this was called from a nested &
+         &parallel region'
       cfg = self%pool(tid+1)
    end function tensor_sh_thread_cfg
 
@@ -141,7 +152,7 @@ contains
       real(wp),         intent(out) :: dyad(:,:,:)   !! (nphi, nlat, 6)
       type(c_ptr), intent(in), optional :: cfg
       complex(wp) :: scaled(self%nlm)
-      real(wp)    :: tr(self%nphi,self%nlat), sg(self%nphi,self%nlat), sh(self%nphi,self%nlat)
+      real(wp)    :: tr(self%nphi,self%nlat)
       real(wp)    :: tt(self%nphi,self%nlat), pp(self%nphi,self%nlat), tp(self%nphi,self%nlat)
       ! rr (Z¹) and rθ,rφ (Z²)
       call sht_grid_synthesis(sht, c(1,:), dyad(:,:,DY_RR), cfg)
@@ -151,9 +162,8 @@ contains
       call sht_grid_synthesis(sht, scaled, tr, cfg)
       ! spin-2 from Z⁶
       call spin2_synth(self, sht, c(4,:), tt, pp, tp, cfg)   ! tt=Sg, pp=−Sg, tp=4Sh
-      sg = tt
-      dyad(:,:,DY_TT) = tr + sg
-      dyad(:,:,DY_PP) = tr - sg
+      dyad(:,:,DY_TT) = tr + tt
+      dyad(:,:,DY_PP) = tr - tt
       dyad(:,:,DY_TP) = tp
    end subroutine tensor_sh_synth
 
@@ -166,14 +176,17 @@ contains
       real(wp),         intent(out) :: tt(:,:), pp(:,:), tp(:,:)
       type(c_ptr), intent(in), optional :: cfg
       complex(wp) :: imc(self%nlm)
-      real(wp) :: f(self%nphi,self%nlat), gt(self%nphi,self%nlat), gp(self%nphi,self%nlat)
+      real(wp) :: gt(self%nphi,self%nlat), gp(self%nphi,self%nlat)
       real(wp) :: gtf(self%nphi,self%nlat), gpf(self%nphi,self%nlat)
       real(wp) :: lap(self%nphi,self%nlat), sg(self%nphi,self%nlat), sh(self%nphi,self%nlat)
       imc = cmplx(0.0_wp, real(self%mord,wp), wp)*c6            ! im·c6  (= ∂_φ on coeffs)
-      call sht_grid_synthesis(sht, c6, f, cfg)
+      ! f itself is NOT synthesized: only ∇₁²f enters Sg, and that is the
+      ! synthesis of −l(l+1)·c6 below. This routine is called once per
+      ! tensor_sh_synth, i.e. two to three times per 3-D element per step, so the
+      ! transform it does not do is worth the comment saying why.
       call sht_grid_sph_synthesis(sht, c6, gt, gp, cfg)                   ! g_θ, g_φ
       call sht_grid_sph_synthesis(sht, imc, gtf, gpf, cfg)                ! ∂_φ g_θ, ∂_φ g_φ
-      call sht_grid_synthesis(sht, cmplx(-self%llp1,0.0_wp,wp)*c6, lap, cfg)   ! ∇₁²f = −l(l+1)f
+      call sht_grid_synthesis(sht, -self%llp1*c6, lap, cfg)               ! ∇₁²f = −l(l+1)f
       ! Sg = ∇₁²f − 2cotθ g_θ − 2(1/sinθ)∂_φ g_φ ;  Sh = (1/sinθ)∂_φ g_θ − cotθ g_φ
       sg = lap - 2.0_wp*byprof(gt, self%cott) - 2.0_wp*byprof(gpf, self%invsin)
       sh =        byprof(gtf, self%invsin)     -        byprof(gp,  self%cott)
@@ -231,27 +244,26 @@ contains
       complex(wp),      intent(out)   :: craw(:)
       type(c_ptr), intent(in), optional :: cfg
       complex(wp) :: q(self%nlm), s(self%nlm)
-      real(wp)    :: D(self%nphi,self%nlat), vt(self%nphi,self%nlat), vp(self%nphi,self%nlat), z(self%nphi,self%nlat)
+      real(wp)    :: D(self%nphi,self%nlat), vt(self%nphi,self%nlat), vp(self%nphi,self%nlat)
       ! The ∫dΩ adjoint of the spheroidal vector synth (SHsph_to_spat) is l(l+1)·
       ! spat_to_SHsphtor (its INVERSE differs from its adjoint by the spheroidal norm
       ! l(l+1)); the scalar synth's adjoint is plain analysis (orthonormal). So every
       ! vector-analysis result below is scaled by llp1 to be the true adjoint.
       D = dtt - dpp                                   ! θθ−φφ feeds S_g*
-      z = 0.0_wp
       ! S_g*(D) = −l(l+1)·analysis(D) − 2·sphAnal(cotθ·D,0).S + 2 im·sphAnal(0,(1/sinθ)·D).S
       call sht_grid_analysis(sht, D, q, cfg);   craw = -self%llp1*q
-      vt = byprof(D, self%cott);  vp = z
+      vt = byprof(D, self%cott);  vp = 0.0_wp
       call sht_grid_sph_analysis(sht, vt, vp, s, cfg);   craw = craw - 2.0_wp*self%llp1*s
-      vt = z;  vp = byprof(D, self%invsin)
+      vt = 0.0_wp;  vp = byprof(D, self%invsin)
       call sht_grid_sph_analysis(sht, vt, vp, s, cfg)
       craw = craw + 2.0_wp*cmplx(0.0_wp, real(self%mord,wp), wp)*self%llp1*s
       ! θφ contributes ∫T:Z⁶|_θφ = a_θφ·4H·(e_θφ:e_θφ=½) = 2 a_θφ H ⇒ 2·S_h*(θφ), with
       ! S_h*(D) = −im·llp1·sphAnal((1/sinθ)D,0).S − llp1·sphAnal(0,cotθ·D).S.
       D = dtp
-      vt = byprof(D, self%invsin);  vp = z
+      vt = byprof(D, self%invsin);  vp = 0.0_wp
       call sht_grid_sph_analysis(sht, vt, vp, s, cfg)
       craw = craw - 2.0_wp*cmplx(0.0_wp, real(self%mord,wp), wp)*self%llp1*s
-      vt = z;  vp = byprof(D, self%cott)
+      vt = 0.0_wp;  vp = byprof(D, self%cott)
       call sht_grid_sph_analysis(sht, vt, vp, s, cfg)
       craw = craw - 2.0_wp*self%llp1*s
    end subroutine spin2_adjoint

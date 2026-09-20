@@ -621,6 +621,14 @@ contains
       type(modal_spectrum), allocatable :: specs(:)
       integer :: l, m, k, i, base, tot, ptot
 
+      ! The modal path hard-codes the "cf" degree-1 convention (fe_modal zeroes the
+      ! degree-1 residue and elastic gain); it has no counterpart to the deg1_cm
+      ! branches in this module, and modal_solve takes no frame argument. Running
+      ! it with deg1_frame="cm" would silently return the cf answer while the same
+      ! namelist under earth_response="ve" returned the CM one. Stop instead.
+      if (self%deg1_cm) error stop &
+         'response_init_modal: deg1_frame="cm" is not implemented for &
+         &earth_response="modal" -- use earth_response="ve", or deg1_frame="cf"'
       call ve_response_destroy(self)        ! clear any prior state (shared fields too)
       call modal_response_destroy(self)
       self%kind = RESP_MODAL
@@ -1283,10 +1291,11 @@ contains
       thr = self%skip_tol * maxval(self%mnorm)
 
       ! Solve for the drift, PARALLEL OVER DEGREE l so each per-degree operator
-      ! ops(l) is touched by a single thread. Safe because j>=2 uses the re-entrant
-      ! banded LU (fe_band); degree 1 (the lone LIS solver, not re-entrant) is a
-      ! single iteration, hence run by a single thread — no concurrent LIS call. The
-      ! scratch vectors are per-thread; dynamic schedule balances the rising work
+      ! ops(l) is touched by a single thread. Safe because EVERY degree solves
+      ! through the re-entrant banded LU (fe_band) on threadprivate scratch,
+      ! including degree 1, whose dense KKT border merely widens the band (see
+      ! fe_radial_fe). There is no LIS solver any more, so no degree has to be
+      ! serialized for re-entrancy. The scratch vectors are per-thread; dynamic schedule balances the rising work
       ! per degree (l+1 orders). Inactive (ordinary serial loop) unless openmp=1.
       !$omp parallel default(shared) private(l, k, node, fre, fim, xre, xim)
       allocate(fre(self%ndof), fim(self%ndof), xre(self%ndof), xim(self%ndof))
@@ -1628,8 +1637,7 @@ contains
                na = na + 1;  active(na) = i
             end if
          end do
-         if (allocated(self%rank3d)) deallocate(self%rank3d)
-         allocate(self%rank3d(na));  self%rank3d = active(1:na)
+         allocate(self%rank3d(na));  self%rank3d = active(1:na)   ! freed above
          self%nrank3d = na
       end block
 
@@ -2107,7 +2115,12 @@ contains
       type(response), intent(inout) :: self
       real(wp),           intent(in)    :: dt
       self%dt = dt
-      if (self%kind == RESP_MODAL) return       ! modal: Δt enters only via exp(−Δt/τ_k)
+      ! Only RESP_VE carries a Maxwell factor. RESP_MODAL takes Δt through
+      ! exp(−Δt/τ_k) instead, and RESP_ELASTIC / RESP_NULL never allocate
+      ! Mk/MkPerDt at all — so returning early for everything but VE is what keeps
+      ! the elastic path off an unallocated array (fe_timestep calls this
+      ! unconditionally on the explicit path, which elastic reaches).
+      if (self%kind /= RESP_VE) return
       self%Mk = self%MkPerDt * dt
       if (self%lat_visc) self%Mk3 = self%MkPerDt3 * dt
    end subroutine response_set_dt

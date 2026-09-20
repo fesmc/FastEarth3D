@@ -15,11 +15,12 @@ module fe_radial_fe
    !!                       so free-slip at the CMB emerges automatically). The
    !!                       1/r singularity at the centre is harmless: its
    !!                       coefficient R₁=0 (no mass enclosed below the innermost
-   !!                       element, eq. 77). VERIFIED and implemented.
+   !!                       element, eq. 77).
    !!   - radial_operator:  the per-degree banded saddle-point system (mixed
    !!                       P1 displacement+potential / P0 pressure, eqs 80-84,
-   !!                       111-112). STATUS: interface only; assembly is the next
-   !!                       step (see doc/formulation.md).
+   !!                       111-112), equilibrated and factored once per degree
+   !!                       with the pivoted band LU in fe_band, then reused for
+   !!                       every order m, load and time step.
    use fe_precision, only: wp
    use fe_constants, only: pi, grav_G
    use fe_earth_structure, only: earth_gravity_at, earth_n_layers, earth_model
@@ -59,10 +60,10 @@ module fe_radial_fe
    end type radial_mesh
 
    type :: radial_operator
-      !! Per-degree saddle-point system, equilibrated and stored sparse (COO),
-      !! ready to hand to LIS. The physical operator (eqs 80-84) spans ~20 orders
+      !! Per-degree saddle-point system, equilibrated and stored as a factored band LU (fe_band),
+      !! ready to hand to fe_band. The physical operator (eqs 80-84) spans ~20 orders
       !! of magnitude in entry size (μ r²/h vs the pressure couplings vs 1/4πG),
-      !! so a Krylov solver needs it row/column-equilibrated first; we keep the
+      !! so it is row/column-equilibrated first to keep the direct LU's pivot growth in check; we keep the
       !! scalings to recover the physical solution.
       integer  :: j  = -1                 !! spherical-harmonic degree
       integer  :: nr = 0, ne = 0, ndof = 0
@@ -127,6 +128,29 @@ contains
       integer :: i, k, ne_layer, ntot, off
       real(wp) :: r0, r1, depth_mid, dr, h
 
+      ! This routine assumes the layer stack is surface-first, gap-free, bottomed
+      ! at r = 0 and topped at r_earth: it hard-codes node 1 at r = 0, walks the
+      ! layers from index n inward, and overwrites the last node with r_earth.
+      ! Nothing in the namelist enforces any of that, and every violation --
+      ! dropping the core layer, ordering the arrays bottom-first, or a count
+      ! mismatch between r_bot and r_top -- produces a silently WRONG mesh: no
+      ! error, no NaN, just density jumps at the wrong radii and a g0(r) that is
+      ! wrong throughout. The check lives here rather than in build_layered
+      ! because it is THIS routine's requirement: assembling a layer stack for
+      ! inspection (as the parameter tests do) is legitimate without it.
+      if (abs(earth%layers(1)%r_top - earth%r_earth) > 1.0_wp) &
+         error stop 'radial_mesh_build: r_top(1) must equal r_earth (layers are surface-first)'
+      if (earth%layers(earth_n_layers(earth))%r_bot /= 0.0_wp) &
+         error stop 'radial_mesh_build: the innermost layer must reach r = 0'
+      do i = 1, earth_n_layers(earth)
+         if (earth%layers(i)%r_top <= earth%layers(i)%r_bot) &
+            error stop 'radial_mesh_build: every layer needs r_top > r_bot (surface-first ordering)'
+         if (i < earth_n_layers(earth)) then
+            if (abs(earth%layers(i)%r_bot - earth%layers(i+1)%r_top) > 1.0_wp) &
+               error stop 'radial_mesh_build: layers must be contiguous, r_bot(k) = r_top(k+1)'
+         end if
+      end do
+
       ! Count elements per layer first.
       ntot = 0
       do i = 1, earth_n_layers(earth)
@@ -169,7 +193,7 @@ contains
    ! scalars U_k, V_k, F_k (k = 1..nr, piecewise-linear ψ_k, eq 72) and the
    ! per-element pressure Π_e (e = 1..ne, piecewise-constant ξ_e, eq 73). They
    ! are laid out NODE-INTERLEAVED so the operator stays band-diagonal (tight
-   ! bandwidth → cheap ILU for the LIS solve):
+   ! bandwidth → a cheap band LU):
    !
    !     node 1            node 2                       node nr
    !   [U V F | Π_1] [U V F | Π_2] ... [U V F | Π_ne] [U V F]
@@ -216,10 +240,14 @@ contains
       !! exactly as written in Martinec (2000) eqs 80-84 with the toroidal W
       !! block dropped (spheroidal-only 1-D loading). Each bilinear term
       !! `coeff · trial^α · δtest^β` lands at A(dof(test,β), dof(trial,α)); the
-      !! matrix is band-diagonal and NON-symmetric (the I² self-gravity coupling
-      !! and the I³ shear coupling break symmetry — Martinec solves it with a
-      !! general banded LU, here LIS). Dense here for clarity and testability;
-      !! the LIS path keeps only the nonzeros (see radial_operator).
+      !! matrix is band-diagonal and SYMMETRIC — it is the Hessian (second
+      !! variation) of E = E_press + E_shear + E_grav + E_uniq (eqs 30-33), so it
+      !! is self-transpose by construction, and test_assembly asserts
+      !! ‖A−Aᵀ‖/‖A‖ = 0. It is nonetheless INDEFINITE (the pressure block is
+      !! zero), so the factorization must pivot — hence the general
+      !! partial-pivoting band LU in fe_band rather than a Cholesky. Dense here
+      !! for clarity and testability; radial_operator_assemble keeps only the
+      !! nonzeros and hands them to fe_band.
       !!
       !! `with_uniq` (default .true.) controls the degree-1 E_uniq term (eq 83):
       !! when .true. the dense rank-1 penalty is added (the reference operator);
@@ -344,7 +372,7 @@ contains
 
       ! --- δE_uniq (eq 83): remove the degree-1 rigid-translation null space ---
       ! Rank-1 term UNIQ_COEFF w wᵀ over the degree-1 (U,V) dofs (uniq_weight).
-      ! Dense for j=1 only; harmless (absent) for the band at j≥2. The LIS path
+      ! Dense for j=1 only; harmless (absent) for the band at j≥2. radial_operator_assemble
       ! instead borders the band with w to keep the operator sparse.
       if (j == 1 .and. add_uniq) then
          w = uniq_weight(mesh)
@@ -382,9 +410,9 @@ contains
 
    subroutine radial_operator_assemble(self, earth, mesh, j)
       !! Assemble the per-degree operator (eqs 80-84), row/column-equilibrate it,
-      !! and store it sparse (COO) for repeated LIS solves. The equilibration is
+      !! and factor it once for repeated direct solves. The equilibration is
       !! a geometric-mean scaling Â = Dr A Dc that brings every entry to O(1) —
-      !! essential for an iterative solve of a system whose physical entries span
+      !! essential for pivot-growth control of a system whose physical entries span
       !! ~20 orders of magnitude. Independent of m and load, so reused across all
       !! orders and (later) time steps of degree j.
       type(radial_operator), intent(inout) :: self
@@ -443,7 +471,7 @@ contains
       end do
       if (self%bordered) dr_b = rownorm(self%w, self%dc)        ! border row wᵀ
 
-      ! --- extract the scaled operator Â = Dr A Dc into COO, build LIS once ----
+      ! --- extract the scaled operator Â = Dr A Dc into COO, factor the band LU once ----
       nnz = count(A /= 0.0_wp)
       if (self%bordered) nnz = nnz + 2*count(self%w /= 0.0_wp)
       block
@@ -631,9 +659,10 @@ contains
       !! analytic limits (homogeneous sphere): fluid (μ→0) F→0 ⇒ k→−1 and
       !! h→−(2j+1)/3 exactly; rigid (μ→∞) F→−φ^L ⇒ h,l,k→0.
       !!
-      !! NOTE: l is the raw g V(a)/φ^L. Its overall sign and any S⁽¹⁾ tangential-
-      !! harmonic normalization factor are still to be calibrated against the
-      !! published Spada (2011) l (h and k are fully pinned by the limits above).
+      !! l = g V(a)/φ^L needs no extra sign or S⁽¹⁾ tangential-harmonic
+      !! normalization factor: the M3-L70-V01 fluid limit reproduces the benchmark
+      !! table l_f to ~0.1 % at every degree 2-8 (test_benchmark_love), which pins
+      !! it independently of the h/k limits above.
       type(earth_model), intent(in)  :: earth
       integer,           intent(in)  :: j
       real(wp),          intent(in)  :: sigma, U_a, V_a, F_a

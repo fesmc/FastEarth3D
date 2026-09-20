@@ -294,14 +294,7 @@ contains
          end if
 
          do ii = 1, self%n_inner
-            ! total surface mass load = GROUNDED ice + ocean water. Ice over ocean
-            ! cells (C=1: open ocean or floating ice) does not press its full weight
-            ! on the bed -- it is borne by buoyancy and carried by the ocean term
-            ! ρ_w·C·rsl. That masking is already inside ΔI_g (built above, each
-            ! endpoint against its own coastline); without it, ice overhanging a
-            ! deep basin over-loads the bed.
-            ! wcorr is the subgrid sloping-coast term (zero unless self%subgrid).
-            load = rho_ice*d_ice_g + rho_water*(C*rsl) + wcorr
+            call assemble_load()
             call system_clock(pca)
             call sht_grid_analysis(sht, load, load_lm)            ! analysis overwrites load
             call system_clock(pcb);  self%t_sht = self%t_sht + real(pcb-pca,wp)/prate
@@ -357,7 +350,7 @@ contains
       ! sloping-coast term (wcorr) as the inner load. advance_endpoint also refreshes
       ! the report drift to the new τ_{n+1}, so the next im pass's σ-convergence and
       ! coastline migration see the advanced memory.
-      load = rho_ice*d_ice_g + rho_water*(C*rsl) + wcorr
+      call assemble_load()
       call system_clock(pca)
       call sht_grid_analysis(sht, load, load_lm)
       call system_clock(pcb);  self%t_sht = self%t_sht + real(pcb-pca,wp)/prate
@@ -388,6 +381,27 @@ contains
       res%u = u;  res%N = N;  res%esl = dphi             ! converged fields + offset
 
       call system_clock(pc1);  self%t_total = self%t_total + real(pc1-pc0,wp)/prate
+
+   contains
+
+      subroutine assemble_load()
+         !! Total surface mass load = GROUNDED ice + ocean water + subgrid term.
+         !! Ice over ocean cells (C=1: open ocean or floating ice) does not press
+         !! its full weight on the bed -- it is borne by buoyancy and carried by
+         !! the ocean term ρ_w·C·rsl. That masking is already inside ΔI_g, built
+         !! above with each endpoint against its own coastline; without it, ice
+         !! overhanging a deep basin over-loads the bed. wcorr is the subgrid
+         !! sloping-coast term (zero unless self%subgrid).
+         !!
+         !! Host-associated: reads d_ice_g, C, rsl and wcorr, writes load — all
+         !! of sle_solve's own locals. Called at the head of the inner fixed
+         !! point and again for the closing memory-advance load, which MUST see
+         !! the same C the rsl was converged against. One definition rather than
+         !! two copies kept in step by hand: the grounded-mask fix had to touch
+         !! both sites, which is the failure mode this removes.
+         load = rho_ice*d_ice_g + rho_water*(C*rsl) + wcorr
+      end subroutine assemble_load
+
    end subroutine sle_solve
 
    subroutine ocean_function(topo, ice, C)

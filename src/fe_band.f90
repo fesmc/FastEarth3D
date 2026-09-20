@@ -122,16 +122,21 @@ contains
          lm = min(self%kl, self%n - j)
          l  = self%ipiv(j)
          if (l /= j) then;  tmp = x(l);  x(l) = x(j);  x(j) = tmp;  end if
+         ! hoist x(j): the compiler cannot prove x(j+i) never aliases it, so it
+         ! reloads every pass. Matters for the degree-1 bordered solve, where the
+         ! KKT border makes kv = ndof and this is the dominant cost.
+         tmp = x(j)
          do i = 1, lm
-            x(j+i) = x(j+i) - self%ab(kv+1+i, j)*x(j)
+            x(j+i) = x(j+i) - self%ab(kv+1+i, j)*tmp
          end do
       end do
       ! back: U x = y
       do j = self%n, 1, -1
          x(j) = x(j) / self%ab(kv+1, j)
+         tmp  = x(j)
          lm = min(kv, j-1)
          do i = 1, lm
-            x(j-i) = x(j-i) - self%ab(kv+1-i, j)*x(j)
+            x(j-i) = x(j-i) - self%ab(kv+1-i, j)*tmp
          end do
       end do
    end subroutine band_solve

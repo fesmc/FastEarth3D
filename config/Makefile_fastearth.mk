@@ -382,7 +382,7 @@ diag_modal_latvisc: fastearth-static | $(bindir)
 		-o $(bindir)/diag_modal_latvisc.x $(objdir)/libfastearth.a $(LFLAGS)
 	@echo "    $(bindir)/diag_modal_latvisc.x is ready."
 
-TESTS = test_params test_drive test_band test_sht test_earth test_mesh test_integrals test_assembly test_love test_relax test_tidal test_rotation test_rotation_sle test_response test_sle test_flotation test_flotation_load test_marine_reference test_ve_response test_tensor_sh test_response_3d test_sle_ve test_benchmark_love test_coupling test_couple_remap test_spinup test_restart test_benchmark_disc test_benchmark_martinec test_field test_sle_subgrid test_visc_load test_rotinv test_remap test_modal test_modal_resp test_modal_visc3d
+TESTS = test_params test_drive test_band test_sht test_earth test_mesh test_integrals test_assembly test_love test_relax test_tidal test_rotation test_rotation_sle test_response test_sle test_flotation test_flotation_load test_marine_reference test_etd1 test_ve_response test_tensor_sh test_response_3d test_sle_ve test_benchmark_love test_coupling test_couple_remap test_spinup test_restart test_benchmark_disc test_benchmark_martinec test_field test_sle_subgrid test_visc_load test_rotinv test_remap test_modal test_modal_resp test_modal_visc3d
 
 check: $(TESTS)
 	@echo ""
@@ -399,7 +399,7 @@ check: $(TESTS)
 # faster threaded). The SLE benchmark sweeps all four Martinec migrating-coast cases;
 # test_rotinv re-runs the off-pole rotational-invariance check at full resolution
 # (lmax 128, vs lmax 16 in `make check`).
-SLOW = test_benchmark_sle test_rotinv
+SLOW = test_benchmark_sle test_rotinv test_benchmark_lvz
 check-slow: $(SLOW)
 	@echo ""
 	@echo "=== Running FastEarth3D slow benchmarks ==="

@@ -398,7 +398,13 @@ contains
       allocate(visc_node(nphi*nlat, nr))
 
       ! Horizontal interpolation weights, computed once (reused over all radii).
-      span = lon_s(nlon) - lon_s(1) + (lon_s(2) - lon_s(1))   ! ≈ 360°
+      ! ≈ 360°. A single-longitude (zonally uniform) file has no spacing to add and
+      ! must not index lon_s(2).
+      if (nlon >= 2) then
+         span = lon_s(nlon) - lon_s(1) + (lon_s(2) - lon_s(1))
+      else
+         span = 360.0_wp
+      end if
       allocate(il0(nphi), il1(nphi), wl(nphi))
       do i = 1, nphi
          lon_t = sht%lon(i) / DEG2RAD_                        ! [0,360)

@@ -255,7 +255,7 @@ contains
       !! path — two Δt/2 sub-steps, the more accurate result, which `self` is left in —
       !! and returns the estimated local error of the carried memory state from the
       !! coarse/fine difference:  err = ‖τ_fine − τ_coarse‖∞ / (2^p − 1),  p = scheme
-      !! order (3 for trapezoidal). The observable is algebraic in τ, so this is also
+      !! order (2 for trapezoidal, so the factor 2^p-1 is 3). The observable is algebraic in τ, so this is also
       !! the observable's local error — the accept/reject + Δt signal a controller needs.
       !! No exponential integrator required: FE/trapezoidal are stable here (§3b/§3c).
       !! M = μΔt/η is linear in Δt, so halving Δt just halves Mk — no re-init needed.

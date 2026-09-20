@@ -206,7 +206,7 @@ contains
    ! ===================================================================
 
    subroutine modal_solve(spec, earth, mesh, j, n_modes, mode_rank, dt_be, &
-                          p_block, tol, maxit)
+                          p_block)
       !! Extract the dominant load-relevant relaxation modes for degree j (≥1) into
       !! `spec` by Krylov (Arnoldi) reduction from the load forcing on the BE
       !! propagator + Rayleigh–Ritz, then rank and truncate. n_modes ≤ 0 keeps all
@@ -215,8 +215,8 @@ contains
       type(earth_model),    intent(in)  :: earth
       type(radial_mesh),    intent(in)  :: mesh
       integer,              intent(in)  :: j
-      integer,  optional,   intent(in)  :: n_modes, mode_rank, p_block, maxit
-      real(wp), optional,   intent(in)  :: dt_be, tol
+      integer,  optional,   intent(in)  :: n_modes, mode_rank, p_block
+      real(wp), optional,   intent(in)  :: dt_be
 
       type(modal_degree) :: md
       real(wp), allocatable :: Q(:,:), Hm(:,:), Bpk(:), Bhat(:), bcoef(:)
@@ -235,7 +235,6 @@ contains
       pb    = 20;             if (present(p_block))   pb    = p_block
       dtbe  = 1.0e3_wp*3.15576e7_wp
       if (present(dt_be)) dtbe = dt_be
-      if (present(maxit) .or. present(tol)) continue   ! reserved (Arnoldi is direct)
 
       call modal_degree_init(md, earth, mesh, j, dtbe, SCHEME_BE)
       npk = md%npk;  g = md%eng%op%g_surf

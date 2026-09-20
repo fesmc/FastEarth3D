@@ -43,8 +43,8 @@ program test_marine_reference
    !! Masking the raw increment with the endpoint coastline alone, ΔI_g =
    !! (I − I⁽⁰⁾)(1 − C) instead of I(1−C) − I⁽⁰⁾(1−C⁽⁰⁾), drops zone M's whole
    !! column from the melt source at the moment it floods while still charging
-   !! the ocean for the water that fills it: 45 m instead of 139 m here, and
-   !! 52 m instead of 98 m on the LGM-referenced last deglaciation.
+   !! the ocean for the water that fills it: 38.9 m instead of 138.3 m here, and
+   !! 52.2 m instead of 99.3 m on the LGM-referenced last deglaciation.
    use fe_precision, only: wp
    use fe_constants, only: pi, rho_ice, rho_water
    use fe_response,  only: response, response_init_null, response_destroy
@@ -60,8 +60,7 @@ program test_marine_reference
    type(response)   :: resp
    real(wp), allocatable :: topo0(:,:), h_eq(:,:), ice(:,:), d_ice(:,:), &
                             rsl(:,:), C(:,:), C0(:,:), af(:,:)
-   real(wp) :: thd, fourpi, expect, got, ocean_end, err
-   real(wp) :: sM, sT, sF, depth
+   real(wp) :: thd, fourpi, expect, got, ocean_end, err, depth
    integer  :: i, j
    logical  :: ok
 
@@ -111,19 +110,13 @@ program test_marine_reference
 
    call sle_solve(sle, sht, resp, d_ice, ice, topo0, rsl, C, res)
 
+   ! The ocean_end divisor is cosmetic: it is the same integral in both expect and
+   ! got, so it cancels in the relative error below. The real comparison is
+   ! <C.rsl> against <af>, and <af> comes from the above-flotation formula, not
+   ! from anything the SLE computed.
    ocean_end = sht_grid_surface_integral(sht, C)
    expect    = sht_grid_surface_integral(sht, af) / ocean_end
    got       = sht_grid_surface_integral(sht, C*rsl) / ocean_end
-
-   ! per-zone contributions, for the report
-   sM = 0.0_wp;  sT = 0.0_wp;  sF = 0.0_wp
-   do j = 1, sht%nlat
-      thd = sht%colat(j)*180.0_wp/pi
-      if      (thd <  25.0_wp) then;  sM = sM + 1.0_wp
-      else if (thd <  40.0_wp) then;  sT = sT + 1.0_wp
-      else if (thd > 160.0_wp) then;  sF = sF + 1.0_wp
-      end if
-   end do
 
    write(*,'(a)') ' Marine-grounded ice in the REFERENCE state, removed over the run'
    write(*,'(a,f9.3)') '      final ocean fraction                 =', ocean_end/fourpi
@@ -143,11 +136,32 @@ program test_marine_reference
       write(*,'(a)') '      FAIL: SLE does not conserve ocean mass here'
       ok = .false.
    end if
-   ! zone T must be land at both ends, zone M ocean at the end
-   if (any(C0 > 0.5_wp .and. af > 0.0_wp)) then
-      write(*,'(a)') '      FAIL: above-flotation mask leaked into floating cells'
-      ok = .false.
-   end if
+   ! Guard the ZONE DESIGN itself. The three zones only test what they claim
+   ! while M is grounded-marine-then-flooded, T is land at both endpoints and F
+   ! floats in the reference; an edit to topo0/h_eq that broke any of those would
+   ! silently stop covering the case and still pass. (The obvious check here --
+   ! that af is zero wherever C0 is ocean -- cannot fail: af is BUILT as
+   ! (1-C0)*..., so it would be testing its own construction.)
+   ! ocean_function assigns the literals 0 and 1, so exact comparison is right.
+   do j = 1, sht%nlat
+      thd = sht%colat(j)*180.0_wp/pi
+      if (thd < 25.0_wp) then
+         if (any(C0(:,j) /= 0.0_wp) .or. any(C(:,j) /= 1.0_wp)) then
+            write(*,'(a)') '      FAIL: zone M is not grounded-marine-then-flooded'
+            ok = .false.
+         end if
+      else if (thd < 40.0_wp) then
+         if (any(C0(:,j) /= 0.0_wp) .or. any(C(:,j) /= 0.0_wp)) then
+            write(*,'(a)') '      FAIL: zone T is not land at both endpoints'
+            ok = .false.
+         end if
+      else if (thd > 160.0_wp) then
+         if (any(C0(:,j) /= 1.0_wp)) then
+            write(*,'(a)') '      FAIL: zone F reference shelf is not floating'
+            ok = .false.
+         end if
+      end if
+   end do
 
    write(*,'(a)') ''
    if (ok) then

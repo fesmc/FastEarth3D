@@ -96,7 +96,10 @@ module fe_rotation
       real(wp)    :: k_s_flat  = 0.0_wp       !! observed-flattening k_s = 3G(C−A)/(a⁵Ω²) (Adhikari/Mitrovica)
       real(wp)    :: kTe     = 0.0_wp         !! elastic tidal Love number k^T_e (degree 2)
       real(wp)    :: hTe     = 0.0_wp         !! elastic tidal Love number h^T_e (degree 2)
-      real(wp)    :: dt_fe_max = huge(1.0_wp) !! forward-Euler stability ceiling Δt < 2 min(η/μ)
+      real(wp)    :: dt_fe_max = huge(1.0_wp) !! forward-Euler stability ceiling, Δt <= min(η/μ):
+                                              !! half the 2·min(η/μ) limit, i.e. the 0.5
+                                              !! safety factor is already folded in
+                                              !! (see rotation_init)
                                               !! (the channels use explicit FE; the driver
                                               !! sub-steps a coupling interval to respect this)
       complex(wp) :: cload   = (0.0_wp,0.0_wp)!! load-channel operator coefficient (set by solve_m, used by commit)

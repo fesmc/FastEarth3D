@@ -40,7 +40,7 @@ module fe_coupling
                                  response_enable_lateral_visc_modal_from_nodes, RESP_VE, RESP_MODAL, &
                                  lat_method_from_name
    use fe_modal,           only: rank_from_name
-   use fe_sle,             only: sle_solver, sle_result, ocean_function
+   use fe_sle,             only: sle_solver, ocean_function
    use fe_timestep,        only: stepper_advance, adaptive_stepper
    use fe_rotation,        only: rotation_destroy, rotation_update, rotation_s_rot, rotation_begin_step, rotation_init, rotation_state
    use fe_remap,           only: remap_ll_gauss, remap_init, remap_to_gauss, remap_to_ll
@@ -81,6 +81,10 @@ module fe_coupling
       real(wp), allocatable :: rsl(:,:)        !! relative sea level change [m] (full field)
       real(wp), allocatable :: z_bed(:,:)      !! bedrock = z_bed_eq − rsl [m]
       real(wp), allocatable :: C(:,:)          !! ocean function (1 ocean / 0 land)
+      real(wp), allocatable :: C0(:,:)         !! REFERENCE ocean function, from (z_bed_eq,
+                                               !! h_ice_eq). Both are fixed at init, so this
+                                               !! is a RUN CONSTANT: built once in
+                                               !! solid_earth_init, never refreshed.
       real(wp), allocatable :: s_rot(:,:)      !! rotational-feedback RSL contribution [m] (if enabled)
    end type gauss_state
 
@@ -91,7 +95,7 @@ module fe_coupling
       type(response)           :: resp      !! viscoelastic field driver (load → u, N)
       type(sle_solver)         :: sle       !! sea-level equation
       type(adaptive_stepper)   :: stepper   !! adaptive-Δt controller (fe_timestep)
-      type(rotation_state)     :: rotation  !! TPW feedback (off by default)
+      type(rotation_state)     :: rotation  !! TPW feedback (ON by default; par%rotation)
 
       type(gauss_state)        :: gg        !! Gauss-grid working state (the physics)
 
@@ -194,7 +198,8 @@ contains
       ! reference nothing has moved: rsl = 0, z_bed = z_bed_eq, memory zero. The ocean
       ! function is seeded from the reference flotation so a dt=0 seed step yields a
       ! physical barystatic diagnostic (update_bsl needs C).
-      allocate(self%gg%h_ice(np,nl), self%gg%rsl(np,nl), self%gg%z_bed(np,nl), self%gg%C(np,nl))
+      allocate(self%gg%h_ice(np,nl), self%gg%rsl(np,nl), self%gg%z_bed(np,nl), &
+               self%gg%C(np,nl), self%gg%C0(np,nl))
       if (present(h_ice_init)) then
          call to_gauss(self, h_ice_init, self%gg%h_ice, conserve_mass=.true.)
          allocate(self%h_ice, source=h_ice_init)
@@ -204,7 +209,11 @@ contains
       end if
       self%gg%rsl   = 0.0_wp
       self%gg%z_bed = self%gg%z_bed_eq
-      call ocean_function(self%gg%z_bed_eq, self%gg%h_ice_eq, self%gg%C)
+      ! The reference ocean function is a run constant (z_bed_eq and h_ice_eq are
+      ! fixed from here on), so build it once and keep it. The initial C is that
+      ! same field, which is exactly what the old unconditional call produced.
+      call ocean_function(self%gg%z_bed_eq, self%gg%h_ice_eq, self%gg%C0)
+      self%gg%C = self%gg%C0
 
       ! host-grid current state at the reference
       allocate(self%rsl(size(z_bed_eq,1), size(z_bed_eq,2)), source=0.0_wp)
@@ -577,16 +586,20 @@ contains
       !! the reference one. Masking the raw difference by the current C alone
       !! drops the whole column of any cell that carried grounded marine
       !! reference ice and has since flooded -- see the ΔI_g note in fe_sle.
+      !!
+      !! This is the WHOLE grounded-column change, NOT the sea level fe_sle
+      !! delivers: there is no subgrid term here, while fe_sle's mass-conservation
+      !! offset carries one. Over cells that flooded since the reference, bsl
+      !! therefore reads high by their below-flotation volume -- about 10 m on the
+      !! LGM-datum deglaciation. It is an ice-volume-equivalent diagnostic, not the
+      !! barystatic rise; for that, take the ocean-mean of C*rsl.
       type(solid_earth), intent(inout) :: self
       real(wp) :: c_int
-      real(wp), allocatable :: C0(:,:)
       c_int = sht_grid_surface_integral(self%sht, self%gg%C)
       if (c_int > 0.0_wp) then
-         allocate(C0, mold=self%gg%C)
-         call ocean_function(self%gg%z_bed_eq, self%gg%h_ice_eq, C0)
          self%bsl = -(rho_ice/rho_water) * sht_grid_surface_integral(self%sht, &
                        self%gg%h_ice   *(1.0_wp - self%gg%C) &
-                     - self%gg%h_ice_eq*(1.0_wp - C0)) / c_int
+                     - self%gg%h_ice_eq*(1.0_wp - self%gg%C0)) / c_int
       else
          self%bsl = 0.0_wp
       end if
@@ -610,6 +623,7 @@ contains
       if (allocated(self%gg%rsl))      deallocate(self%gg%rsl)
       if (allocated(self%gg%z_bed))    deallocate(self%gg%z_bed)
       if (allocated(self%gg%C))        deallocate(self%gg%C)
+      if (allocated(self%gg%C0))       deallocate(self%gg%C0)
       if (allocated(self%gg%s_rot))    deallocate(self%gg%s_rot)
       if (allocated(self%z_bed_eq))    deallocate(self%z_bed_eq)
       if (allocated(self%h_ice_eq))    deallocate(self%h_ice_eq)

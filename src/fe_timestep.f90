@@ -26,7 +26,7 @@ module fe_timestep
    !! cheap rescale — no operator re-factorization (the band LU is Δt-independent).
    use fe_precision,    only: wp
    use fe_sht,          only: sht_grid
-   use fe_response,     only: response_coarse_fine_error, response_stash_coarse, response_prime_sigma, response_restore_state, response_set_dt, response_save_state, response_memory_norm, response_max_rate, response, response_init_elastic, response_init_ve, response_init_null, RESP_MODAL
+   use fe_response,     only: response_coarse_fine_error, response_stash_coarse, response_prime_sigma, response_restore_state, response_set_dt, response_save_state, response_memory_norm, response_max_rate, response, RESP_MODAL
    use fe_sle,          only: sle_solve, sle_solver, sle_result
    use fe_viscoelastic, only: scheme_order, scheme_is_implicit
    implicit none
@@ -126,6 +126,30 @@ contains
       ! the entering ice and populate rsl/z_bed/C from a seeded or restored memory state;
       ! a cross-resolution restart restores only the spectral memory (not the 2-D rsl), so
       ! without this the caller's rsl would stay zero on the first output sample.
+      !
+      ! KNOWN ISSUE -- the diagnostic is built from ice0, the ice the model is
+      ! already carrying, NOT ice1, the slice the caller just handed in. The caller
+      ! (solid_earth_update) overwrites gg%h_ice with the new ice the moment this
+      ! returns, so after a dt=0 call rsl/C describe the PREVIOUS ice while h_ice
+      ! describes the new one, and update_bsl then combines the new h_ice with the
+      ! old C. Three consequences:
+      !   * solid_earth_update(se, X, 0.0) is not idempotent -- calling it twice
+      !     with the same X gives different rsl/C.
+      !   * the two backends differ at t0. fe_drive seeds with dt=0 and
+      !     solid_earth_init leaves h_ice = h_ice_eq, so the native seed reports
+      !     the REFERENCE coastline while the VILMA path (which sets h_ice before
+      !     its own diagnostics) reports the LGM one. They differ over every cell
+      !     where LGM grounded ice sits on sub-sea-level bed -- Hudson Bay, the
+      !     Barents shelf, West Antarctica -- in both C_ocean and the t0 bsl.
+      !   * it affects only the t0 diagnostic sample, not the transient physics.
+      ! Switching to ice1 is the obviously right expression and was tried; it makes
+      ! solid_earth_spinup stop relaxing (relax_hold's first pass then measures
+      ! ~4e-7 m of bed motion instead of 136 m and exits "converged" immediately,
+      ! leaving 29 m of subsidence where the equilibrium is 239 m). That interaction
+      ! is not understood, and initialization I1 -- which every production
+      ! deglaciation depends on -- runs through this path, so the one-line change is
+      ! NOT safe to make on its own. Fixing it means understanding why a seeded rsl
+      ! suppresses the subsequent viscous advance; test_spinup is the reproducer.
       if (span <= 0.0_wp) then
          allocate(ice_now(sht%nphi, sht%nlat), dice_now(sht%nphi, sht%nlat))
          ice_now  = ice0
@@ -256,6 +280,13 @@ contains
          call system_clock(gc1);  self%t_guard = self%t_guard + real(gc1-gc0,wp)/grate
          call response_set_dt(resp, dt)                       ! leave resp%dt at the step size
          errsc = (err_inf/ricfac) / (self%atol + self%rtol*tau_inf)
+         ! Same two guards the explicit path carries. Without them a non-finite
+         ! estimate makes fac NaN and dt_try NaN, so t never advances; and with the
+         ! default dt_min = 0 a persistently rejected step shrinks geometrically
+         ! toward zero forever. Both are an infinite hang rather than an error.
+         if (.not. (errsc <= huge(1.0_wp))) error stop &
+            'fe_timestep: implicit local-error estimate went non-finite &
+            &(viscosity too stiff, or the state has already diverged)'
 
          ! --- accept / reject ----------------------------------------------------
          accept = (errsc <= 1.0_wp) .or. at_floor
@@ -277,6 +308,8 @@ contains
          end if
          fac = min(self%grow_max, max(self%shrink_min, fac))
          self%dt_try = min(self%dt_max, max(self%dt_min, dt*fac))
+         if (self%dt_try <= 1.0e-12_wp*span) error stop &
+            'fe_timestep: implicit adaptive step collapsed (tolerance unreachable)'
       end do
 
       ! sig_last now holds the final accepted step's fine sub-step at t1.

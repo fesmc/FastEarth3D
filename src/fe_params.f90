@@ -43,8 +43,8 @@ module fe_params
 
       ! --- spectral grid (fe_sht) ------------------------------------------------
       integer  :: lmax  = 0       !! maximum spherical-harmonic degree (required)
-      integer  :: nlat  = 0       !! Gauss latitudes  (0 => SHTns default = lmax+2)
-      integer  :: nphi  = 0       !! longitudes       (0 => SHTns default)
+      integer  :: nlat  = 0       !! Gauss latitudes  (0 => de-aliased default 2*lmax+2)
+      integer  :: nphi  = 0       !! longitudes       (0 => de-aliased default 4*lmax)
       integer  :: mmax  = -1      !! maximum order    (<0 => = lmax)
       integer  :: mres  = 1       !! order stride
       real(wp) :: eps_polar = -1.0_wp   !! polar-optimization threshold (<0 => library default)
