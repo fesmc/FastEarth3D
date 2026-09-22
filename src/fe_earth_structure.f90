@@ -370,7 +370,8 @@ contains
       !! happen later in ve_response (which owns the per-element rheology).
       !!
       !! The stored variable is assumed to already be log10(η). Coordinate names
-      !! default to lon/lat/r; the radius coordinate must be metres, ascending.
+      !! default to lon/lat/r; the radius coordinate must be metres. Any axis may
+      !! be stored in either direction — they are normalised to ascending on read.
       character(len=*), intent(in)  :: filename
       type(sht_grid),   intent(in)  :: sht
       real(wp),         intent(in)  :: r_node(:)              !! (nr) FE node radii [m], ascending
@@ -398,6 +399,39 @@ contains
       call nc_read(filename, trim(tnm), lat_s)
       call nc_read(filename, trim(rnm), r_s)
       call nc_read(filename, trim(vnm), eta_s)        ! eta_s(lon, lat, r) = log10(η)
+
+      ! --- Normalise the source axes to ascending ------------------------------
+      ! locate_clamped and locate_periodic both REQUIRE a strictly ascending axis
+      ! and neither can detect that it has been handed anything else. Given a
+      ! descending axis, locate_clamped's first guard (xt <= x(1)) fires for
+      ! essentially every target, so every Gauss point takes source row 1 and the
+      ! whole field collapses onto a single parallel — silently, and with the
+      ! surviving longitude structure still varied enough that the visc3d split
+      ! diagnostic looks entirely normal. input/bagge2021.nc stores latitude
+      ! north-to-south and hit exactly that.
+      !
+      ! Orientation is a property of the file, not an error, so flip the data with
+      ! the coordinate and carry on. A non-monotonic axis IS an error: no
+      ! bracketing scheme can interpret it, and a repeated coordinate divides by
+      ! zero when the interpolation weight is formed.
+      call require_monotonic(lon_s, filename, trim(lnm))
+      call require_monotonic(lat_s, filename, trim(tnm))
+      call require_monotonic(r_s,   filename, trim(rnm))
+      if (nlon >= 2) then
+         if (lon_s(nlon) < lon_s(1)) then
+            lon_s = lon_s(nlon:1:-1);  eta_s = eta_s(nlon:1:-1,:,:)
+         end if
+      end if
+      if (nlat_s >= 2) then
+         if (lat_s(nlat_s) < lat_s(1)) then
+            lat_s = lat_s(nlat_s:1:-1);  eta_s = eta_s(:,nlat_s:1:-1,:)
+         end if
+      end if
+      if (nr_s >= 2) then
+         if (r_s(nr_s) < r_s(1)) then
+            r_s = r_s(nr_s:1:-1);  eta_s = eta_s(:,:,nr_s:1:-1)
+         end if
+      end if
 
       nphi = sht%nphi;  nlat = sht%nlat;  nr = size(r_node)
       allocate(visc_node(nphi*nlat, nr))
@@ -443,8 +477,32 @@ contains
         + (1.0_wp-wi)*wj         *f(i0,j1) + wi*wj         *f(i1,j1)
    end function bilin
 
+   subroutine require_monotonic(x, filename, axisname)
+      !! Refuse a coordinate axis that is not STRICTLY monotonic in one direction
+      !! or the other. Enforces the precondition of locate_clamped/locate_periodic
+      !! at the point the data enters the model, where the file can still be named.
+      real(wp),         intent(in) :: x(:)
+      character(len=*), intent(in) :: filename, axisname
+      integer  :: n, i
+      real(wp) :: s
+      n = size(x)
+      if (n < 2) return
+      if (all(x(2:n) > x(1:n-1)) .or. all(x(2:n) < x(1:n-1))) return
+      s = x(2) - x(1)                      ! sign of the first step; 0 trips at i=1
+      do i = 1, n-1
+         if ((x(i+1) - x(i))*s <= 0.0_wp) exit
+      end do
+      write(*,'(a)') ' fe_read_visc_3d: coordinate "'//trim(axisname)//'" of ' &
+           //trim(filename)//' is not strictly monotonic.'
+      write(*,'(a,i0,a,es16.8,a,es16.8)') '   first offending step at index ', i, &
+           ': ', x(i), ' -> ', x(i+1)
+      error stop 'fe_read_visc_3d: non-monotonic coordinate axis'
+   end subroutine require_monotonic
+
    pure subroutine locate_clamped(x, xt, i0, i1, w)
       !! Bracket xt in the ascending array x, clamping to the ends (w in [0,1]).
+      !! The ascending precondition is enforced by require_monotonic plus the
+      !! orientation flip in fe_read_visc_3d; it is not checked here.
       real(wp), intent(in)  :: x(:), xt
       integer,  intent(out) :: i0, i1
       real(wp), intent(out) :: w

@@ -25,6 +25,7 @@ program test_visc_load
    integer,  parameter :: LMAX = 32, NLATF = 2
    real(wp), parameter :: YR = 3.15576e7_wp, DT = 50.0_wp*YR
    character(len=*), parameter :: SYNTH = 'obj/test_visc_synth.nc'
+   character(len=*), parameter :: FLIP  = 'obj/test_visc_flip.nc'
    character(len=*), parameter :: PAN   = 'input/pan2022.nc'
 
    type(sht_grid)    :: sht
@@ -38,6 +39,7 @@ program test_visc_load
    call response_init_ve(ve, e, sht, DT)
 
    call test_synthetic()
+   call test_orientation()
 
    inquire(file=PAN, exist=exists)
    if (exists) then
@@ -96,6 +98,58 @@ contains
       if (maxerr > 1.0e-10_wp) then; ok = .false.; write(*,'(a)') '   FAIL: interp not exact'; end if
       deallocate(lon_s, lat_s, r_s, eta_s, vn)
    end subroutine test_synthetic
+
+   subroutine test_orientation()
+      !! The SAME analytic field, stored with lat and r running the other way.
+      !! Orientation is a property of the file, so the field on the model grid must
+      !! come back identical. test_synthetic cannot catch this: it builds its axes
+      !! deliberately ascending (see the lat loop above), which is the one case
+      !! locate_clamped happens to handle. A descending axis makes its first guard
+      !! fire for nearly every target, collapsing the field onto one parallel —
+      !! which is what input/bagge2021.nc, stored north-to-south, did in every 3-D
+      !! run until this was fixed.
+      real(wp), allocatable :: lon_s(:), lat_s(:), r_s(:), eta_s(:,:,:), vn(:,:)
+      real(wp) :: lon_t, lat_t, expect, err, maxerr
+      integer  :: nphi, nlat, nr, i, j, k, sp
+      nphi = sht%nphi;  nlat = sht%nlat;  nr = ve%nr
+      allocate(lon_s(nphi), lat_s(nlat), r_s(nr), eta_s(nphi,nlat,nr))
+      do i = 1, nphi;  lon_s(i) = sht%lon(i)*rad2deg;            end do
+      do j = 1, nlat;  lat_s(j) = 90.0_wp - sht%colat(j)*rad2deg; end do  ! DESCENDING
+      do k = 1, nr;    r_s(k)   = ve%r(nr+1-k);                   end do  ! DESCENDING
+      do k = 1, nr
+         do j = 1, nlat
+            do i = 1, nphi
+               eta_s(i,j,k) = lon_s(i) + 1000.0_wp*lat_s(j) + 1.0e-3_wp*r_s(k)
+            end do
+         end do
+      end do
+      call nc_create(FLIP, overwrite=.true.)
+      call nc_write_dim(FLIP, "lon", x=lon_s, units="degrees_east")
+      call nc_write_dim(FLIP, "lat", x=lat_s, units="degrees_north")
+      call nc_write_dim(FLIP, "r",   x=r_s,   units="m")
+      call nc_write(FLIP, "eta", eta_s, dim1="lon", dim2="lat", dim3="r")
+
+      call fe_read_visc_3d(FLIP, sht, ve%r, vn)
+      maxerr = 0.0_wp
+      do k = 1, nr
+         do j = 1, nlat
+            lat_t = 90.0_wp - sht%colat(j)*rad2deg
+            do i = 1, nphi
+               lon_t = sht%lon(i)*rad2deg
+               sp = i + (j-1)*nphi
+               expect = lon_t + 1000.0_wp*lat_t + 1.0e-3_wp*ve%r(k)
+               err = abs(vn(sp,k) - expect)/(1.0_wp + abs(expect))
+               maxerr = max(maxerr, err)
+            end do
+         end do
+      end do
+      write(*,'(a,es10.2)') ' descending-axis round-trip max rel err = ', maxerr
+      if (maxerr > 1.0e-10_wp) then
+         ok = .false.
+         write(*,'(a)') '   FAIL: axis orientation changes the field on the model grid'
+      end if
+      deallocate(lon_s, lat_s, r_s, eta_s, vn)
+   end subroutine test_orientation
 
    subroutine test_pan2022()
       real(wp), allocatable :: vn(:,:)
