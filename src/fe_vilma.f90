@@ -12,8 +12,12 @@ module fe_vilma
    !! ===========================================================================
    !! VILMA IS NOT A DEPENDENCY OF FastEarth3D.
    !! ===========================================================================
-   !! It is a hand-installed, precompiled library (include/*.mod + lib/vega_pism.a)
-   !! that is absent on most machines. Every reference to it in this file sits
+   !! It is a hand-installed, precompiled library (its own .mod files under
+   !! include, plus lib/vega_pism.a) that is absent on most machines. Do not spell
+   !! that include glob out here: the sources are compiled through the C
+   !! preprocessor (-cpp for gfortran, -fpp for Intel), which reads the slash-star
+   !! as the start of a C comment and swallows the rest of the file.
+   !! Every reference to VILMA in this file sits
    !! inside `#ifdef VILMA`, which only `make fastearth vilma=1 VILMAROOT=<install>`
    !! defines. In the DEFAULT build this file compiles to a pure-Fortran stub that
    !! names no VILMA symbol and needs no VILMA include path; selecting
