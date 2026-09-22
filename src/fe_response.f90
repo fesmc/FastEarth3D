@@ -1750,24 +1750,26 @@ contains
       complex(wp),        intent(in)    :: sigma_lm(:)
       complex(wp), allocatable :: cma(:,:), cmb(:,:), cmc(:,:)   ! memory coeffs (TLAM,nlm)
       complex(wp), allocatable :: cea(:,:), ceb(:,:), cec(:,:)   ! strain coeffs (TLAM,nlm)
+      complex(wp), allocatable :: cdel(:,:)                       ! analysed increment (TLAM,nlm)
       real(wp),    allocatable :: dtau(:,:,:), deps(:,:,:)        ! (nphi,nlat,6)
       type(c_ptr) :: cfg
       integer  :: e, ei, k, lm
 
       if (self%ne3d == 0) return        ! no genuinely-3-D element ⇒ all handled spectrally
       !$omp parallel default(shared) &
-      !$omp   private(e, ei, k, lm, cma, cmb, cmc, cea, ceb, cec, dtau, deps, cfg)
+      !$omp   private(e, ei, k, lm, cma, cmb, cmc, cea, ceb, cec, cdel, dtau, deps, cfg)
       allocate(cma(TLAM,sht%nlm), cmb(TLAM,sht%nlm), cmc(TLAM,sht%nlm))
       allocate(cea(TLAM,sht%nlm), ceb(TLAM,sht%nlm), cec(TLAM,sht%nlm))
+      allocate(cdel(TLAM,sht%nlm))
       allocate(dtau(sht%nphi,sht%nlat,6), deps(sht%nphi,sht%nlat,6))
       cfg = tensor_sh_thread_cfg(self%tsh)                          ! this thread's private config
       !$omp do schedule(dynamic)
       do ei = 1, self%ne3d                                 ! only the genuinely-3-D elements
          e = self%e3d(ei)
          call gather_tensor_coeffs(self, sigma_lm, e, cma, cmb, cmc, cea, ceb, cec)
-         call advance_shape_tensor(self, sht, e, cma, cea, dtau, deps, cfg)
-         call advance_shape_tensor(self, sht, e, cmb, ceb, dtau, deps, cfg)
-         call advance_shape_tensor(self, sht, e, cmc, cec, dtau, deps, cfg)
+         call advance_shape_tensor(self, sht, e, cma, cea, dtau, deps, cdel, cfg)
+         call advance_shape_tensor(self, sht, e, cmb, ceb, dtau, deps, cdel, cfg)
+         call advance_shape_tensor(self, sht, e, cmc, cec, dtau, deps, cdel, cfg)
          do k = 1, self%nk                                 ! write updated memory back
             lm = self%k2lm(k)
             self%Are(:,e,k) = real(cma(:,lm), wp);  self%Aim(:,e,k) = aimag(cma(:,lm))
@@ -1776,7 +1778,7 @@ contains
          end do
       end do
       !$omp end do
-      deallocate(cma, cmb, cmc, cea, ceb, cec, dtau, deps)
+      deallocate(cma, cmb, cmc, cea, ceb, cec, cdel, dtau, deps)
       !$omp end parallel
    end subroutine advance_memory_3d
 
@@ -1813,18 +1815,40 @@ contains
       end do
    end subroutine gather_tensor_coeffs
 
-   subroutine advance_shape_tensor(self, sht, e, c, eps, dtau, deps, cfg)
+   subroutine advance_shape_tensor(self, sht, e, c, eps, dtau, deps, cdel, cfg)
       !! One radial shape-coefficient: reconstruct the memory τ and strain ε tensors
-      !! on the grid (six dyadic components), apply τ⁺=(1−M)τ−2μM·ε pointwise per
-      !! component with the lateral field M(θ,φ)=Mk3(:,:,e), and project τ⁺ back. c is
-      !! updated in place; dtau/deps are caller-provided scratch (nphi,nlat,6); cfg is
-      !! the calling thread's private SHTns config (for the parallel element loop).
+      !! on the grid (six dyadic components), and apply τ⁺=(1−M)τ−2μM·ε pointwise per
+      !! component with the lateral field M(θ,φ)=Mk3(:,:,e). c is updated in place;
+      !! dtau/deps/cdel are caller-provided scratch; cfg is the calling thread's
+      !! private SHTns config (for the parallel element loop).
+      !!
+      !! THE UPDATE IS APPLIED AS AN INCREMENT, not as a replacement. Writing it as
+      !!       τ⁺ = τ − M·(τ + 2μ·ε)
+      !! and transforming only the increment Δ = −M·(τ + 2μ·ε) is algebraically the
+      !! same, but numerically it is not, and the difference is not small.
+      !!
+      !! The dyadic analysis is exact to ~8e-14 RELATIVE TO THE FIELD IT ANALYSES. A
+      !! step only changes τ by M·(τ + 2με), so analysing τ⁺ itself carries an error
+      !! of 8e-14·|τ| into a quantity whose true size is M·|τ| — a relative error of
+      !! 8e-14/M in the increment. Measured (tests/diag_tensor_grid.f90, LOG session
+      !! 32k): 2e-12 at M = 4e-2, 7.9e-5 at M = 1e-9, 7.8e-1 at M = 1e-13. Block D's
+      !! viscosity reaches 1e30 Pa s (cratonic lid and lithosphere), which with
+      !! μ ≈ 5.7e10 and Δt ≈ 50 yr puts the stiffest Maxwell elements at M ≈ 1e-10:
+      !! their memory advance was wrong by percent PER SUB-STEP, and the whole model
+      !! drifted 0.50 m rms from the 1-D path on an identical laterally-uniform field
+      !! — 57 % of the lateral-viscosity signal it exists to compute.
+      !!
+      !! Analysing Δ instead puts the same 8e-14 on Δ, so the relative error is 8e-14
+      !! at every M. That matches the 1-D path (advance_memory), which does this same
+      !! near-total cancellation in coefficient space per mode with no transform in
+      !! between and is therefore exact. Cost is unchanged: two synths, one analysis.
       type(response), intent(in)    :: self
       type(sht_grid),     intent(in)    :: sht
       integer,            intent(in)    :: e
       complex(wp),        intent(inout) :: c(:,:)
       complex(wp),        intent(in)    :: eps(:,:)
       real(wp),           intent(inout) :: dtau(:,:,:), deps(:,:,:)
+      complex(wp),        intent(inout) :: cdel(:,:)
       type(c_ptr),        intent(in)    :: cfg
       real(wp) :: twoMu
       integer  :: p
@@ -1832,9 +1856,10 @@ contains
       call tensor_sh_synth(self%tsh, sht, c,   dtau, cfg)
       call tensor_sh_synth(self%tsh, sht, eps, deps, cfg)
       do p = 1, 6
-         dtau(:,:,p) = (1.0_wp - self%Mk3(:,:,e))*dtau(:,:,p) - twoMu*self%Mk3(:,:,e)*deps(:,:,p)
+         dtau(:,:,p) = -self%Mk3(:,:,e)*(dtau(:,:,p) + twoMu*deps(:,:,p))
       end do
-      call tensor_sh_analysis(self%tsh, sht, dtau, c, cfg)
+      call tensor_sh_analysis(self%tsh, sht, dtau, cdel, cfg)
+      c = c + cdel
    end subroutine advance_shape_tensor
 
    subroutine advance_memory_3d_trap(self, sht, sigma_lm)
@@ -1852,16 +1877,18 @@ contains
       complex(wp), allocatable :: cm0a(:,:), cm0b(:,:), cm0c(:,:)   ! τ_n coeffs (TLAM,nlm)
       complex(wp), allocatable :: cna(:,:),  cnb(:,:),  cnc(:,:)    ! ε_n coeffs
       complex(wp), allocatable :: c1a(:,:),  c1b(:,:),  c1c(:,:)    ! ε_{n+1} coeffs
+      complex(wp), allocatable :: cdel(:,:)                         ! analysed increment
       real(wp),    allocatable :: dt0(:,:,:), den(:,:,:), de1(:,:,:) ! (nphi,nlat,6)
       type(c_ptr) :: cfg
       integer  :: e, ei, k, lm
 
       if (self%ne3d == 0) return        ! no genuinely-3-D element ⇒ all handled spectrally
       !$omp parallel default(shared) &
-      !$omp   private(e, ei, k, lm, cm0a, cm0b, cm0c, cna, cnb, cnc, c1a, c1b, c1c, dt0, den, de1, cfg)
+      !$omp   private(e, ei, k, lm, cm0a, cm0b, cm0c, cna, cnb, cnc, c1a, c1b, c1c, cdel, dt0, den, de1, cfg)
       allocate(cm0a(TLAM,sht%nlm), cm0b(TLAM,sht%nlm), cm0c(TLAM,sht%nlm))
       allocate(cna(TLAM,sht%nlm),  cnb(TLAM,sht%nlm),  cnc(TLAM,sht%nlm))
       allocate(c1a(TLAM,sht%nlm),  c1b(TLAM,sht%nlm),  c1c(TLAM,sht%nlm))
+      allocate(cdel(TLAM,sht%nlm))
       allocate(dt0(sht%nphi,sht%nlat,6), den(sht%nphi,sht%nlat,6), de1(sht%nphi,sht%nlat,6))
       cfg = tensor_sh_thread_cfg(self%tsh)
       !$omp do schedule(dynamic)
@@ -1869,9 +1896,9 @@ contains
          e = self%e3d(ei)
          call gather_tensor_coeffs_trap(self, sigma_lm, e, cm0a, cm0b, cm0c, &
                                         cna, cnb, cnc, c1a, c1b, c1c)
-         call advance_shape_tensor_trap(self, sht, e, cm0a, cna, c1a, dt0, den, de1, cfg)
-         call advance_shape_tensor_trap(self, sht, e, cm0b, cnb, c1b, dt0, den, de1, cfg)
-         call advance_shape_tensor_trap(self, sht, e, cm0c, cnc, c1c, dt0, den, de1, cfg)
+         call advance_shape_tensor_trap(self, sht, e, cm0a, cna, c1a, dt0, den, de1, cdel, cfg)
+         call advance_shape_tensor_trap(self, sht, e, cm0b, cnb, c1b, dt0, den, de1, cdel, cfg)
+         call advance_shape_tensor_trap(self, sht, e, cm0c, cnc, c1c, dt0, den, de1, cdel, cfg)
          do k = 1, self%nk                                 ! write updated memory back
             lm = self%k2lm(k)
             self%Are(:,e,k) = real(cm0a(:,lm), wp);  self%Aim(:,e,k) = aimag(cm0a(:,lm))
@@ -1880,7 +1907,7 @@ contains
          end do
       end do
       !$omp end do
-      deallocate(cm0a, cm0b, cm0c, cna, cnb, cnc, c1a, c1b, c1c, dt0, den, de1)
+      deallocate(cm0a, cm0b, cm0c, cna, cnb, cnc, c1a, c1b, c1c, cdel, dt0, den, de1)
       !$omp end parallel
    end subroutine advance_memory_3d_trap
 
@@ -1941,29 +1968,37 @@ contains
       end do
    end subroutine gather_tensor_coeffs_trap
 
-   subroutine advance_shape_tensor_trap(self, sht, e, c0, eps_n, eps_1, dt0, den, de1, cfg)
+   subroutine advance_shape_tensor_trap(self, sht, e, c0, eps_n, eps_1, dt0, den, de1, cdel, cfg)
       !! One radial shape-coefficient, trapezoidal: reconstruct τ_n, ε_n, ε_{n+1} on the
       !! grid (six dyadic components) and apply the pointwise Crank–Nicolson update
       !! τ⁺ = [(1−M/2)τ_n − μM(ε_n+ε_{n+1})]/(1+M/2) per component with M=Mk3(:,:,e).
-      !! c0 holds τ_n on entry, τ_{n+1} on exit; dt0/den/de1 are per-thread scratch.
+      !! c0 holds τ_n on entry, τ_{n+1} on exit; dt0/den/de1/cdel are per-thread scratch.
+      !!
+      !! AS AN INCREMENT, for the reason spelled out in advance_shape_tensor:
+      !!       τ⁺ − τ_n = −M·[τ_n + μ(ε_n + ε_{n+1})] / (1 + M/2)
+      !! which is the same expression rearranged, and keeps the transform error
+      !! proportional to what the step changes rather than to τ itself. Without it the
+      !! stiff elements (M ~ 1e-10 for the 1e30 Pa s lid) advance on round-off.
       type(response), intent(in)    :: self
       type(sht_grid),     intent(in)    :: sht
       integer,            intent(in)    :: e
       complex(wp),        intent(inout) :: c0(:,:)
       complex(wp),        intent(in)    :: eps_n(:,:), eps_1(:,:)
       real(wp),           intent(inout) :: dt0(:,:,:), den(:,:,:), de1(:,:,:)
+      complex(wp),        intent(inout) :: cdel(:,:)
       type(c_ptr),        intent(in)    :: cfg
-      real(wp), dimension(size(dt0,1),size(dt0,2)) :: cold, weps
+      real(wp), dimension(size(dt0,1),size(dt0,2)) :: wtau, weps
       integer  :: p
       call tensor_sh_synth(self%tsh, sht, c0,    dt0, cfg)
       call tensor_sh_synth(self%tsh, sht, eps_n, den, cfg)
       call tensor_sh_synth(self%tsh, sht, eps_1, de1, cfg)
-      cold = (1.0_wp - 0.5_wp*self%Mk3(:,:,e)) / (1.0_wp + 0.5_wp*self%Mk3(:,:,e))
-      weps = self%mu(e)*self%Mk3(:,:,e)        / (1.0_wp + 0.5_wp*self%Mk3(:,:,e))
+      wtau = self%Mk3(:,:,e)            / (1.0_wp + 0.5_wp*self%Mk3(:,:,e))
+      weps = self%mu(e)*self%Mk3(:,:,e) / (1.0_wp + 0.5_wp*self%Mk3(:,:,e))
       do p = 1, 6
-         dt0(:,:,p) = cold*dt0(:,:,p) - weps*(den(:,:,p) + de1(:,:,p))
+         dt0(:,:,p) = -wtau*dt0(:,:,p) - weps*(den(:,:,p) + de1(:,:,p))
       end do
-      call tensor_sh_analysis(self%tsh, sht, dt0, c0, cfg)
+      call tensor_sh_analysis(self%tsh, sht, dt0, cdel, cfg)
+      c0 = c0 + cdel
    end subroutine advance_shape_tensor_trap
 
    subroutine snapshot_taun(self)
