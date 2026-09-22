@@ -325,6 +325,26 @@ contains
       a(2) = -v1 + v2;        b(2) = u1 - v1;           c(2) = u2 - v2          ! λ=2
       a(3) = 0.0_wp;          b(3) = -u1/Jr + 0.5_wp*v1; c(3) = -u2/Jr + 0.5_wp*v2 ! λ=5
       a(4) = 0.0_wp;          b(4) = 0.5_wp*v1;         c(4) = 0.5_wp*v2        ! λ=6
+      ! Z⁶ HAS NO HARMONIC BELOW DEGREE 2, so it carries no strain and no memory
+      ! there. Its B13 norm is 2·Jr·(Jr−2) (ve_strain_constants), which is exactly
+      ! zero for Jr = l(l+1) ∈ {0, 2}, i.e. l ≤ 1. Without this guard the λ=6 slot
+      ! at l = 1 is handed a strain built from V and the scalar advance integrates
+      ! it into a memory for a basis function that does not exist.
+      !
+      ! It was invisible for a long time because dissipative_rhs weights by that
+      ! same zero norm, so the phantom never reaches the RHS -- test_response_3d
+      ! masks the slot and calls it "the null space of the observable". It is not.
+      ! ve_response_begin gates the drift solve on mnorm(k), an UNWEIGHTED max over
+      ! all four λ channels, and on thr = skip_tol·maxval(mnorm): the phantom (the
+      ! largest λ6 value anywhere in the model) both holds the l = 1 slots above the
+      ! threshold and raises the threshold for every other slot. The pseudo-spectral
+      ! 3-D advance annihilates it correctly, the scalar advance kept it, and the two
+      ! paths then skipped DIFFERENT sets of slots -- a discrete difference, not a
+      ! round-off one. In the cm degree-1 frame that is 2.2e-4 in uplift after four
+      ! steps and 0.50 m rms over the deglaciation (LOG.md session 32m).
+      if (Jr <= 2.0_wp) then                  ! l <= 1 (Jr = 0 or 2; the next is 6)
+         b(4) = 0.0_wp;  c(4) = 0.0_wp
+      end if
    end subroutine strain_coeffs
 
    pure subroutine ve_strain_constants(Jr, norm, sa, sb, sc)

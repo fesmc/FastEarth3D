@@ -24,10 +24,16 @@ program test_response_3d
    implicit none
 
    integer, parameter :: LMAX = 8
+   !! Uniform log10 viscosity perturbations to sweep. Negative softens (large M),
+   !! positive stiffens (small M); +9 puts M3-L70's 1e21 mantle at the 1e30 Pa s the
+   !! Bagge clamp gives the lithosphere and cratonic lid, which is the regime the
+   !! production runs spend most of their elements in.
+   real(wp), parameter :: PSWEEP(6) = [-0.4_wp, 2.0_wp, 4.0_wp, 6.0_wp, 8.0_wp, 10.0_wp]
    type(sht_grid)     :: sht
    type(earth_model)  :: e
    real(wp) :: dt
    integer  :: nk1                  ! # degree-1 slots (contiguous at the start)
+   integer  :: ip
    logical  :: ok
 
    ok = .true.
@@ -45,7 +51,39 @@ program test_response_3d
 
    write(*,'(a)') ''
    write(*,'(a)') ' (2) uniform perturbation p: lateral path == 1-D run with eta*10^p'
-   call consistency_uniform(-0.4_wp, ok)
+   ! SWEEP p, do not test one value. The pseudo-spectral advance used to analyse the
+   ! UPDATED memory rather than the increment, so its error was a fixed fraction of
+   ! |tau| while the step only changes tau by M*|tau| -- a relative error of ~1e-13/M
+   ! in the increment. At p = -0.4 (M ~ 0.1) that is 1e-12 and invisible; at the
+   ! stiffnesses block D actually carries it is not. The Bagge field is clamped at
+   ! 1e30 Pa s for the lithosphere and the cratonic lid, which against M3-L70's 1e21
+   ! mantle is p = +9, i.e. M ~ 1e-11. Testing only a soft, moderate p left the whole
+   ! stiff half of the production Earth uncovered, and the model drifted 0.50 m rms
+   ! from the 1-D path over the deglaciation as a result (LOG.md session 32i/32k).
+   do ip = 1, size(PSWEEP)
+      call consistency_uniform(PSWEEP(ip), .false., ok)
+   end do
+
+   write(*,'(a)') ''
+   write(*,'(a)') ' (2b) the same, in the CENTRE-OF-MASS degree-1 frame (deg1_cm)'
+   ! THE FRAME IS NOT A DETAIL HERE, it is the row that has teeth. Z6 has no harmonic
+   ! below degree 2, so strain_coeffs must return no lambda=6 strain there; when it
+   ! did, the scalar advance integrated a phantom degree-1 lambda=6 memory that the
+   ! tensor advance correctly annihilates. In cf that phantom is inert -- its B13 norm
+   ! 2*Jr*(Jr-2) is zero at l=1, so dissipative_rhs never sees it -- which is why every
+   ! benchmark and every row above passes either way. In cm it is NOT inert:
+   ! ve_response_begin gates the drift solve on mnorm(k), an unweighted max over all
+   ! four channels, and on thr = skip_tol*maxval(mnorm), so the phantom decides which
+   ! slots get a drift solve AND sets the threshold for every other slot. The two paths
+   ! then skipped different sets, and block D -- which runs cm -- drifted 0.50 m rms
+   ! over the deglaciation. See LOG.md session 32m.
+   do ip = 1, size(PSWEEP)
+      call consistency_uniform(PSWEEP(ip), .true., ok)
+   end do
+
+   write(*,'(a)') ''
+   write(*,'(a)') ' (2c) Z6 carries NO memory below degree 2, on EITHER path'
+   call no_deg1_lam6(ok)
 
    write(*,'(a)') ''
    write(*,'(a)') ' (3) TRAP-3D: trapezoidal lateral path == 1-D trapezoidal run (eta*10^p)'
@@ -101,6 +139,72 @@ contains
       s = maxval(abs(a))
    end function mem_scale
 
+   subroutine no_deg1_lam6(ok)
+      !! Z6 has no spherical harmonic below degree 2, so it carries no strain and no
+      !! memory there: ve_strain_constants gives it the B13 norm 2*Jr*(Jr-2), which is
+      !! exactly zero for Jr = l(l+1) in {0,2}. Assert the memory is IDENTICALLY zero
+      !! rather than comparing the two paths end to end.
+      !!
+      !! WHY THIS FORM. The end-to-end rows above cannot see a violation unless it
+      !! changes an observable, and the phantom's route to the observable is the drift
+      !! skip gate (mnorm/skip_tol in ve_response_begin), which needs enough dynamic
+      !! range across slots to bite -- it does at the production lmax 170 on PREM and
+      !! does not at LMAX 8 on M3-L70. So the end-to-end rows passed either way while
+      !! block D drifted 0.50 m rms (LOG.md session 32m). This checks the invariant
+      !! itself, where a violation is exact and needs no dynamic range to show up.
+      logical, intent(inout) :: ok
+      real(wp) :: w1, w3
+      ! BOTH paths, because only one of them ever got this wrong: the tensor advance
+      ! annihilates lambda=6 at l<2 whatever strain_coeffs hands it (Z6 has no basis
+      ! function there, so the dyadic round trip returns zero), while the scalar
+      ! advance integrates whatever it is given. Checking the tensor path alone passes
+      ! unconditionally and proves nothing.
+      w1 = lam6_deg1(99.0_wp)      ! every element demoted  -> scalar advance
+      w3 = lam6_deg1(-1.0_wp)      ! every Maxwell element  -> tensor advance
+      write(*,'(a,es11.2,a,es11.2)') '      max |lambda6 memory| at l < 2:  scalar path', &
+           w1, '   tensor path', w3
+      if (w1 /= 0.0_wp .or. w3 /= 0.0_wp) then
+         write(*,'(a)') '      FAIL: Z6 has no harmonic below degree 2 and must carry no memory'
+         ok = .false.
+      end if
+   end subroutine no_deg1_lam6
+
+   real(wp) function lam6_deg1(tol) result(worst)
+      real(wp), intent(in) :: tol
+      type(response) :: ve
+      real(wp), allocatable :: pert(:,:,:)
+      complex(wp), allocatable :: slm(:), u(:), n(:)
+      integer :: i, k
+      ve%deg1_cm = .true.
+      call response_init_ve(ve, e, sht, dt)
+      allocate(pert(sht%nphi, sht%nlat, ve%ne));  pert = -0.4_wp
+      ve%visc3d_tol = tol
+      call response_enable_lateral_visc(ve, sht, pert)
+      allocate(slm(sht%nlm), u(sht%nlm), n(sht%nlm))
+      call build_load(slm)
+      do i = 1, 5
+         call response_begin_step(ve, sht);  call response_apply(ve, sht, slm, u, n)
+         call response_commit_step(ve, sht, slm)
+      end do
+      worst = 0.0_wp
+      do k = 1, ve%nk
+         if (ve%kdeg(k) >= 2) cycle
+         worst = max(worst, maxval(abs(ve%Are(4,:,k))), maxval(abs(ve%Aim(4,:,k))), &
+                            maxval(abs(ve%Bre(4,:,k))), maxval(abs(ve%Bim(4,:,k))), &
+                            maxval(abs(ve%Cre(4,:,k))), maxval(abs(ve%Cim(4,:,k))))
+      end do
+      deallocate(pert, slm, u, n)
+      call response_destroy(ve)
+   end function lam6_deg1
+
+   real(wp) function mk_max(v) result(m)
+      !! The largest Maxwell factor M = mu*dt/eta in the structure -- the number that
+      !! sets how much of the memory a step actually changes, and therefore how hard
+      !! this row leans on the increment formulation.
+      type(response), intent(in) :: v
+      m = maxval(v%Mk)
+   end function mk_max
+
    subroutine drive_and_compare(ve3d, ve1d, label, ok)
       !! Drive both responses with the same load through NSTEP begin/apply/commit
       !! and report the max relative memory + uplift disagreement.
@@ -151,12 +255,14 @@ contains
       call response_destroy(ve3d);  call response_destroy(ve1d)
    end subroutine regression_zero
 
-   subroutine consistency_uniform(p, ok)
+   subroutine consistency_uniform(p, cm, ok)
       real(wp), intent(in)    :: p
+      logical,  intent(in)    :: cm          !! degree-1 frame: .true. = CM, .false. = CF
       logical,  intent(inout) :: ok
       type(response)     :: ve3d, ve1d
       type(earth_model)     :: es
       real(wp), allocatable :: pert(:,:,:)
+      character(len=32) :: lbl
       integer :: k
       ! 1-D reference Earth: Maxwell-layer viscosities scaled by 10^p (η_eff = η·10^p)
       es = build_M3L70V01()
@@ -164,13 +270,18 @@ contains
          if (es%layers(k)%rheology == RHEOL_MAXWELL) &
             es%layers(k)%eta = es%layers(k)%eta * 10.0_wp**p
       end do
+      ! deg1_cm is set BEFORE init on both, exactly as solid_earth_init does: the
+      ! elastic and viscoelastic gains are computed there and the frame is part of them.
+      ve1d%deg1_cm = cm;  ve3d%deg1_cm = cm
       call response_init_ve(ve1d, es, sht, dt)
       ! 3-D path: base Earth + a spatially-uniform perturbation p
       call response_init_ve(ve3d, e, sht, dt)
       allocate(pert(sht%nphi, sht%nlat, ve3d%ne));  pert = p
       ve3d%visc3d_tol = -1.0_wp     ! force the pseudo-spectral kernel (validate it reduces to 1-D)
       call response_enable_lateral_visc(ve3d, sht, pert)
-      call drive_and_compare(ve3d, ve1d, 'uniform:', ok)
+      write(lbl,'(a,f6.1,a,es9.2,a,a,a)') 'p=', p, ' (M=', mk_max(ve1d), ', ', &
+           trim(merge('cm', 'cf', cm)), '):'
+      call drive_and_compare(ve3d, ve1d, trim(lbl), ok)
       deallocate(pert)
       call response_destroy(ve3d);  call response_destroy(ve1d)
    end subroutine consistency_uniform
