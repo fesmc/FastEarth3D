@@ -86,3 +86,16 @@ sha256  ed4c141605d914140648d116f61fa6e8b7351105037af193a7556fc46e7de72f
 Laterally varying (3-D) mantle viscosity fields, `log10(eta)`. These predate
 this file and their upstream provenance is not recorded here — it should be
 filled in by whoever staged them.
+
+`bagge2021.nc` stores latitude NORTH-first (descending). That is legitimate —
+`fe_read_visc_3d` normalises either orientation to ascending on read — but note
+it when comparing against a backend that reads the file itself.
+
+`pan2022.nc` has been edited since staging: longitude index 360 duplicated
+index 359 (both 0.0 deg, with a bit-identical `eta` column), which left the
+axis non-monotonic and unusable for interpolation. The duplicate column was
+dropped, giving 720 longitudes on a uniform 0.5 deg grid spanning exactly
+360 deg; `lat`, `r` and every retained `eta` value are untouched. **The same
+defect is present upstream** in
+`isostasy_data/earth_structure/viscosity/pan2022.nc`, so re-staging from there
+will reintroduce it.
