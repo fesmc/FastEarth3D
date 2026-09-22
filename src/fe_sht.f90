@@ -43,7 +43,7 @@ module fe_sht
    end type sht_grid
 
    public :: sht_free_cfg   !! release a config from clone_cfg
-   public :: sht_grid_init, sht_grid_destroy, sht_grid_synthesis, sht_grid_analysis, sht_grid_sph_synthesis, sht_grid_sph_analysis, sht_grid_eval_point, sht_grid_eval_point_horiz, sht_grid_lmidx, sht_grid_surface_integral, sht_grid_clone_cfg
+   public :: sht_grid_init, sht_grid_destroy, sht_grid_synthesis, sht_grid_analysis, sht_grid_sph_synthesis, sht_grid_sph_analysis, sht_grid_tor_synthesis, sht_grid_sphtor_synthesis, sht_grid_sphtor_analysis, sht_grid_eval_point, sht_grid_eval_point_horiz, sht_grid_lmidx, sht_grid_surface_integral, sht_grid_clone_cfg
 
 contains
 
@@ -243,7 +243,8 @@ contains
    subroutine sht_grid_sph_analysis(self, vth, vph, slm, cfg)
       !! Spheroidal vector analysis — the inverse/adjoint of sph_synthesis: from a
       !! horizontal field (vth,vph) recover the spheroidal potential coefficients slm
-      !! (the toroidal part is discarded). NB: SHTns overwrites the inputs.
+      !! (the toroidal part is discarded; sphtor_analysis keeps it). NB: SHTns
+      !! overwrites the inputs.
       type(sht_grid), intent(in)    :: self
       real(wp),        intent(inout) :: vth(:,:), vph(:,:)  !! (nphi, nlat)
       complex(wp),     intent(out)   :: slm(:)              !! length nlm
@@ -253,6 +254,58 @@ contains
       c = self%cfg;  if (present(cfg)) c = cfg
       call spat_to_SHsphtor(c, vth, vph, slm, tlm)
    end subroutine sht_grid_sph_analysis
+
+   subroutine sht_grid_tor_synthesis(self, tlm, vth, vph, cfg)
+      !! Toroidal vector synthesis: from the coefficients tlm of a scalar, return
+      !! the rotated surface gradient on the grid,
+      !!   (vth, vph) = e_r × ∇₁(Σ tlm Y_lm) = (−F, E),
+      !! with E = ∂_θ, F = (1/sinθ)∂_φ as in sph_synthesis. This is Martinec's
+      !! S⁽⁰⁾ direction, the one the toroidal displacement W multiplies, and the
+      !! building block of the toroidal tensor harmonics Z³, Z⁴ (fe_tensor_sh).
+      !!
+      !! SHTns' own toroidal field is ∇×(T e_r) = −e_r × ∇T = (F, −E), the
+      !! opposite orientation, so its output is negated here. test_sht pins the
+      !! sign against (−F, E) formed from sph_synthesis of the same coefficients.
+      type(sht_grid), intent(in)  :: self
+      complex(wp),     intent(in)  :: tlm(:)             !! length nlm
+      real(wp),        intent(out) :: vth(:,:), vph(:,:) !! (nphi, nlat)
+      type(c_ptr), intent(in), optional :: cfg
+      type(c_ptr) :: c
+      c = self%cfg;  if (present(cfg)) c = cfg
+      call SHtor_to_spat(c, tlm, vth, vph)
+      vth = -vth;  vph = -vph
+   end subroutine sht_grid_tor_synthesis
+
+   subroutine sht_grid_sphtor_synthesis(self, slm, tlm, vth, vph, cfg)
+      !! Both vector syntheses in one transform: (vth, vph) = ∇₁S + e_r × ∇₁T, in
+      !! this module's toroidal orientation (see tor_synthesis). Costs about one
+      !! sph_synthesis, against two for the separate calls.
+      type(sht_grid), intent(in)  :: self
+      complex(wp),     intent(in)  :: slm(:), tlm(:)     !! length nlm
+      real(wp),        intent(out) :: vth(:,:), vph(:,:) !! (nphi, nlat)
+      type(c_ptr), intent(in), optional :: cfg
+      complex(wp) :: tneg(self%nlm)
+      type(c_ptr) :: c
+      c = self%cfg;  if (present(cfg)) c = cfg
+      tneg = -tlm                                  ! SHTns orientation is −e_r×∇
+      call SHsphtor_to_spat(c, slm, tneg, vth, vph)
+   end subroutine sht_grid_sphtor_synthesis
+
+   subroutine sht_grid_sphtor_analysis(self, vth, vph, slm, tlm, cfg)
+      !! Full horizontal vector analysis, the inverse of the pair above: a field
+      !! (vth,vph) = ∇₁S + e_r × ∇₁T is split into its spheroidal slm and toroidal
+      !! tlm coefficients, both in this module's orientation (tlm is the negative
+      !! of SHTns' own toroidal output; see tor_synthesis). NB: SHTns overwrites
+      !! the inputs.
+      type(sht_grid), intent(in)    :: self
+      real(wp),        intent(inout) :: vth(:,:), vph(:,:)  !! (nphi, nlat)
+      complex(wp),     intent(out)   :: slm(:), tlm(:)      !! length nlm
+      type(c_ptr), intent(in), optional :: cfg
+      type(c_ptr) :: c
+      c = self%cfg;  if (present(cfg)) c = cfg
+      call spat_to_SHsphtor(c, vth, vph, slm, tlm)
+      tlm = -tlm
+   end subroutine sht_grid_sphtor_analysis
 
    subroutine sht_grid_eval_point(self, f_lm, colat, lon, val)
       !! Evaluate a scalar field (spectral coefficients f_lm) at an ARBITRARY point

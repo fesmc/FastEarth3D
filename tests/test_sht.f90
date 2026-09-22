@@ -6,14 +6,17 @@ program test_sht
    !! physics is added.
    use, intrinsic :: iso_c_binding, only: c_double
    use fe_precision, only: wp
-   use fe_sht,       only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_synthesis, sht_grid_analysis, sht_grid_surface_integral, sht_grid_destroy
+   use fe_sht,       only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_synthesis, sht_grid_analysis, sht_grid_surface_integral, sht_grid_destroy, &
+                           sht_grid_sph_synthesis, sht_grid_tor_synthesis, sht_grid_sphtor_synthesis, sht_grid_sphtor_analysis
    implicit none
 
    type(sht_grid) :: g
    integer  :: lmax, l, m, lm, j
    real(wp),    allocatable :: sh(:,:)
    complex(wp), allocatable :: slm(:), slm0(:)
-   real(wp) :: err, tol, fourpi, area, integ, y10err
+   real(wp) :: err, tol, fourpi, area, integ, y10err, torerr, orth
+   real(wp),    allocatable :: st(:,:), sp(:,:), tt(:,:), tp(:,:)
+   complex(wp), allocatable :: s1(:), t1(:), t0(:)
    logical  :: ok
 
    lmax = 24
@@ -78,10 +81,58 @@ program test_sht
    print '(a,es12.4)', ' Y(1,0) vs sqrt(3/4pi)cosθ max err = ', y10err
    if (y10err >= 1.0e-12_wp) ok = .false.
 
+   ! --- Toroidal orientation: tor_synthesis(T) = e_r × ∇₁T = (−F, E) ----------
+   ! Pins the sign convention the toroidal displacement W and the tensor
+   ! harmonics Z³, Z⁴ are built on, against the spheroidal synthesis of the SAME
+   ! coefficients: sph_synthesis gives (E, F), so the rotated field is (−F, E).
+   ! Exact up to transform round-off; a sign error shows as O(1).
+   allocate(st(g%nphi,g%nlat), sp(g%nphi,g%nlat), tt(g%nphi,g%nlat), tp(g%nphi,g%nlat))
+   allocate(s1(g%nlm), t1(g%nlm), t0(g%nlm))
+   t0 = slm0
+   t0(sht_grid_lmidx(g, 0,0)) = (0.0_wp, 0.0_wp)   ! degree 0 has no vector field
+   call sht_grid_sph_synthesis(g, t0, st, sp)
+   call sht_grid_tor_synthesis(g, t0, tt, tp)
+   torerr = max(maxval(abs(tt + sp)), maxval(abs(tp - st))) / maxval(abs(st) + abs(sp))
+   print '(a,es12.4)', ' toroidal = e_r × ∇₁ (vs rotated sph)  = ', torerr
+   if (torerr >= 1.0e-12_wp) ok = .false.
+
+   ! --- Spheroidal + toroidal round trip, and their separation -----------------
+   ! v = ∇₁S + e_r×∇₁T with independent S, T must split back into exactly S and
+   ! T: the analysis inverts the pair AND keeps them orthogonal.
+   s1 = slm0;  s1(sht_grid_lmidx(g, 0,0)) = (0.0_wp, 0.0_wp)
+   do l = 1, lmax                                    ! T distinct from S
+      do m = 0, l
+         lm = sht_grid_lmidx(g, l, m)
+         t0(lm) = cmplx(0.3_wp*real(l-m+1, wp)/real(l+2, wp), &
+                        merge(0.0_wp, -0.2_wp/real(l, wp), m == 0), wp)
+      end do
+   end do
+   call sht_grid_sph_synthesis(g, s1, st, sp)
+   call sht_grid_tor_synthesis(g, t0, tt, tp)
+   st = st + tt;  sp = sp + tp
+   ! The one-call synthesis must equal the sum of the two separate ones.
+   call sht_grid_sphtor_synthesis(g, s1, t0, tt, tp)
+   err = max(maxval(abs(tt - st)), maxval(abs(tp - sp))) / maxval(abs(st) + abs(sp))
+   print '(a,es12.4)', ' sphtor synth vs sph + tor            = ', err
+   if (err >= 1.0e-13_wp) ok = .false.
+   call sht_grid_sphtor_analysis(g, st, sp, slm, t1)
+   err = max(maxval(abs(slm - s1)), maxval(abs(t1 - t0)))
+   print '(a,es12.4)', ' sph+tor round trip max error         = ', err
+   if (err >= 1.0e-11_wp) ok = .false.
+   ! Pure toroidal input must leave no spheroidal residue, and vice versa.
+   call sht_grid_tor_synthesis(g, t0, tt, tp)
+   call sht_grid_sphtor_analysis(g, tt, tp, slm, t1)
+   orth = maxval(abs(slm))
+   call sht_grid_sph_synthesis(g, s1, st, sp)
+   call sht_grid_sphtor_analysis(g, st, sp, slm, t1)
+   orth = max(orth, maxval(abs(t1)))
+   print '(a,es12.4)', ' sph/tor cross-talk                   = ', orth
+   if (orth >= 1.0e-12_wp) ok = .false.
+
    call sht_grid_destroy(g)
 
    if (ok) then
-      print '(a)', ' PASS: SHTns transform, quadrature, normalization, geometry'
+      print '(a)', ' PASS: SHTns transform, quadrature, normalization, geometry, toroidal'
    else
       print '(a)', ' FAIL: one or more SHT checks exceeded tolerance'
       error stop 1
