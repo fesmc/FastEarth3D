@@ -26,7 +26,7 @@ program dump_reference
                                  sht_grid_surface_integral, sht_grid_eval_point, &
                                  sht_grid_eval_point_horiz
    use fe_field,           only: spherical_cap, exp_basin
-   use fe_tensor_sh,       only: tensor_sh, TLAM, tensor_sh_init, tensor_sh_synth, tensor_sh_analysis, &
+   use fe_tensor_sh,       only: tensor_sh, TLAM_SPH, tensor_sh_init, tensor_sh_synth, tensor_sh_analysis, &
                                  tensor_sh_destroy
    use fe_response,        only: response, response_init_elastic, response_init_ve, response_init_modal, &
                                  response_begin_step, response_apply, response_horizontal, &
@@ -235,7 +235,7 @@ contains
       call stamp(f, "sht")
       call w_one(f)
       call grid_dims_std(f, g)
-      call nc_write_dim(f, "lam",    x=1, dx=1, nx=TLAM, units="1")
+      call nc_write_dim(f, "lam",    x=1, dx=1, nx=TLAM_SPH, units="1")
       call nc_write_dim(f, "comp",   x=1, dx=1, nx=6,    units="1")
       call nc_write_dim(f, "degree", x=0, dx=1, nx=LMAX32+1, units="1")
       call nc_write_attr(f, "tensor_lam_map", "lam 1..4 = Martinec lambda 1,2,5,6")
@@ -288,12 +288,12 @@ contains
 
       ! tensor-SH dyadic synthesis of a deterministic coefficient set (test_tensor_sh)
       call tensor_sh_init(tsh, g)
-      allocate(c(TLAM,g%nlm), c2(TLAM,g%nlm), dyad(g%nphi,g%nlat,6))
+      allocate(c(TLAM_SPH,g%nlm), c2(TLAM_SPH,g%nlm), dyad(g%nphi,g%nlat,6))
       seed = 1;  c = (0.0_wp, 0.0_wp)
       do m = 0, LMAX32
          do l = m, LMAX32
             lm = sht_grid_lmidx(g, l, m)
-            do lam = 1, TLAM
+            do lam = 1, TLAM_SPH
                if (lam == 2 .and. l < 1) cycle
                if (lam == 3 .and. l < 1) cycle
                if (lam == 4 .and. l < 2) cycle

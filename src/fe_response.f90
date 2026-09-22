@@ -31,7 +31,7 @@ module fe_response
                                  advance_memory, strain_coeffs, scheme_is_implicit, &
                                  SCHEME_FE, SCHEME_TRAP
    use fe_sht,             only: sht_grid, sht_grid_lmidx, sht_grid_synthesis, sht_grid_analysis
-   use fe_tensor_sh,       only: tensor_sh, TLAM, tensor_sh_init, tensor_sh_thread_cfg, tensor_sh_synth, tensor_sh_analysis, tensor_sh_destroy
+   use fe_tensor_sh,       only: tensor_sh, TLAM_SPH, tensor_sh_init, tensor_sh_thread_cfg, tensor_sh_synth, tensor_sh_analysis, tensor_sh_destroy
    use fe_modal,           only: modal_solve, modal_spectrum, modal_spectrum_destroy
    use, intrinsic :: iso_c_binding, only: c_ptr
    implicit none
@@ -1748,9 +1748,9 @@ contains
       type(response), intent(inout) :: self
       type(sht_grid),     intent(in)    :: sht
       complex(wp),        intent(in)    :: sigma_lm(:)
-      complex(wp), allocatable :: cma(:,:), cmb(:,:), cmc(:,:)   ! memory coeffs (TLAM,nlm)
-      complex(wp), allocatable :: cea(:,:), ceb(:,:), cec(:,:)   ! strain coeffs (TLAM,nlm)
-      complex(wp), allocatable :: cdel(:,:)                       ! analysed increment (TLAM,nlm)
+      complex(wp), allocatable :: cma(:,:), cmb(:,:), cmc(:,:)   ! memory coeffs (TLAM_SPH,nlm)
+      complex(wp), allocatable :: cea(:,:), ceb(:,:), cec(:,:)   ! strain coeffs (TLAM_SPH,nlm)
+      complex(wp), allocatable :: cdel(:,:)                       ! analysed increment (TLAM_SPH,nlm)
       real(wp),    allocatable :: dtau(:,:,:), deps(:,:,:)        ! (nphi,nlat,6)
       type(c_ptr) :: cfg
       integer  :: e, ei, k, lm
@@ -1758,9 +1758,9 @@ contains
       if (self%ne3d == 0) return        ! no genuinely-3-D element ⇒ all handled spectrally
       !$omp parallel default(shared) &
       !$omp   private(e, ei, k, lm, cma, cmb, cmc, cea, ceb, cec, cdel, dtau, deps, cfg)
-      allocate(cma(TLAM,sht%nlm), cmb(TLAM,sht%nlm), cmc(TLAM,sht%nlm))
-      allocate(cea(TLAM,sht%nlm), ceb(TLAM,sht%nlm), cec(TLAM,sht%nlm))
-      allocate(cdel(TLAM,sht%nlm))
+      allocate(cma(TLAM_SPH,sht%nlm), cmb(TLAM_SPH,sht%nlm), cmc(TLAM_SPH,sht%nlm))
+      allocate(cea(TLAM_SPH,sht%nlm), ceb(TLAM_SPH,sht%nlm), cec(TLAM_SPH,sht%nlm))
+      allocate(cdel(TLAM_SPH,sht%nlm))
       allocate(dtau(sht%nphi,sht%nlat,6), deps(sht%nphi,sht%nlat,6))
       cfg = tensor_sh_thread_cfg(self%tsh)                          ! this thread's private config
       !$omp do schedule(dynamic)
@@ -1874,7 +1874,7 @@ contains
       type(response), intent(inout) :: self
       type(sht_grid),     intent(in)    :: sht
       complex(wp),        intent(in)    :: sigma_lm(:)              ! σ_{n+1}
-      complex(wp), allocatable :: cm0a(:,:), cm0b(:,:), cm0c(:,:)   ! τ_n coeffs (TLAM,nlm)
+      complex(wp), allocatable :: cm0a(:,:), cm0b(:,:), cm0c(:,:)   ! τ_n coeffs (TLAM_SPH,nlm)
       complex(wp), allocatable :: cna(:,:),  cnb(:,:),  cnc(:,:)    ! ε_n coeffs
       complex(wp), allocatable :: c1a(:,:),  c1b(:,:),  c1c(:,:)    ! ε_{n+1} coeffs
       complex(wp), allocatable :: cdel(:,:)                         ! analysed increment
@@ -1885,10 +1885,10 @@ contains
       if (self%ne3d == 0) return        ! no genuinely-3-D element ⇒ all handled spectrally
       !$omp parallel default(shared) &
       !$omp   private(e, ei, k, lm, cm0a, cm0b, cm0c, cna, cnb, cnc, c1a, c1b, c1c, cdel, dt0, den, de1, cfg)
-      allocate(cm0a(TLAM,sht%nlm), cm0b(TLAM,sht%nlm), cm0c(TLAM,sht%nlm))
-      allocate(cna(TLAM,sht%nlm),  cnb(TLAM,sht%nlm),  cnc(TLAM,sht%nlm))
-      allocate(c1a(TLAM,sht%nlm),  c1b(TLAM,sht%nlm),  c1c(TLAM,sht%nlm))
-      allocate(cdel(TLAM,sht%nlm))
+      allocate(cm0a(TLAM_SPH,sht%nlm), cm0b(TLAM_SPH,sht%nlm), cm0c(TLAM_SPH,sht%nlm))
+      allocate(cna(TLAM_SPH,sht%nlm),  cnb(TLAM_SPH,sht%nlm),  cnc(TLAM_SPH,sht%nlm))
+      allocate(c1a(TLAM_SPH,sht%nlm),  c1b(TLAM_SPH,sht%nlm),  c1c(TLAM_SPH,sht%nlm))
+      allocate(cdel(TLAM_SPH,sht%nlm))
       allocate(dt0(sht%nphi,sht%nlat,6), den(sht%nphi,sht%nlat,6), de1(sht%nphi,sht%nlat,6))
       cfg = tensor_sh_thread_cfg(self%tsh)
       !$omp do schedule(dynamic)
@@ -1915,7 +1915,7 @@ contains
                                         cna, cnb, cnc, c1a, c1b, c1c)
       !! Per element e, gather for the trapezoidal advance: τ_n (the *0 snapshot), the
       !! start strain ε_n (σ_n·xUn + dUn) and the endpoint strain ε_{n+1} (σ_{n+1}·xUn +
-      !! edUn), each as complex (TLAM,nlm) blocks. σ_n is sigma_n when primed, else the
+      !! edUn), each as complex (TLAM_SPH,nlm) blocks. σ_n is sigma_n when primed, else the
       !! first-step fallback σ_{n+1} (matching trapezoid_advance_all).
       type(response), intent(in)  :: self
       complex(wp),        intent(in)  :: sigma_lm(:)              ! σ_{n+1}
