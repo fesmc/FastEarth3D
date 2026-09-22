@@ -10,6 +10,14 @@ independently re-derived — check them against the paper before writing code.
 Where something could not be sourced from the repo or the paper, it is flagged
 in situ.
 
+**Context.** The GitHub repository was renamed `fesmc/FastEarth3D` →
+`fesmc/VILMA` ahead of a wider rename: Volker Klemann, VILMA's author, is
+joining the effort, and this model is expected to become VILMA's direct
+successor. That reframes this work. The toroidal block is not a feature to
+match a competitor on — it is physics the predecessor has and the successor
+must not lose. It also means the oracle problem of §4 is far less severe than
+it looks (§2.1).
+
 ---
 
 ## 1. What is missing, and why it may matter
@@ -188,10 +196,25 @@ lateral viscosity has mixed the memory. Two consequences:
 - **Order-in-contrast.** "Toroidal flow appears at first order in the viscosity
   contrast, back-coupling at second order" is standard perturbation reasoning,
   not stated in Martinec (2000). Used in §4 only to predict a scaling exponent.
-- **VILMA's internals.** That VILMA carries the toroidal block is an assumption
-  from its provenance as Martinec's own code; nothing in `doc/vilma-backend.md`
-  or `src/fe_vilma.f90` states it. Worth confirming before using VILMA as the
-  oracle in §4.
+*(A third item, whether VILMA carries the toroidal block, is now settled — see
+§2.1.)*
+
+### 2.1 VILMA1 does carry the toroidal treatment — confirmed
+
+Volker Klemann, VILMA's author, has confirmed that VILMA1 treats the toroidal
+component. This matters three ways:
+
+- it removes the last doubt about the physics: the reference the model is
+  measured against solves a problem FastEarth3D does not;
+- it makes VILMA a **valid oracle** for §4/V6, which is the only external check
+  available for this work;
+- it means the toroidal implementation can be developed against a working one
+  rather than from the paper alone. Volker is joining the effort, so the sign
+  and normalisation conventions of §2 — the part this document is least sure of
+  — are answerable by asking rather than by re-deriving.
+
+Nothing in `doc/vilma-backend.md` or `src/fe_vilma.f90` records this; it is
+written down here because the code cannot tell you.
 
 ---
 
@@ -410,5 +433,8 @@ gauge.
 4. **Grid resolution** — production runs `nlat = 2·lmax` while `design.md` §12
    says the spin-2 channel wants `3·lmax`. Adding a second spin-2 channel raises
    the stakes; settle the de-aliasing question independently of this work.
-5. **Confirm VILMA actually carries the toroidal block** before relying on it as
-   the oracle (§2, "not sourced").
+5. ~~Confirm VILMA carries the toroidal block before relying on it as the
+   oracle.~~ **Settled** — confirmed by Volker Klemann, §2.1. The remaining
+   question is a practical one: agree the sign and normalisation conventions of
+   §2 with him before implementing C2, rather than re-deriving them from the
+   paper.
