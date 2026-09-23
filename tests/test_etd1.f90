@@ -27,7 +27,7 @@ program test_etd1
    !!      is only 1st-order accurate -> the coupling, not the memory integrator, is
    !!      the order bottleneck. ETD1's higher-order memory treatment is wasted, and
    !!      its exponential under-relaxes per step (forcing weight 2mu*M*phi1 < 2mu*M),
-   !!      the SAME "wrong direction" that sank ETD0 (fastearth3d-exp-memory-finding).
+   !!      the SAME "wrong direction" that sank ETD0 (vilma-exp-memory-finding).
    !!  (2) FE is PRACTICALLY unconditionally stable for this model: it stays finite to
    !!      M~35 (the elastic/self-gravity feedback damps the naive M<2 scalar limit).
    !!      It produces garbage above M~2, but resolving the kyr relaxation needs M<1

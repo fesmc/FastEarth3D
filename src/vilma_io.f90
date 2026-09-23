@@ -6,7 +6,7 @@ module vilma_io
    !! written this way; vilma_restart_read restores the prognostic state.
    !!
    !! The variable registry — names, dimensions, units, long_names — lives in a
-   !! markdown table (input/fastearth-variables.md) parsed by variable_io. The
+   !! markdown table (input/vilma-variables.md) parsed by variable_io. The
    !! table is both the I/O metadata source and the human documentation.
    !!
    !! Prognostic (restored on restart): the Maxwell memory-stress fields tau_*
@@ -44,13 +44,13 @@ module vilma_io
         "tau_a_re", "tau_a_im", "tau_b_re", "tau_b_im", "tau_c_re", "tau_c_im", &
         "sigma_n_re", "sigma_n_im", "sigma_primed"]
 
-   character(len=256), save              :: table_file = "input/fastearth-variables.md"
+   character(len=256), save              :: table_file = "input/vilma-variables.md"
    type(var_io_type), allocatable, save  :: vtable(:)
 
 contains
 
    subroutine vilma_io_set_table(filename)
-      !! Override the variable-io table path (default input/fastearth-variables.md)
+      !! Override the variable-io table path (default input/vilma-variables.md)
       !! and force a reload on next use.
       character(len=*), intent(in) :: filename
       table_file = filename

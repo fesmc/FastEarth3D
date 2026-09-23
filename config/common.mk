@@ -1,4 +1,4 @@
-# Shared dependency wiring for FastEarth3D.
+# Shared dependency wiring for VILMA.
 #
 # Loaded by config/Makefile *after* the compiler fragment, so it may reference
 # FFLAGS_BASE, MODFLAGS, CPPFLAGS_PP, INC_NC and LIB_NC defined there.
@@ -75,7 +75,7 @@ endif
 # OPTIONAL and OFF by default. VILMA-v1 (Martinec/Klemann; the CLIMBER-X i_geo=2
 # backend) is a hand-installed, precompiled library: a `vega_pism.a` archive plus
 # a directory of `.mod` files. It is absent on most machines, so it must never
-# become a dependency of FastEarth3D.
+# become a dependency of VILMA.
 #
 # vilma_v1=0 (the default): CPPFLAGS_VILMA_V1 / INC_VILMA_V1 / LIB_VILMA_V1 are all EMPTY, so
 #   the compile line carries no -DVILMA_V1 and no VILMA_V1_ROOT include, and the link line

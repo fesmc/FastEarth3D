@@ -1,4 +1,4 @@
-# FastEarth3D — design
+# VILMA — design
 
 This document records the design decisions, the method comparison that led to
 them, the validation plan, and the implementation pitfalls the GIA literature
@@ -48,7 +48,7 @@ rewrite.
 |---|---|---|
 | `vilma_precision` | working precision (= C double) | done |
 | `vilma_constants` | physical / reference constants (benchmark conventions) | done |
-| `vilma_params` | `vilma_param_class` + `vilma_par_load` (one `&fe3d` nml group) | done + tested |
+| `vilma_params` | `vilma_param_class` + `vilma_par_load` (one `&vilma` nml group) | done + tested |
 | `vilma_sht` | SHTns wrapper — the transform kernel | done + tested |
 | `vilma_earth_structure` | radial layers (`build_earth`: named / custom) + optional 3D viscosity | done + tested |
 | `vilma_radial_integrals` | Appendix C P1/P0 element integrals | done + tested |
@@ -312,14 +312,14 @@ displacement `u`.
    Pays off on dynamic-range (ice-age) loads; ~1.6× wall there. See
    `doc/performance-assessment.md` §3c.
 6. **Parameter type + nml + standalone driver — DONE.** One `vilma_param_class`
-   loaded from a single `&fe3d` namelist (`vilma_params`, yelmo `defaults_file`
-   overlay; `fastearth.nml` is the complete defaults; time fields in years→s).
+   loaded from a single `&vilma` namelist (`vilma_params`, yelmo `defaults_file`
+   overlay; `vilma.nml` is the complete defaults; time fields in years→s).
    `build_earth(p)` (named built-in / custom layers). `solid_earth_init(se, p, …)` /
    `solid_earth_update(se, h_ice, dt)` distribute the knobs and run the adaptive controller per
    interval (fixed substeps removed). Restart persists the **full** integrator
    state (`dt_try` + `σ_n`) → bit-for-bit continuation. Umbrella module
    `vilma`; standalone `program vilma_main` (`vilma_drive`) runs a
-   forced simulation from `&fe3d` + an ice forcing already on the Gauss grid.
+   forced simulation from `&vilma` + an ice forcing already on the Gauss grid.
 7. **Real ice forcing + lon-lat → Gauss remapping — DONE (§13).** `vilma_remap` wraps
    the fesm-utils `coords` library (great-circle conservative polygon clipping) to map
    a regular lon-lat field onto the Gauss grid; the standalone driver remaps each
@@ -530,7 +530,7 @@ the `fesm-utils` symlink at a `coords-dev` checkout and build its utils lib.
 remaps each forcing slice online; `.false.` is the legacy Gauss-grid path. The offline
 `vilma_remap` tool pre-bakes a Gauss forcing with the same engine (identical
 results) for workflows that prefer it. `time_init/time_end` clip the record.
-`vilma.x cfg.nml [defaults.nml]` allows a sparse run config over `fastearth.nml`.
+`vilma.x cfg.nml [defaults.nml]` allows a sparse run config over `vilma.nml`.
 
 **Reference / equilibration (`i_eq`).** The deglac record starts already glaciated
 (26 ka), so there is no ice-free pre-glacial slice. Two references:
@@ -601,7 +601,7 @@ correctness check. Decide the canonical output reference frame and document it.
 **(d) Run with a loaded 3D viscosity field (driver wiring).** `vilma_read_visc_3d`
 (rung 6c) already loads a lon-lat-r log10(η) field onto the Gauss grid × FE nodes;
 it is NOT yet wired into `vilma_params`/`vilma_drive`. Add `l_visc_3d`, `visc_3d_file` (+ the
-var/axis names) to `&fe3d` and load it in `solid_earth_init`. Target two fields:
+var/axis names) to `&vilma` and load it in `solid_earth_init`. Target two fields:
   - the current Pan et al. (2022) field (already used in `test_visc_load`);
   - the CLIMBER-X production field `~/models/climber-x/input/vilma/visc3d_Bagge2021*.nc`
     (Bagge et al. 2021; var `lgvisc(radius,lat,lon)`, 512×256×164, log10 dex). Its

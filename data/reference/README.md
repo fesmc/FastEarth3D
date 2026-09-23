@@ -31,9 +31,9 @@ Source: `RTopo-2.0.1_0.125deg_DRThydrocorr.nc` (CLIMBER-X input; `bedrock_topogr
    only, so the full RTopo is coarsened here to keep ice too). Kept as the master
    source.
 2. `rtopo_gauss_l128.nc` — generated from the 0.5° source by `vilma_mkref`
-   (`bin/vilma_mkref.x mkref_l128.nml fastearth.nml`), conservatively remapping
+   (`bin/vilma_mkref.x mkref_l128.nml vilma.nml`), conservatively remapping
    bed (as-is) and ice (mass-conserving) with the same `vilma_remap` engine the online
    path uses.
 
 To regenerate (or produce a different ceiling resolution), edit `mkref_l128.nml` and
-run `make vilma_mkref` then `bin/vilma_mkref.x mkref_l128.nml fastearth.nml`.
+run `make vilma_mkref` then `bin/vilma_mkref.x mkref_l128.nml vilma.nml`.

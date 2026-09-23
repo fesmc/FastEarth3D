@@ -1,7 +1,7 @@
 program test_params
-   !! vilma_params: load a &fe3d namelist into vilma_param_class and build the earth
+   !! vilma_params: load a &vilma namelist into vilma_param_class and build the earth
    !! model from it. A sparse user file is overlaid on the complete, shipped
-   !! defaults file (input/fastearth3d_defaults.nml) — the yelmo defaults_file
+   !! defaults file (input/vilma_defaults.nml) — the yelmo defaults_file
    !! convention. Checks
    !! (1) scalar / string / logical overrides, (2) the YEARS->seconds conversion
    !! of the time fields, (3) custom per-layer earth assembly, (4) the named
@@ -14,7 +14,7 @@ program test_params
    implicit none
 
    character(len=*), parameter :: NML  = "obj/test_params.nml"
-   character(len=*), parameter :: DEFS = "input/fastearth3d_defaults.nml"   ! shipped complete &fe3d defaults
+   character(len=*), parameter :: DEFS = "input/vilma_defaults.nml"   ! shipped complete &vilma defaults
    type(vilma_param_class) :: p, pdef
    type(earth_model)    :: em, emdef
    integer :: u
@@ -26,7 +26,7 @@ program test_params
 
    ! --- write a SPARSE user file (custom 2-layer earth) overriding the defaults -
    open(newunit=u, file=NML, status="replace", action="write")
-   write(u,'(a)') "&fe3d"
+   write(u,'(a)') "&vilma"
    write(u,'(a)') "    lmax    = 32"
    write(u,'(a)') '    earth   = "custom"'
    write(u,'(a)') "    n_layer = 2"

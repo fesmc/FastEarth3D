@@ -78,23 +78,23 @@ EXP=${EXP:-runs/ve_res_sweep}                # experiment root (under gitignored
 RUNME_FLAGS=${RUNME_FLAGS--s -r}             # note: `-` not `:-`, so RUNME_FLAGS="" = stage-only
 
 # 3-D viscosity + cheap 1-D LGM spin-up (the deglac3d setup).
-VISC3D_ON=(fe3d.l_visc_3d=true fe3d.pre_spinup_1d=true fe3d.visc_3d_file="$VISC3D")
+VISC3D_ON=(vilma.l_visc_3d=true vilma.pre_spinup_1d=true vilma.visc_3d_file="$VISC3D")
 
 # Parameters common to every run (machine paths + the shared deglaciation setup).
 # Resolution (lmax + reference) and the scheme/cfl are added per run below; the grid
 # is derived from each run's own lmax (not pinned).
 COMMON=(
-  fe3d.file_forcing="$FORCING"
-  fe3d.name_ice=ice_thickness
-  fe3d.i_eq=1
-  fe3d.earth_response=ve
-  fe3d.scheme=fe
-  fe3d.dt_couple="$DT_COUPLE"
-  fe3d.equil_time_max="$EQUIL_TIME_MAX"
-  fe3d.time_init="$T0"
-  fe3d.time_end="$T1"
-  fe3d.rotation=true            # real-Earth run: rotational feedback on
-  fe3d.file_out=out.nc
+  vilma.file_forcing="$FORCING"
+  vilma.name_ice=ice_thickness
+  vilma.i_eq=1
+  vilma.earth_response=ve
+  vilma.scheme=fe
+  vilma.dt_couple="$DT_COUPLE"
+  vilma.equil_time_max="$EQUIL_TIME_MAX"
+  vilma.time_init="$T0"
+  vilma.time_end="$T1"
+  vilma.rotation=true            # real-Earth run: rotational feedback on
+  vilma.file_out=out.nc
 )
 
 # the single canonical reference; remapped to each run's resolution online (cached).
@@ -108,7 +108,7 @@ launch() {
   echo ">>> $out   (lmax=$lmax $*)"
   runme -o "$out" -e main --omp "$OMP" $RUNME_FLAGS \
         -p "${COMMON[@]}" \
-        fe3d.lmax="$lmax" fe3d.z_bed_ref_file="$ref" fe3d.h_ice_ref_file="$ref" \
+        vilma.lmax="$lmax" vilma.z_bed_ref_file="$ref" vilma.h_ice_ref_file="$ref" \
         "${VISC3D_ON[@]}" "$@"
 }
 
@@ -124,21 +124,21 @@ echo "exp root: $EXP    runme flags: '$RUNME_FLAGS'"
 # Each run's grid is derived from its own lmax (see COMMON note above).
 # ---------------------------------------------------------------------------
 for L in $LMAX_LIST; do
-  launch "$EXP/lmax.$L" "$L" fe3d.cfl=1.0
+  launch "$EXP/lmax.$L" "$L" vilma.cfl=1.0
 done
 
 # ---------------------------------------------------------------------------
 # Sub-step probe at the reference resolution: extra cfl values (cfl=1 already done).
 # ---------------------------------------------------------------------------
 for C in ${CFL_PROBE:-}; do
-  launch "$EXP/lmax.$LMAX_REF.cfl$C" "$LMAX_REF" fe3d.cfl="$C"
+  launch "$EXP/lmax.$LMAX_REF.cfl$C" "$LMAX_REF" vilma.cfl="$C"
 done
 
 # ---------------------------------------------------------------------------
 # 3-D-split probe at the reference resolution: extra visc3d_tol values (default done).
 # ---------------------------------------------------------------------------
 for V in ${VTOL_PROBE:-}; do
-  launch "$EXP/lmax.$LMAX_REF.vtol$V" "$LMAX_REF" fe3d.cfl=1.0 fe3d.visc3d_tol="$V"
+  launch "$EXP/lmax.$LMAX_REF.vtol$V" "$LMAX_REF" vilma.cfl=1.0 vilma.visc3d_tol="$V"
 done
 
 echo "done."

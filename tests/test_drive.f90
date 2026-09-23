@@ -1,6 +1,6 @@
 program test_drive
    !! Standalone driver (vilma_drive): generate a synthetic reference state and an
-   !! ice-thickness forcing on the model Gauss grid, write a sparse &fe3d config
+   !! ice-thickness forcing on the model Gauss grid, write a sparse &vilma config
    !! overlaid on the shipped defaults, run vilma_run, and check the output:
    !!   (1) one output slice per forcing slice,
    !!   (2) the bed subsides under the growing ice cap (z_bed < z_bed_eq),
@@ -19,7 +19,7 @@ program test_drive
    character(len=*), parameter :: OUT   = "obj/test_drive_out.nc"
    character(len=*), parameter :: HOR   = "obj/test_drive_hor.nc"
    character(len=*), parameter :: CFG   = "obj/test_drive.nml"
-   character(len=*), parameter :: DEFS  = "input/fastearth3d_defaults.nml"
+   character(len=*), parameter :: DEFS  = "input/vilma_defaults.nml"
 
    type(sht_grid), target :: sht
    real(wp), allocatable  :: lon_deg(:), lat_deg(:), z_bed_eq(:,:), h_ice_eq(:,:)
@@ -70,10 +70,10 @@ program test_drive
    call nc_write_dim(FORCE, "time", x=tyr,     units="years", unlimited=.true.)
    call nc_write(FORCE, "h_ice", h_ice, dim1="lon", dim2="lat", dim3="time")
 
-   ! --- run config: sparse &fe3d (overlaid on the physics defaults) + a COMPLETE
+   ! --- run config: sparse &vilma (overlaid on the physics defaults) + a COMPLETE
    ! --- &ctl group (the run config owns &ctl in full; it has no defaults file).
    open(newunit=u, file=CFG, status="replace", action="write")
-   write(u,'(a)')    "&fe3d"
+   write(u,'(a)')    "&vilma"
    write(u,'(a,i0)') "    lmax = ", LMAX
    write(u,'(a,i0)') "    nlat = ", NLAT
    write(u,'(a,i0)') "    nphi = ", NPHI

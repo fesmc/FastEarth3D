@@ -1,6 +1,6 @@
 module vilma_params
    !! Physics + numerics configuration record for the solid-Earth model, loaded from
-   !! one namelist group `&fe3d` (yelmo convention: a flat parameter type filled by
+   !! one namelist group `&vilma` (yelmo convention: a flat parameter type filled by
    !! nml_read, see fesm-utils/utils/src/nml.f90). This is the host API contract:
    !! the high-level system init (solid_earth_init) consumes the whole record and
    !! distributes the values to the sub-solvers, while the specific component inits
@@ -33,7 +33,7 @@ module vilma_params
          !!             ONLY in a build made with `make vilma vilma_v1=1
          !!             VILMA_V1_ROOT=<install>`; the default build compiles a stub that
          !!             aborts with an actionable message. See doc/vilma-v1-backend.md.
-         !! Everything below in the &fe3d record that describes the FastEarth3D
+         !! Everything below in the &vilma record that describes the VILMA
          !! solver (earth structure, scheme, response kind, SLE, adaptive Δt,
          !! rotation, spin-up) is IGNORED when solver="v1": VILMA-v1 has its own
          !! earth structure, its own sea-level equation and its own time stepping,
@@ -168,7 +168,7 @@ module vilma_params
          !! dflag.nc, the ice-history NetCDF, restart files, ...). Created if absent.
       character(len=512) :: vilma_v1_grid_file = "input/vilma/vilma_grid.nc"
          !! NetCDF file carrying VILMA-v1's own lon/lat axes (its Gauss-Legendre grid at
-         !! vilma_v1_jmax). vilma_v1 builds the FastEarth-Gauss <-> VILMA-v1-grid map pair
+         !! vilma_v1_jmax). vilma_v1 builds the VILMA-Gauss <-> VILMA-v1-grid map pair
          !! from these axes; see doc/vilma-v1-backend.md for which grid each field is on.
       character(len=128) :: vilma_v1_visc_1d_file = "visko.inp"
          !! 1-D radial viscosity file, relative to vilma_v1_input_dir (io_visko).
@@ -177,7 +177,7 @@ module vilma_params
          !! its elastic structure from a polynomial PREM, and densi.inp supplies
          !! only the layer boundaries and the radial element sizes. 0: the rho and
          !! mu columns of densi.inp are used as given. Set 0 together with a
-         !! densi.inp written from FastEarth3D's own layer table
+         !! densi.inp written from VILMA's own layer table
          !! (experiments/make_vilma_densi.jl) to make the two backends share a
          !! radial structure, which is otherwise NOT matched -- only the
          !! viscosity is.
@@ -186,7 +186,7 @@ module vilma_params
          !! Maxwell stability condition at setup and ABORTS if its time step exceeds
          !! the shortest Maxwell time in the structure -- it does not sub-step
          !! itself. With the Bagge (2021) 3-D field that limit is short: measured
-         !! 3.95 yr unfloored, 11.0 yr clamped at 1e19.5 (the clamp FastEarth3D
+         !! 3.95 yr unfloored, 11.0 yr clamped at 1e19.5 (the clamp VILMA
          !! applies), 26.2 yr at 1e20 -- all below the 100 yr GLAC-1D coupling
          !! interval, so the 3-D case cannot run at nsub = 1 with ANY of the
          !! available floors. Set nsub so that dt_coupling/nsub is below the
@@ -202,7 +202,7 @@ module vilma_params
 contains
 
    subroutine vilma_par_load(p, filename, defaults_file, group)
-      !! Fill the whole parameter record from the `&fe3d` group of `filename`,
+      !! Fill the whole parameter record from the `&vilma` group of `filename`,
       !! overlaid on a complete `defaults_file` (yelmo convention): every parameter
       !! must exist in the defaults file, but the user `filename` may set only the
       !! subset it wants to override. If `defaults_file` is omitted, `filename` IS
@@ -217,7 +217,7 @@ contains
       real(wp) :: dt_init_yr, dt_min_yr, dt_max_yr
       real(wp) :: equil_time_max_yr
 
-      g  = "fe3d";      if (present(group))         g  = group
+      g  = "vilma";      if (present(group))         g  = group
       df = filename;    if (present(defaults_file)) df = defaults_file
       call nml_set_verbose(.false.)             ! vilma_par_print echoes a concise summary instead
 
@@ -358,7 +358,7 @@ contains
       integer :: u, k
       u = 6;  if (present(unit)) u = unit
 
-      write(u,'(a)')          ' [fe3d] configuration'
+      write(u,'(a)')          ' [vilma] configuration'
       write(u,'(a,a)')        '   solver: ', trim(p%solver)
       write(u,'(a,i0,a,i0,a,i0)') '   grid:   lmax=', p%lmax, '  nlat=', p%nlat, '  nphi=', p%nphi
       write(u,'(a,a)')        '   earth:  ', trim(p%earth)

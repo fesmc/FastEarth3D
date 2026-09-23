@@ -2,7 +2,7 @@
 title: "Benchmarks"
 ---
 
-FastEarth3D is validated against the **published GIA community benchmarks** — the
+VILMA is validated against the **published GIA community benchmarks** — the
 Charles University / Spada et al. (2011) intercomparison [@Spada2011] and the
 sea-level-equation intercomparison of Martinec et al. (2018) [@Martinec2018].
 Validation proceeds along a **ladder**: each rung is an independent benchmark
@@ -11,7 +11,7 @@ just added.
 
 The reference datasets are vendored in the repository under
 `data/benchmarks/` with full provenance and licensing in
-`data/benchmarks/PROVENANCE.md`. None of it is FastEarth3D output; it is external
+`data/benchmarks/PROVENANCE.md`. None of it is VILMA output; it is external
 reference data, so the validation tests are self-contained.
 
 ## Summary results

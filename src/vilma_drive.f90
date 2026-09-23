@@ -1,5 +1,5 @@
 module vilma_drive
-   !! Standalone forced-run driver. Given a &fe3d physics configuration (vilma_params)
+   !! Standalone forced-run driver. Given a &vilma physics configuration (vilma_params)
    !! and a &ctl run-control configuration (vilma_control), build the transform grid and
    !! the solid-Earth model, read an ice-thickness forcing time series (and a bedrock
    !! reference) from netCDF, optionally remap it onto the Gauss grid on the fly, set
@@ -57,9 +57,9 @@ module vilma_drive
 contains
 
    subroutine vilma_run(cfg_file, defaults_file)
-      !! Run a forced simulation defined by cfg_file. Its &fe3d (physics) group is
+      !! Run a forced simulation defined by cfg_file. Its &vilma (physics) group is
       !! overlaid on the complete physics defaults in defaults_file (the program
-      !! passes vilma_control's DEFAULTS_FILE = input/fastearth3d_defaults.nml); its &ctl
+      !! passes vilma_control's DEFAULTS_FILE = input/vilma_defaults.nml); its &ctl
       !! (run control) group is read from cfg_file alone, with the vilma_ctl_class in-code
       !! defaults filling any gaps.
       character(len=*), intent(in) :: cfg_file
@@ -84,14 +84,14 @@ contains
       integer  :: nstep = 0
 
       ! --- configuration --------------------------------------------------------
-      ! &fe3d: cfg_file overlaid on the physics defaults. &ctl: from cfg_file alone
+      ! &vilma: cfg_file overlaid on the physics defaults. &ctl: from cfg_file alone
       ! (the defaults file carries no &ctl group — it is the host API contract).
       call vilma_par_load(p, cfg_file, defaults_file=defaults_file)
       call vilma_ctl_load(c, cfg_file)
       call vilma_par_print(p)
       call vilma_ctl_print(c)
 
-      ! Solver backend check, before any work: an unknown &fe3d solver, or
+      ! Solver backend check, before any work: an unknown &vilma solver, or
       ! solver="v1" in a binary built without the optional VILMA-v1 backend (the
       ! default build), aborts here with an actionable message rather than after
       ! minutes of remap and I/O setup.
@@ -139,7 +139,7 @@ contains
       call system_clock(pc0, prate)
       se%par = p; call solid_earth_init(se, z_bed_eq, h_ice_eq)              ! reference, memory 0
       if (len_trim(c%restart_in_file) > 0) then                              ! resume saved memory + clock
-         ! KNOWN GAP: a FastEarth3D restart file carries the NATIVE solver's
+         ! KNOWN GAP: a VILMA restart file carries the NATIVE solver's
          ! prognostic memory, which has no VILMA-v1 counterpart. VILMA-v1 restarts through
          ! its own files (r_restart / w_restart), which this driver does not wire up.
          if (se%use_vilma_v1) &
@@ -304,11 +304,11 @@ contains
          '   sub-steps/interval: n_accept=', real(se%stepper%n_accept,wp)/nstep, &
          '  n_solve=', real(se%stepper%n_solve,wp)/nstep, '  (per coupling step)'
       write(*,'(a,a)') ' vilma: wrote ', trim(c%file_out)
-      ! A FastEarth3D restart snapshot is the NATIVE solver's prognostic memory; it
+      ! A VILMA restart snapshot is the NATIVE solver's prognostic memory; it
       ! has no VILMA-v1 counterpart (VILMA-v1 persists its state through its own restart
       ! files), so with solver="v1" none is written rather than an empty one.
       if (se%use_vilma_v1) then
-         write(*,'(a)') ' vilma: no FastEarth3D restart written (solver="v1" keeps its'
+         write(*,'(a)') ' vilma: no VILMA restart written (solver="v1" keeps its'
          write(*,'(a,a)') '            own state under ', trim(p%vilma_v1_out_dir)
       else
          call vilma_restart_write(se, se%time, folder=trim(rundir)//"/final")

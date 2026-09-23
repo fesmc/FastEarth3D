@@ -1,18 +1,18 @@
-&fe3d
+&vilma
     ! ====================================================================
-    ! FastEarth3D physics + numerics DEFAULTS (vilma_params / &fe3d).
+    ! VILMA physics + numerics DEFAULTS (vilma_params / &vilma).
     !
-    ! This is the CANONICAL, COMPLETE defaults set: every &fe3d parameter is
+    ! This is the CANONICAL, COMPLETE defaults set: every &vilma parameter is
     ! present. The program loads it automatically (DEFAULTS_FILE in vilma_control);
     ! a run config passed on the command line is overlaid on top, setting only
     ! the parameters it overrides (yelmo defaults_file convention).
     !
     ! Do NOT put run-management settings here — forcing/reference/output files,
     ! the time window, online-remap / i_eq selectors, and the restart-in path
-    ! live in the &ctl group of the run config (fastearth.nml), never here.
+    ! live in the &ctl group of the run config (vilma.nml), never here.
     !
     ! A host model (CLIMBER-X) does not read this file at all: it fills the
-    ! record in memory, relying on the in-code type defaults plus its own &fe3d.
+    ! record in memory, relying on the in-code type defaults plus its own &vilma.
     !
     ! Δt fields (dt_*) are in YEARS here and converted to SI seconds on load;
     ! everything else is SI.
@@ -154,7 +154,7 @@
     vilma_v1_visc_3d_file = "visc3d_Bagge2021.nc"     ! 3-D viscosity NetCDF, rel. to vilma_v1_input_dir
     vilma_v1_l_prem       = 1                         ! 1: VILMA-v1's polynomial PREM (densi.inp gives only
                                                    !    boundaries + element sizes). 0: use densi.inp's
-                                                   !    rho/mu, e.g. one written from FastEarth3D's own
+                                                   !    rho/mu, e.g. one written from VILMA's own
                                                    !    layer table by experiments/make_vilma_densi.jl
     vilma_v1_nsub         = 1                         ! VILMA-v1 sub-steps per coupling interval; raise
                                                    ! until dt/nsub < VILMA-v1's minimum Maxwell time

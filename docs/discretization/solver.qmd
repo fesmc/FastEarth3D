@@ -3,7 +3,7 @@ title: "The banded direct solver and performance"
 ---
 
 The per-degree saddle-point system is small, banded, and reused unchanged across
-all orders $m$, all loads, and every time step. FastEarth3D therefore solves it
+all orders $m$, all loads, and every time step. VILMA therefore solves it
 with a **dependency-free, re-entrant, pivoted banded LU** — factor once, solve
 many times — which is both faster and structurally simpler than the iterative
 solver used in early versions.

@@ -4,7 +4,7 @@ title: "The sea-level equation"
 
 Surface loading and sea level are coupled: ice and ocean water deform and
 re-gravitate the solid Earth, which moves the geoid and the solid surface, which
-redistributes the ocean water, which changes the load. FastEarth3D solves this
+redistributes the ocean water, which changes the load. VILMA solves this
 self-consistently with the **migrating-coastline sea-level equation (SLE)** in
 the pseudo-spectral form of @KMM2005, driven by the viscoelastic response
 operator.
@@ -102,12 +102,12 @@ cheaply.
 
 ## Reference frame and degree 1
 
-The geocenter (degree-1) terms are physical and frame-dependent. FastEarth3D
+The geocenter (degree-1) terms are physical and frame-dependent. VILMA
 solves degree 1 in the **CM frame** [@Blewitt2003] via a rigid-translation
 constraint, so the displacement degree-1 (and hence the uplift) is
 self-consistent with the geoid. The Spada-2011 disc benchmark uses a *mixed*
 convention — displacement in a CE-like gauge ($h_1\approx 0$), geoid in the CM
-frame ($N_1 = 0$) — which FastEarth3D reproduces by referencing the degree-1
+frame ($N_1 = 0$) — which VILMA reproduces by referencing the degree-1
 geoid to CM. See the [disc benchmark](../benchmarks/disc.qmd).
 
 ::: {.callout-tip title="Where this lives in the code"}

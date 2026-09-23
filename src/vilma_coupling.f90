@@ -86,7 +86,7 @@ module vilma_coupling
    end type gauss_state
 
    type :: solid_earth
-      type(vilma_param_class)     :: par       !! configuration record (one &fe3d group); set by the host before init
+      type(vilma_param_class)     :: par       !! configuration record (one &vilma group); set by the host before init
       type(sht_grid), pointer  :: sht => null()  !! model-OWNED transform grid (built at init, freed at finalize)
       type(earth_model)        :: earth     !! radial (+ optional 3D) structure
       type(response)           :: resp      !! viscoelastic field driver (load → u, N)
@@ -188,7 +188,7 @@ contains
          ! structure, response, SLE, adaptive stepper, rotation) are built — that is
          ! the point of the backend swap. The response is initialised NULL so the I/O
          ! layer sees a memoryless model and writes only the common diagnostics:
-         ! there is no FastEarth3D Maxwell memory to persist, and VILMA-v1 persists its
+         ! there is no VILMA Maxwell memory to persist, and VILMA-v1 persists its
          ! own state through its own restart files.
          call response_init_null(self%resp)
       else
@@ -232,7 +232,7 @@ contains
    end subroutine solid_earth_init
 
    subroutine solid_earth_check_solver(par)
-      !! Validate &fe3d solver and, for "v1", that this binary actually HAS the
+      !! Validate &vilma solver and, for "v1", that this binary actually HAS the
       !! optional VILMA-v1 backend. Split out of solid_earth_init so a caller can fail
       !! the moment it has read the configuration, before doing any work: a namelist
       !! typo, or asking for VILMA-v1 in a default build, should cost nothing.
@@ -243,9 +243,9 @@ contains
       case ("v2")   ! native solver: nothing to check
       case ("v1"); call vilma_v1_require()
       case default
-         write(*,'(a)') ' fe3d: unknown solver "'//trim(par%solver)//'"'
-         write(*,'(a)') '   &fe3d solver must be "v2" (native, the default) or "v1"'
-         error stop 'unknown &fe3d solver (use v2|v1)'
+         write(*,'(a)') ' vilma: unknown solver "'//trim(par%solver)//'"'
+         write(*,'(a)') '   &vilma solver must be "v2" (native, the default) or "v1"'
+         error stop 'unknown &vilma solver (use v2|v1)'
       end select
    end subroutine solid_earth_check_solver
 
@@ -373,12 +373,12 @@ contains
          ! output, using the SAME formulas the native solver uses, so the two
          ! backends' diagnostics are like-for-like:
          !   C   — flotation (vilma_sle ocean_function) applied to VILMA-v1's updated bed
-         !         and the current ice. This is FastEarth3D's diagnostic of VILMA-v1's
+         !         and the current ice. This is VILMA's diagnostic of VILMA-v1's
          !         state, NOT VILMA-v1's internal ocean function (which the library does
          !         not expose on this grid); it can differ from VILMA-v1's own coastline
          !         by a grid cell where the two flotation rules disagree.
          !   bsl — update_bsl's barystatic integral over that C and the ice anomaly.
-         !         Again a FastEarth3D diagnostic of VILMA-v1's state, not VILMA-v1's own
+         !         Again a VILMA diagnostic of VILMA-v1's state, not VILMA-v1's own
          !         ocean bookkeeping (vega_oce.dat).
          call ocean_function(self%gg%z_bed, self%gg%h_ice, self%gg%C)
          call update_bsl(self)
@@ -484,7 +484,7 @@ contains
          write(*,'(a)') ' solid_earth_spinup: not available with solver="v1".'
          write(*,'(a)') '   VILMA-v1 advances its own viscous memory along its own time axis;'
          write(*,'(a)') '   the reference-held relaxation this routine performs has no VILMA-v1'
-         write(*,'(a)') '   analogue. Set equil_time_max=0 and pre_spinup_1d=.false. in &fe3d,'
+         write(*,'(a)') '   analogue. Set equil_time_max=0 and pre_spinup_1d=.false. in &vilma,'
          write(*,'(a)') '   and start the transient from the full (e.g. LGM->present) window,'
          write(*,'(a)') '   which is how CLIMBER-X drives VILMA-v1. See doc/vilma-v1-backend.md.'
          error stop 'solid_earth_spinup: unsupported with solver="v1" (see message above)'

@@ -1,7 +1,7 @@
-&fe3d
+&vilma
     ! ====================================================================
     ! The SAME deglaciation run as examples/deglac_lgm.nml, but driven by the
-    ! optional VILMA-v1 backend instead of the native solver — an F-vs-V comparison
+    ! optional VILMA-v1 backend instead of the native solver — an v2-vs-v1 comparison
     ! behind one driver, one forcing, one reference, one output layout.
     !
     !   make clean
@@ -16,7 +16,7 @@
     solver       = "v1"
 
     lmax         = 32          ! the COUPLING + OUTPUT grid, not VILMA-v1's resolution.
-                               ! Keep it equal to the fe3d run being compared against.
+                               ! Keep it equal to the v2 run being compared against.
 
     ! VILMA-v1 has its own earth structure, sea-level equation and time stepping, so
     ! `earth`, `scheme`, `earth_response`, the sle_* / dt_* knobs and `rotation`
@@ -78,7 +78,7 @@
     time_init    = -26000.0
     time_end     = 0.0
 
-    ! A FastEarth3D restart carries the native solver's memory, which VILMA-v1 has
+    ! A VILMA restart carries the native solver's memory, which VILMA-v1 has
     ! no counterpart for; restart_in_file is refused with solver="v1".
     restart_in_file = ""
 /

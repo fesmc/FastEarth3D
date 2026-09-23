@@ -2,13 +2,13 @@
 title: "Installation and running"
 ---
 
-This page covers getting FastEarth3D built and running a forced simulation. The
+This page covers getting VILMA built and running a forced simulation. The
 build is driven by **configme** (one source of machine/compiler truth) and runs
 are staged by **runme** (single simulations and ensembles, locally or on SLURM).
 
 ## Dependencies
 
-FastEarth3D needs only a small, well-established stack:
+VILMA needs only a small, well-established stack:
 
 | Dependency | Provides | Source |
 |---|---|---|
@@ -62,16 +62,16 @@ Build switches: `debug = 0|1|2` (optimized / checks / profile) and
 `openmp = 0|1` (**default 1**). The threaded degree loop is what makes
 production resolutions fast — build `openmp=1` (see [Solver](discretization/solver.qmd)).
 
-## Configuration: the `&fe3d` namelist
+## Configuration: the `&vilma` namelist
 
-All runtime parameters live in a single namelist group **`&fe3d`**.
-[`fastearth.nml`](https://github.com/fesmc/FastEarth3D/blob/main/fastearth.nml)
+All runtime parameters live in a single namelist group **`&vilma`**.
+[`vilma.nml`](https://github.com/fesmc/VILMA/blob/main/vilma.nml)
 is the canonical, fully documented defaults set — *every* parameter is present.
 A run can pass a **sparse overlay** that sets only what it overrides (the yelmo
 `defaults_file` convention):
 
 ```bash
-./bin/vilma.x examples/deglac_lgm.nml fastearth.nml
+./bin/vilma.x examples/deglac_lgm.nml vilma.nml
 #                 ^ sparse overlay        ^ complete defaults
 ```
 
@@ -102,7 +102,7 @@ A few conventions worth knowing:
 
 A complete worked configuration — an LGM → present-day deglaciation forced by
 the Tarasov ice/bed reconstruction — is in
-[`examples/deglac_lgm.nml`](https://github.com/fesmc/FastEarth3D/blob/main/examples/deglac_lgm.nml).
+[`examples/deglac_lgm.nml`](https://github.com/fesmc/VILMA/blob/main/examples/deglac_lgm.nml).
 
 ## Running with runme
 
@@ -114,7 +114,7 @@ aliases match the drivers: `main` → `vilma.x`, `mkref` → `vilma_mkref.x`,
 ```bash
 # single local run, 8 OpenMP threads, overriding a few parameters
 runme -o runs/deglac -e main --omp 8 -r \
-      -p fe3d.lmax=128 fe3d.earth_response=ve fe3d.file_out=out.nc
+      -p vilma.lmax=128 vilma.earth_response=ve vilma.file_out=out.nc
 ```
 
 How a run is launched is set by two flags:
@@ -125,7 +125,7 @@ How a run is launched is set by two flags:
   omitting both stages the run directory only.
 
 A comma list, range, or distribution in `-p` turns a parameter into an
-**ensemble dimension** (`-p fe3d.lmax=64,128`), with `-a` naming the member
+**ensemble dimension** (`-p vilma.lmax=64,128`), with `-a` naming the member
 directories from their parameter values. SLURM settings (cluster, account,
 threads) live in `.runme/config.toml`; bootstrap it with `runme config init` and
 inspect what runme reads with `runme info`.
@@ -142,7 +142,7 @@ parameter record), and keeps all spherical-harmonic work inside
 ```fortran
 use vilma
 type(solid_earth) :: se
-call vilma_par_load(se%par, "fastearth.nml")             ! configuration lives in se%par
+call vilma_par_load(se%par, "vilma.nml")             ! configuration lives in se%par
 call solid_earth_init(se, z_bed_eq, h_ice_eq, grid=host_grid)  ! builds the Gauss grid + remap
 call solid_earth_spinup(se, h_ice_lgm)                ! optional LGM-memory spin-up
 do

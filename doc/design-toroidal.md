@@ -1,4 +1,4 @@
-# FastEarth3D — the toroidal degree of freedom (design)
+# VILMA — the toroidal degree of freedom (design)
 
 **Status: implemented** (branch `toroidal`, 2026-09). §0 records what was
 built and where it departs from the plan; §1–§6 are the original scoping
@@ -14,7 +14,7 @@ Martinec FE method) and `formulation.md` (the equations as implemented).
 | `8d955f0` | `vilma_radial_fe`: `toroidal_operator`; shared `bordered_band` |
 | `58005d0` | `vilma_viscoelastic`: toroidal strain rows, norms, RHS, memory advance |
 | `745f672` | `vilma_response`: W carried as drift once a 3-D element exists |
-| `c9a9269` | the switch: the 3-D advance carries λ3, λ4; `&fe3d l_toroidal` |
+| `c9a9269` | the switch: the 3-D advance carries λ3, λ4; `&vilma l_toroidal` |
 | `a6ccc3d` | restarts carry the channel count; 4 → 6 migration |
 | `cbf77bd` | `&ctl file_hor`: horizontal displacement, total and toroidal |
 
@@ -69,7 +69,7 @@ it looks (§2.1).
 
 ## 1. What is missing, and why it may matter
 
-FastEarth3D has no toroidal degree of freedom anywhere:
+VILMA has no toroidal degree of freedom anywhere:
 
 | | where |
 |---|---|
@@ -90,13 +90,13 @@ the code cites the first half of the sentence and the second half is the point:
 
 Mechanically: a poloidal surface load over laterally varying viscosity drives
 toroidal flow, and that flow back-couples into the poloidal field through the
-same pointwise `M(θ,φ)·τ` product. FastEarth3D computes the forward leg
+same pointwise `M(θ,φ)·τ` product. VILMA computes the forward leg
 implicitly in the grid product and then annihilates it in the analysis, so the
 return leg never happens.
 
 ### 1.1 The motivating evidence has changed — re-establish it first
 
-This work was scoped when FastEarth3D's lateral response looked severely damped
+This work was scoped when VILMA's lateral response looked severely damped
 against VILMA-v1. **That turned out to be a bug in the viscosity reader, not
 missing physics** (fixed in `dd03b79`; `input/bagge2021.nc` stores latitude
 north-first and the whole field was collapsing onto one parallel). Corrected,
@@ -104,8 +104,8 @@ at 21 ka against the block-D deglaciation:
 
 | lateral signal (3D − 1Db rsl, area-weighted) | rms | max abs | pattern corr. vs VILMA-v1 |
 |---|---:|---:|---:|
-| FastEarth3D, before the reader fix | 0.470 m | 15.3 m | −0.108 |
-| FastEarth3D, after | 2.661 m | 95.0 m | **+0.963** |
+| VILMA, before the reader fix | 0.470 m | 15.3 m | −0.108 |
+| VILMA, after | 2.661 m | 95.0 m | **+0.963** |
 | VILMA-v1, clean lateral signal | 2.915 m | 149.1 m | 1 |
 
 So the rms is now within 9 % of VILMA-v1 and the pattern correlates at 0.96. **The
@@ -129,7 +129,7 @@ if (self%MkPerDt(e) == 0.0_wp) cycle    ! elastic/fluid: stay as-is
 ```
 `src/vilma_response.f90:1462`
 
-Block D's layer 1 is `rheology = 0` to 80 km, so FastEarth3D runs a laterally
+Block D's layer 1 is `rheology = 0` to 80 km, so VILMA runs a laterally
 uniform rigid plate exactly where the Bagge field has its strongest lateral
 contrast, while VILMA-v1's lithosphere is defined *by* the viscosity file and sees
 the weak zones. Two things follow:
@@ -252,7 +252,7 @@ Volker Klemann, VILMA-v1's author, has confirmed that VILMA-v1 treats the toroid
 component. This matters three ways:
 
 - it removes the last doubt about the physics: the reference the model is
-  measured against solves a problem FastEarth3D does not;
+  measured against solves a problem VILMA does not;
 - it makes VILMA-v1 a **valid oracle** for §4/V6, which is the only external check
   available for this work;
 - it means the toroidal implementation can be developed against a working one
@@ -394,7 +394,7 @@ toroidal ones (p. 133).
 | Weerdesteijn (2023) §5.2 | axisymmetric cylinder + axisymmetric disc → toroidal ≡ 0 |
 | Martinec (2018) VEGA | 1-D |
 | Martinec (2000) models C, E | explicitly decoupled |
-| **VILMA-v1 via `solver="v1"`** | **the only external oracle** — same driver, namelist, forcing, remap, output; an F-vs-V comparison is a one-line namelist change. Needs ifx + a hand-installed `vega_pism.a`. |
+| **VILMA-v1 via `solver="v1"`** | **the only external oracle** — same driver, namelist, forcing, remap, output; an v2-vs-v1 comparison is a one-line namelist change. Needs ifx + a hand-installed `vega_pism.a`. |
 
 ### Proposed tests
 
@@ -434,7 +434,7 @@ toroidal ones (p. 133).
   that this cannot detect a *missing* toroidal block, only a mis-normalised,
   mis-signed or mis-ordered one — the split is itself rotationally covariant.
 - **V6 — VILMA-v1 cross-check.** V4's chiral configuration through
-  `solver="v1"` and through FastEarth3D, same forcing and output grid. The
+  `solver="v1"` and through VILMA, same forcing and output grid. The
   acceptance gate for the whole piece of work, not an afterthought.
 - **V7 — the payoff measurement.** Lateral-response amplitude with and without
   the toroidal block, against VILMA-v1, on the corrected baseline of §1.1. That

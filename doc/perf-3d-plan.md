@@ -47,7 +47,7 @@ For contrast, Pan 2022 at the same floor: `solid_earth_update` ≈ 3.9 s/step at
   benchmark (prohibitive for the 8-config per-thread tensor-SH pool). Transforms run ~20 %
   slower than the tuned optimum; for long production runs, add `SHT_LOAD_SAVE_CFG` to
   `SHT_GAUSS` to recover tuned transforms with a cached, one-time init.
-- `fastearth.nml`: default 3-D field → Bagge 2021 (floored 19.5 via `visc_log10_min`).
+- `vilma.nml`: default 3-D field → Bagge 2021 (floored 19.5 via `visc_log10_min`).
 - `vilma_drive`: coarse PROFILE timers (per-step read/update/write + `n_accept`/`n_solve`,
   one-time `build_remap` / `solid_earth_init`).
 

@@ -1,4 +1,4 @@
-# Source lists, compilation rules and targets for FastEarth3D.
+# Source lists, compilation rules and targets for VILMA.
 # Included by config/Makefile after the flag sets are assembled.
 
 # --- Library object list (in module-dependency order) ------------------------
@@ -77,7 +77,7 @@ $(objdir)/vilma.o:                  $(objdir)/vilma_coupling.o $(objdir)/vilma_i
 
 # --- Pattern rule ------------------------------------------------------------
 # Every object depends on FESMUTILS_LIB (libfesmutils.a): fesm-utils modules
-# (coords/ncio/nml) are used across FastEarth3D, and a rebuilt fesm-utils with a
+# (coords/ncio/nml) are used across VILMA, and a rebuilt fesm-utils with a
 # changed module interface must force a recompile against the new .mod rather than
 # silently relinking a stale object (ABI mismatch -> segfault, the i_geo=3 coords
 # crash). Blanket dep keeps this correct without tracking which objects use which
@@ -360,7 +360,7 @@ TESTS = test_params test_drive test_band test_sht test_earth test_mesh test_inte
 
 check: $(TESTS)
 	@echo ""
-	@echo "=== Running FastEarth3D test suite ==="
+	@echo "=== Running VILMA test suite ==="
 	@for t in $(TESTS); do \
 		echo "--- $$t ---"; \
 		$(bindir)/$$t.x || exit 1; \
@@ -384,7 +384,7 @@ BIGSTACK = ulimit -s unlimited 2>/dev/null || ulimit -s 262144 2>/dev/null || tr
 
 check-slow: $(SLOW)
 	@echo ""
-	@echo "=== Running FastEarth3D slow benchmarks ==="
+	@echo "=== Running VILMA slow benchmarks ==="
 	@for c in C2 D3 E2 F1; do \
 		echo "--- test_benchmark_sle $$c ---"; \
 		( $(BIGSTACK); OMP_STACKSIZE=$${OMP_STACKSIZE:-256M} \
@@ -404,7 +404,7 @@ check-slow: $(SLOW)
 
 usage:
 	@echo ""
-	@echo "    * FastEarth3D build *"
+	@echo "    * VILMA build *"
 	@echo ""
 	@echo " make vilma-static : build libvilma.a"
 	@echo " make vilma        : build the standalone driver (bin/vilma.x)"
@@ -423,7 +423,7 @@ usage:
 
 showconfig:
 	@echo "----------------------"
-	@echo "FastEarth3D build configuration"
+	@echo "VILMA build configuration"
 	@echo "----------------------"
 	@echo "compiler  : $(FC)"
 	@echo "host      : $(shell hostname)"

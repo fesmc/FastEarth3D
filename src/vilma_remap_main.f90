@@ -1,5 +1,5 @@
 program vilma_remap
-   !! Offline lon-lat -> Gauss-Legendre remapper. Reads a &fe3d config (the grid
+   !! Offline lon-lat -> Gauss-Legendre remapper. Reads a &vilma config (the grid
    !! knobs lmax/nlat/nphi, the source file_forcing + name_ice/name_lon/name_lat/
    !! name_time, and file_out), conservatively remaps the ice variable over every
    !! time slice onto the model Gauss grid, and writes a Gauss-grid forcing file the
@@ -29,11 +29,11 @@ program vilma_remap
    real(wp), allocatable :: lon_g(:), lat_g(:), tyr(:)
    integer :: nlon, nls, np, nl, nt, k, nlat, nphi
 
-   ! --- config (grid from &fe3d over the physics defaults; I/O from &ctl) -----
+   ! --- config (grid from &vilma over the physics defaults; I/O from &ctl) -----
    if (command_argument_count() >= 1) then
       call get_command_argument(1, cfg)
    else
-      cfg = "fastearth.nml"
+      cfg = "vilma.nml"
    end if
    call vilma_par_load(p, cfg, defaults_file=DEFAULTS_FILE)
    call vilma_ctl_load(c, cfg)

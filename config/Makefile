@@ -12,7 +12,7 @@ debug  ?= 0
 openmp ?= 1
 # Optional VILMA-v1 solid-earth backend (solver="v1"). OFF by default: VILMA-v1 is a
 # hand-installed, precompiled library absent on most machines, so it must never
-# become a build dependency of FastEarth3D. With vilma_v1=0 (the default) not one
+# become a build dependency of VILMA. With vilma_v1=0 (the default) not one
 # VILMA-v1 symbol is referenced, no VILMA-v1 include path is needed, and a namelist
 # asking for solver="v1" aborts with an actionable message from the
 # compiled-in stub (src/vilma_v1.f90, gated on -DVILMA_V1). See doc/vilma-v1-backend.md.

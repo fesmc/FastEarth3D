@@ -1,16 +1,16 @@
 module vilma_v1
-   !! OPTIONAL VILMA-v1 backend for the vilma_coupling API (&fe3d solver = "v1").
+   !! OPTIONAL VILMA-v1 backend for the vilma_coupling API (&vilma solver = "v1").
    !!
    !! VILMA-v1 (Martinec/Klemann; the CLIMBER-X i_geo=2 solid-earth backend) is swapped
    !! in behind the SAME driver, namelist, forcing, remap and output as the native
-   !! FastEarth3D solver, so an F-vs-V comparison differs only in the solver. The
+   !! VILMA solver, so an v2-vs-v1 comparison differs only in the solver. The
    !! contract is the one vilma_coupling already states: ice thickness in, relative sea
    !! level out. This module is the direct analogue of CLIMBER-X's src/geo/vilma.F90,
-   !! ported to drive from the FastEarth3D Gauss grid instead of the CLIMBER-X geo
+   !! ported to drive from the VILMA Gauss grid instead of the CLIMBER-X geo
    !! grid; read the two side by side.
    !!
    !! ===========================================================================
-   !! VILMA-v1 IS NOT A DEPENDENCY OF FastEarth3D.
+   !! VILMA-v1 IS NOT A DEPENDENCY OF VILMA.
    !! ===========================================================================
    !! It is a hand-installed, precompiled library (its own .mod files under
    !! include, plus lib/vega_pism.a) that is absent on most machines. Do not spell
@@ -28,7 +28,7 @@ module vilma_v1
    !! There are THREE grids in play, and the boundaries matter:
    !!   host lon-lat     — the driver's forcing grid. vilma_coupling/vilma_drive remap it
    !!                      to the model Gauss grid; this module never sees it.
-   !!   model Gauss      — the FastEarth3D Gauss-Legendre grid (sht, nphi x nlat, rows
+   !!   model Gauss      — the VILMA Gauss-Legendre grid (sht, nphi x nlat, rows
    !!                      NORTH-first). Everything this module is handed and returns
    !!                      is on THIS grid, exactly as for the native solver, so all
    !!                      output files and diagnostics are directly comparable.
@@ -135,7 +135,7 @@ contains
       if (vilma_v1_available()) return
       write(error_unit,'(a)') ''
       write(error_unit,'(a)') ' ======================================================================'
-      write(error_unit,'(a)') '  FastEarth3D: solver="v1" requested, but this binary has no VILMA-v1.'
+      write(error_unit,'(a)') '  VILMA: solver="v1" requested, but this binary has no VILMA-v1.'
       write(error_unit,'(a)') ' ======================================================================'
       write(error_unit,'(a)') '  The VILMA-v1 backend is OPTIONAL and is OFF by default, because VILMA-v1 is'
       write(error_unit,'(a)') '  a hand-installed precompiled library that is absent on most machines.'
@@ -147,8 +147,8 @@ contains
       write(error_unit,'(a)') ''
       write(error_unit,'(a)') '  where VILMA_V1_ROOT holds  include/*.mod  and  lib/vega_pism.a .'
       write(error_unit,'(a)') ''
-      write(error_unit,'(a)') '  Otherwise set  solver = "v2"  in the &fe3d namelist group to use'
-      write(error_unit,'(a)') '  the native FastEarth3D solver.  See doc/vilma-v1-backend.md.'
+      write(error_unit,'(a)') '  Otherwise set  solver = "v2"  in the &vilma namelist group to use'
+      write(error_unit,'(a)') '  the native VILMA solver.  See doc/vilma-v1-backend.md.'
       write(error_unit,'(a)') ' ======================================================================'
       flush(error_unit)
       error stop 'solver="v1" requires building with `make vilma vilma_v1=1` and a VILMA-v1 install at VILMA_V1_ROOT'
@@ -214,15 +214,15 @@ contains
       vg%l_mod      = merge(1, 0, par%l_visc_3d)   ! 0 = 1-D radial, 1 = read 3-D field
       vg%l_toro     = 0        ! toroidal loading is irrelevant for GIA
       ! Follow par%rotation rather than hardwiring it on: otherwise rotation=.false.
-      ! gives a non-rotating FastEarth3D against a rotating VILMA-v1, the highest-order
-      ! physics term differing silently in an F-V pair.
+      ! gives a non-rotating VILMA against a rotating VILMA-v1, the highest-order
+      ! physics term differing silently in an v2-v1 pair.
       vg%l_rot      = merge(31, 0, par%rotation)   ! rotational variations in the potential
       vg%l_grid     = 2        ! loading supplied as a spatial grid
       vg%l_envonly  = 0
       vg%ntime      = 10000000 ! no cap: the driver's window decides
       vg%l_wepoch   = 1        ! output epochs listed in wepochs.inp
       vg%l_load_hist = .false. ! only the current slice is kept in the ice-history file
-      vg%restart    = .false.  ! FastEarth3D restarts are not wired to VILMA-v1's (see doc)
+      vg%restart    = .false.  ! VILMA restarts are not wired to VILMA-v1's (see doc)
 
       ! --- VILMA-v1's file environment -------------------------------------------
       ! Only what does not depend on the (not-yet-known) coupling interval: the
@@ -506,7 +506,7 @@ contains
       !! inputs) or vilma_v1_out_dir (everything the run produces). One-for-one with
       !! CLIMBER-X's vilma_init, except that paths are always joined with "/" and
       !! the restart-matrix scratch lives under <out_dir>/restart rather than a
-      !! separate restart-input tree (FastEarth3D does not wire VILMA-v1 restarts).
+      !! separate restart-input tree (VILMA does not wire VILMA-v1 restarts).
       type(vilma_v1_backend),  intent(in) :: self
       type(vilma_param_class), intent(in) :: par
       character(len=:), allocatable :: id, od, rd
@@ -624,7 +624,7 @@ contains
       !!
       !! loadh.inp's first row is `nlat nlon rho_ice rho_ocean` — LATITUDE FIRST, and
       !! nlat/nlon must equal the NetCDF lat/lon sizes or VILMA-v1's check_dim_ne aborts.
-      !! The densities are FastEarth3D's OWN rho_ice / rho_water, so both backends
+      !! The densities are VILMA's OWN rho_ice / rho_water, so both backends
       !! turn the same ice thickness into the same load; CLIMBER-X hard-codes
       !! 910/1020 there instead.
       type(vilma_v1_backend), intent(in) :: self
@@ -783,7 +783,7 @@ contains
            ' implies a Gauss grid of ', want_lon, ' x ', want_lon/2
       write(error_unit,'(a,i0,a,i0,a)')    '   but vilma_v1_grid_file describes ', nlon, ' x ', nlat, ':'
       write(error_unit,'(a)')      '     '//trim(fname)
-      write(error_unit,'(a)')      '   Set &fe3d vilma_v1_jmax and vilma_v1_grid_file consistently'
+      write(error_unit,'(a)')      '   Set &vilma vilma_v1_jmax and vilma_v1_grid_file consistently'
       write(error_unit,'(a)')      '   (nlon = smallest power of 2 > 3*jmax, nlat = nlon/2).'
       flush(error_unit)
       error stop 'vilma_v1_init: vilma_v1_jmax and vilma_v1_grid_file describe different grids'
@@ -797,7 +797,7 @@ contains
       write(error_unit,'(a,i0,a)') ' vilma_v1: vilma_v1_out_dir is too long — VILMA-v1 stores file names in ', &
            VILMA_V1_PATH_LEN, ' characters and this would be truncated:'
       write(error_unit,'(a)') '   '//trim(path)
-      write(error_unit,'(a)') '   Set &fe3d vilma_v1_out_dir to a shorter (e.g. relative) path.'
+      write(error_unit,'(a)') '   Set &vilma vilma_v1_out_dir to a shorter (e.g. relative) path.'
       flush(error_unit)
       error stop 'vilma_v1_init: vilma_v1_out_dir path too long for VILMA-v1'
    end subroutine check_path_len

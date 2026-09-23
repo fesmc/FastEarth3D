@@ -1,6 +1,6 @@
-# FastEarth3D
+# VILMA
 
-A state-of-the-art but simple and fast **3D solid-Earth model** — a
+(Formerly FastEarth3D.) A state-of-the-art but simple and fast **3D solid-Earth model** — a
 visco-elastic deformation model coupled with the sea-level equation — intended
 as an **open-source replacement for VILMA-v1** within the CLIMBER-X climate model.
 
@@ -11,12 +11,12 @@ explicitly in time, a self-consistent sea-level equation with migrating
 coastlines, and rotational feedback. It is built **3D-ready from the start**
 (laterally varying viscosity) and validated against the published GIA benchmarks.
 
-**Documentation:** <https://fesmc.github.io/FastEarth3D/> (physics,
+**Documentation:** <https://fesmc.github.io/VILMA/> (physics,
 discretization, benchmarks, install & run), rendered from the Quarto sources
 under [`docs/`](docs/); see [doc/design.md](doc/design.md) for the design
 rationale and method comparison, and
 [doc/vilma-v1-backend.md](doc/vilma-v1-backend.md) for the optional VILMA-v1 backend
-(`&fe3d solver = "v1"`), which drives VILMA-v1 itself through this model's
+(`&vilma solver = "v1"`), which drives VILMA-v1 itself through this model's
 driver, namelist, forcing, remap and output for a like-for-like comparison. It
 is **off by default and is not a dependency**: it needs an explicit
 `make vilma vilma_v1=1 VILMA_V1_ROOT=<install>` and a hand-installed VILMA-v1.
@@ -60,8 +60,8 @@ threaded degree loop at production resolutions).
 
 ## Configure & run
 
-All runtime parameters live in a single namelist group `&fe3d`, loaded into the
-`vilma_param_class` record by `vilma_par_load`. [`fastearth.nml`](fastearth.nml) is the
+All runtime parameters live in a single namelist group `&vilma`, loaded into the
+`vilma_param_class` record by `vilma_par_load`. [`vilma.nml`](vilma.nml) is the
 complete, documented defaults set; a run can pass a sparse file overlaid on it
 (yelmo `defaults_file` convention), overriding only what it needs. Time fields
 (`dt_*`, `time_*`) are given in **years** and converted to SI seconds on load.
@@ -80,7 +80,7 @@ complete, documented defaults set; a run can pass a sparse file overlaid on it
 Run the standalone driver directly (sparse overlay + complete defaults):
 
 ```bash
-./bin/vilma.x examples/deglac_lgm.nml fastearth.nml
+./bin/vilma.x examples/deglac_lgm.nml vilma.nml
 ```
 
 It reads a reference state and an ice-thickness forcing (`file_forcing`,
@@ -92,7 +92,7 @@ Or stage/submit runs and ensembles with **runme** (`-r` run, `-s` submit;
 comma-lists in `-p` define ensemble dimensions):
 
 ```bash
-runme -o runs/deglac -e main --omp 8 -r -p fe3d.lmax=128 fe3d.earth_response=ve
+runme -o runs/deglac -e main --omp 8 -r -p vilma.lmax=128 vilma.earth_response=ve
 ```
 
 Embedding the model in a host (the CLIMBER-X coupling path) uses the same API
@@ -102,7 +102,7 @@ behind a single `use vilma`:
 use vilma
 type(vilma_param_class) :: par
 type(solid_earth)    :: se
-call vilma_par_load(par, "fastearth.nml")
+call vilma_par_load(par, "vilma.nml")
 call solid_earth_init(se, par, sht, z_bed_eq, h_ice_ref)
 call solid_earth_update(se, h_ice, dt)   ! advance time -> time+dt; reads se%rsl, se%z_bed
 ```

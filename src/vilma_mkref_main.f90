@@ -1,6 +1,6 @@
 program vilma_mkref
    !! Offline reference generation: write the 2D reference state (bedrock + ice) onto
-   !! a chosen Gauss grid. Reads a &fe3d config (grid knobs lmax/nlat/nphi, the
+   !! a chosen Gauss grid. Reads a &vilma config (grid knobs lmax/nlat/nphi, the
    !! reference source z_bed_ref_file / h_ice_ref_file + name_z_bed_ref /
    !! name_h_ice_ref / name_lon / name_lat, and file_out), conservatively remaps bed
    !! (as-is) and ice (mass-conserving) once, and writes a Gauss-grid reference file.
@@ -29,11 +29,11 @@ program vilma_mkref
    real(wp), allocatable :: lon_g(:), lat_g(:)
    integer :: nlon, nls, np, nl, k, nlat, nphi
 
-   ! --- config (grid from &fe3d over the physics defaults; I/O from &ctl) -----
+   ! --- config (grid from &vilma over the physics defaults; I/O from &ctl) -----
    if (command_argument_count() >= 1) then
       call get_command_argument(1, cfg)
    else
-      cfg = "fastearth.nml"
+      cfg = "vilma.nml"
    end if
    call vilma_par_load(p, cfg, defaults_file=DEFAULTS_FILE)
    call vilma_ctl_load(c, cfg)

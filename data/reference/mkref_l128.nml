@@ -1,8 +1,8 @@
-! Reference generation for fastearth_mkref (overlaid on input/fastearth3d_defaults.nml):
+! Reference generation for vilma_mkref (overlaid on input/vilma_defaults.nml):
 !     bin/vilma_mkref.x data/reference/mkref_l128.nml
-! &fe3d sets the grid; the tool reads the reference source + output from &ctl
+! &vilma sets the grid; the tool reads the reference source + output from &ctl
 ! (the &ctl group is complete — the run config owns it in full).
-&fe3d
+&vilma
     lmax           = 128
 /
 

@@ -1,7 +1,7 @@
 module vilma_control
-   !! Standalone-program control record: the run-management settings the FastEarth3D
+   !! Standalone-program control record: the run-management settings the VILMA
    !! *executables* need but the solid-Earth model itself does not. Loaded from one
-   !! namelist group `&ctl`, separate from the physics/numerics record `&fe3d`
+   !! namelist group `&ctl`, separate from the physics/numerics record `&vilma`
    !! (vilma_params). These are the forcing/reference/output file paths, variable names,
    !! the time window, the online-remap toggle, the reference-equilibration selector
    !! (i_eq), and the restart-in path — everything a host model (CLIMBER-X) supplies
@@ -10,7 +10,7 @@ module vilma_control
    !! Split rationale: `vilma_param_class` is the model's configuration contract (what a
    !! host fills in memory); `vilma_ctl_class` is the standalone driver's I/O glue. The
    !! driver (vilma_drive) and the offline tools (vilma_remap, vilma_mkref) load
-   !! BOTH groups — `&fe3d` for the grid/physics, `&ctl` for what to read and write.
+   !! BOTH groups — `&vilma` for the grid/physics, `&ctl` for what to read and write.
    use vilma_precision, only: wp
    use vilma_constants, only: sec_per_year
    use vilma_params,    only: expand_path
@@ -24,7 +24,7 @@ module vilma_control
    !! Canonical physics defaults the executables load automatically. A run config
    !! given on the command line is overlaid on this (yelmo defaults_file convention).
    !! Relative to the run directory; input/ is linked into each rundir (see .runme).
-   character(len=*), parameter :: DEFAULTS_FILE = "input/fastearth3d_defaults.nml"
+   character(len=*), parameter :: DEFAULTS_FILE = "input/vilma_defaults.nml"
 
    type :: vilma_ctl_class
       ! --- ice-thickness forcing (lon,lat,time) ---------------------------------
@@ -89,8 +89,8 @@ contains
 
    subroutine vilma_ctl_load(c, filename, group)
       !! Fill the control record from the `&ctl` group of `filename`. There is no
-      !! separate &ctl defaults file (the canonical defaults — input/fastearth3d_defaults.nml
-      !! — carry only &fe3d, the host API contract). Reads are therefore non-strict:
+      !! separate &ctl defaults file (the canonical defaults — input/vilma_defaults.nml
+      !! — carry only &vilma, the host API contract). Reads are therefore non-strict:
       !! a parameter present in `filename` overrides, one that is absent keeps the
       !! vilma_ctl_class in-code default. So a run config may set only the &ctl keys it
       !! needs. Override `group` to read a differently-named namelist. Time fields are

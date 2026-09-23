@@ -4,7 +4,7 @@ title: "Maxwell rheology and the memory stress"
 
 The mantle is modelled as an **incompressible Maxwell** body: it responds
 elastically on short timescales and viscously on long ones, with a single
-Maxwell time $\tau_M = \eta/\mu$ per layer. FastEarth3D integrates this
+Maxwell time $\tau_M = \eta/\mu$ per layer. VILMA integrates this
 constitutive law **explicitly in the time domain** — there is no normal-mode
 decomposition and no Laplace transform. This is the structural choice that
 makes laterally varying (3D) viscosity essentially free.
