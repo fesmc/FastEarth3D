@@ -330,7 +330,7 @@ contains
    end subroutine response_apply
 
    subroutine response_horizontal(self, sht, sigma_lm, v_lm)
-      type(response), intent(inout) :: self
+      type(response), intent(in)    :: self
       type(sht_grid), intent(in)    :: sht
       complex(wp),    intent(in)    :: sigma_lm(:)
       complex(wp),    intent(out)   :: v_lm(:)
@@ -452,7 +452,7 @@ contains
 
    subroutine response_horizontal_default(self, sht, sigma_lm, v_lm)
       !! No horizontal displacement for a rigid / non-deforming response.
-      type(response), intent(inout) :: self
+      type(response), intent(in)    :: self
       type(sht_grid),           intent(in)    :: sht
       complex(wp),              intent(in)    :: sigma_lm(:)  !! load [kg m^-2]
       complex(wp),              intent(out)   :: v_lm(:)      !! spheroidal V(a) [m]
@@ -600,7 +600,7 @@ contains
       !! Spheroidal multiply: v_lm = vgain(l)·σ_lm (degree-1 left as solved, like
       !! ugain — the horizontal displacement is in the CE-like gauge, not the geoid
       !! CM frame). Synthesize ∇₁(Σ v_lm Y_lm) for (u_θ, u_φ).
-      type(response), intent(inout) :: self
+      type(response), intent(in)    :: self
       type(sht_grid),          intent(in)    :: sht
       complex(wp),             intent(in)    :: sigma_lm(:)
       complex(wp),             intent(out)   :: v_lm(:)
@@ -797,7 +797,7 @@ contains
    end subroutine modal_response_apply
 
    subroutine modal_response_horizontal(self, sht, sigma_lm, v_lm)
-      type(response), intent(inout) :: self
+      type(response), intent(in)    :: self
       type(sht_grid), intent(in)    :: sht
       complex(wp),    intent(in)    :: sigma_lm(:)
       complex(wp),    intent(out)   :: v_lm(:)
@@ -1432,7 +1432,7 @@ contains
       !! frozen drift (dVa) as the last begin_step, so calling it after a converged
       !! step gives the horizontal consistent with apply()'s u/N. Degree 1 left as
       !! solved (CE-like gauge, like u — not the geoid CM frame).
-      type(response), intent(inout) :: self
+      type(response), intent(in)    :: self
       type(sht_grid),     intent(in)    :: sht
       complex(wp),        intent(in)    :: sigma_lm(:)
       complex(wp),        intent(out)   :: v_lm(:)

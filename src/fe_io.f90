@@ -20,7 +20,9 @@ module fe_io
    use fe_constants,    only: rad2deg, sec_per_year
    use fe_viscoelastic, only: NLAM, NLAM_TOR
    use fe_response,     only: response_prime_sigma, response, response_init_elastic, response_init_ve, &
-                              response_init_null, RESP_VE, RESP_MODAL
+                              response_init_null, RESP_VE, RESP_MODAL, &
+                              response_horizontal, response_horizontal_toroidal
+   use fe_sht,          only: sht_grid_sph_synthesis, sht_grid_tor_synthesis
    use fe_rotation,     only: rotation_ne, rotation_get_memory, rotation_set_memory, ROT_NCOMP
    use fe_coupling,     only: solid_earth, solid_earth_sync_host
    use ncio
@@ -29,6 +31,7 @@ module fe_io
    private
 
    public :: fe_restart_write, fe_restart_read, fe_write_step, fe_io_set_table
+   public :: fe_write_horizontal
 
    ! The full time-varying variable set a restart writes, split by response kind.
    ! COMMON_VARS apply to every kind; the prognostic memory differs: RESP_VE carries
@@ -126,6 +129,69 @@ contains
 
       call nc_close(ncid)
    end subroutine fe_write_step
+
+   subroutine fe_write_horizontal(self, filename, time, init)
+      !! Surface horizontal displacement [m] at `time`, into its own file (&ctl
+      !! file_hor): the total, spheroidal + toroidal, and the toroidal part alone,
+      !! as east/north components on the Gauss grid of file_out. Relative to the
+      !! reference state, like rsl: the response evaluated at the converged load of
+      !! the last interval (se%sigma_lm) with the relaxation drift of its last
+      !! sub-step — the same state rsl and z_bed were solved in.
+      !!
+      !! The toroidal part is zero, exactly, for every response that carries no
+      !! toroidal field (radially symmetric or laterally uniform viscosity, elastic,
+      !! modal); it is written anyway so the file has one layout.
+      !!
+      !! East/north from the colatitude-ordered (θ, φ) components: e_φ is east,
+      !! e_θ points south, so north = −u_θ.
+      type(solid_earth), intent(in) :: self
+      character(len=*),   intent(in) :: filename
+      real(wp),           intent(in) :: time      !! [years]
+      logical,            intent(in) :: init      !! create the file (first slice)
+      complex(wp), allocatable :: v_lm(:), t_lm(:)
+      real(wp),    allocatable :: sth(:,:), sph(:,:), tth(:,:), tph(:,:)
+      real(wp),    allocatable :: lon_deg(:), lat_deg(:)
+      integer :: ncid, n, np, nl
+      if (self%use_vilma) error stop 'fe_write_horizontal: the VILMA backend returns no horizontal field'
+      call ensure_table()
+      np = self%sht%nphi;  nl = self%sht%nlat
+      allocate(v_lm(self%sht%nlm), t_lm(self%sht%nlm))
+      allocate(sth(np,nl), sph(np,nl), tth(np,nl), tph(np,nl))
+      call response_horizontal(self%resp, self%sht, self%sigma_lm, v_lm)
+      call response_horizontal_toroidal(self%resp, self%sht, t_lm)
+      call sht_grid_sph_synthesis(self%sht, v_lm, sth, sph)     ! ∇₁V: (u_θ, u_φ)
+      call sht_grid_tor_synthesis(self%sht, t_lm, tth, tph)     ! e_r×∇₁W
+      if (init) then
+         lon_deg = self%sht%lon * rad2deg
+         lat_deg = 90.0_wp - self%sht%colat * rad2deg
+         call nc_create(filename, overwrite=.true.)
+         call nc_write_dim(filename, "lon",  x=lon_deg, units="degrees_east")
+         call nc_write_dim(filename, "lat",  x=lat_deg, units="degrees_north")
+         call nc_write_dim(filename, "time", x=time, dx=1.0_wp, nx=1, units="years", unlimited=.true.)
+      end if
+      call nc_open(filename, ncid, writable=.true.)
+      if (init) then
+         n = 1
+      else
+         n = nc_time_index(filename, "time", time, ncid)
+         call nc_write(filename, "time", time, dim1="time", start=[n], count=[1], ncid=ncid)
+      end if
+      call put_hor(filename, "u_east",      sph + tph,    n, ncid, np, nl)
+      call put_hor(filename, "u_north",     -(sth + tth), n, ncid, np, nl)
+      call put_hor(filename, "u_east_tor",  tph,          n, ncid, np, nl)
+      call put_hor(filename, "u_north_tor", -tth,         n, ncid, np, nl)
+      call nc_close(ncid)
+   end subroutine fe_write_horizontal
+
+   subroutine put_hor(filename, name, dat, n, ncid, np, nl)
+      character(len=*), intent(in) :: filename, name
+      real(wp),         intent(in) :: dat(:,:)
+      integer,          intent(in) :: n, ncid, np, nl
+      type(var_io_type) :: v
+      call find_var_io_in_table(v, name, vtable, with_error=.true.)
+      call nc_write(filename, name, dat, ncid=ncid, dim1="lon", dim2="lat", dim3="time", &
+           start=[1,1,n], count=[np, nl, 1], units=trim(v%units), long_name=trim(v%long_name))
+   end subroutine put_hor
 
    subroutine write_rotation(self, filename, n, ncid)
       !! Write the rotation solver's prognostic state at time slice n: the polar

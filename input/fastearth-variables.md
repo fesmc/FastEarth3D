@@ -34,5 +34,9 @@ seed `dt_try` for both. The reference fields `z_bed_eq`/`h_ice_eq` are static
 | 19 | phi_im       | nphi_modal, time | Pa  | Modal amplitude φ per (l,m) and mode (imag part)  |
 | 20 | rot_m_re     | time          | 1      | Polar motion m₁ (rotation, real part)            |
 | 21 | rot_m_im     | time          | 1      | Polar motion m₂ (rotation, imag part)            |
-| 22 | rot_load_mem | nlam, ne_rot, nrc | Pa | Rotation loading-channel memory stress (packed)  |
-| 23 | rot_tidal_mem| nlam, ne_rot, nrc | Pa | Rotation tidal-channel memory stress (packed)    |
+| 22 | rot_load_mem | nlam_rot, ne_rot, nrc | Pa | Rotation loading-channel memory stress (packed) |
+| 23 | rot_tidal_mem| nlam_rot, ne_rot, nrc | Pa | Rotation tidal-channel memory stress (packed)   |
+| 24 | u_east       | lon, lat      | m      | Surface horizontal displacement, east (total)    |
+| 25 | u_north      | lon, lat      | m      | Surface horizontal displacement, north (total)   |
+| 26 | u_east_tor   | lon, lat      | m      | Surface horizontal displacement, east (toroidal) |
+| 27 | u_north_tor  | lon, lat      | m      | Surface horizontal displacement, north (toroidal)|

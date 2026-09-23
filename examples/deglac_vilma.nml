@@ -74,6 +74,7 @@
     name_rsl       = "rsl"
 
     file_out     = "runs/deglac_vilma/out.nc"
+    file_hor     = ""
     time_init    = -26000.0
     time_end     = 0.0
 

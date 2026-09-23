@@ -17,12 +17,14 @@ program test_drive
    character(len=*), parameter :: REF   = "obj/test_drive_ref.nc"
    character(len=*), parameter :: FORCE = "obj/test_drive_force.nc"
    character(len=*), parameter :: OUT   = "obj/test_drive_out.nc"
+   character(len=*), parameter :: HOR   = "obj/test_drive_hor.nc"
    character(len=*), parameter :: CFG   = "obj/test_drive.nml"
    character(len=*), parameter :: DEFS  = "input/fastearth3d_defaults.nml"
 
    type(sht_grid), target :: sht
    real(wp), allocatable  :: lon_deg(:), lat_deg(:), z_bed_eq(:,:), h_ice_eq(:,:)
    real(wp), allocatable  :: h_ice(:,:,:), tyr(:), zb(:,:), rsl(:,:)
+   real(wp), allocatable  :: ue(:,:), un(:,:), uet(:,:), unt(:,:)
    real(wp) :: thd, sub
    integer  :: i, j, k, u, jice, jocean, nout
    logical  :: ok
@@ -84,6 +86,7 @@ program test_drive
    write(u,'(a)')    '    name_zbed_eq = "z_bed_eq"'
    write(u,'(a)')    '    name_hice_ref = "h_ice_eq"'
    write(u,'(a)')    '    file_out     = "'//OUT//'"'
+   write(u,'(a)')    '    file_hor     = "'//HOR//'"'
    write(u,'(a)')    "    time_init    = -1.0e30"
    write(u,'(a)')    "    time_end     =  1.0e30"
    write(u,'(a)')    "    remap_input  = .false."   ! input already on the Gauss grid
@@ -126,6 +129,30 @@ program test_drive
    end if
    if (rsl(1,jocean) >= 0.0_wp) then
       write(*,'(a)') '   FAIL: building land ice should draw the ocean down'; ok = .false.
+   end if
+
+   ! --- the horizontal-displacement file (&ctl file_hor) --------------------------
+   ! An axisymmetric cap on a radially symmetric Earth: the displacement is purely
+   ! meridional (u_east ≡ 0) and there is no toroidal field at all, so the
+   ! toroidal components must be exactly zero, not merely small.
+   write(*,'(a,i0)') '   horizontal slices: ', nc_size(HOR, "time")
+   if (nc_size(HOR, "time") /= NT) then
+      write(*,'(a)') '   FAIL: expected one horizontal slice per forcing slice'; ok = .false.
+   end if
+   allocate(ue(sht%nphi,sht%nlat), un(sht%nphi,sht%nlat), uet(sht%nphi,sht%nlat), unt(sht%nphi,sht%nlat))
+   call nc_read(HOR, "u_east",      ue,  start=[1,1,nout], count=[sht%nphi,sht%nlat,1])
+   call nc_read(HOR, "u_north",     un,  start=[1,1,nout], count=[sht%nphi,sht%nlat,1])
+   call nc_read(HOR, "u_east_tor",  uet, start=[1,1,nout], count=[sht%nphi,sht%nlat,1])
+   call nc_read(HOR, "u_north_tor", unt, start=[1,1,nout], count=[sht%nphi,sht%nlat,1])
+   write(*,'(a,f10.4,a,es10.2,a)') '   max|u_north| =', maxval(abs(un)), ' m,  max|u_east| =', &
+        maxval(abs(ue)), ' m'
+   write(*,'(a,2es10.2)') '   max|toroidal| (east, north) =', maxval(abs(uet)), maxval(abs(unt))
+   if (maxval(abs(un)) < 0.01_wp) then
+      write(*,'(a)') '   FAIL: no horizontal displacement under the growing cap'; ok = .false.
+   end if
+   if (maxval(abs(ue)) > 1.0e-12_wp*maxval(abs(un)) .or. maxval(abs(uet)) /= 0.0_wp &
+       .or. maxval(abs(unt)) /= 0.0_wp) then
+      write(*,'(a)') '   FAIL: an axisymmetric load on a radial Earth moved east or toroidally'; ok = .false.
    end if
 
    call sht_grid_destroy(sht)

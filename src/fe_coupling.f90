@@ -98,6 +98,10 @@ module fe_coupling
       type(rotation_state)     :: rotation  !! TPW feedback (ON by default; par%rotation)
 
       type(gauss_state)        :: gg        !! Gauss-grid working state (the physics)
+      !! The SLE's converged spectral surface load [kg m⁻²] at the end of the last
+      !! interval — the σ that rsl and z_bed were solved with, kept so a consumer
+      !! (the horizontal-displacement output) can evaluate the response at it.
+      complex(wp), allocatable :: sigma_lm(:)
 
       !! Optional VILMA backend (par%solver = "vilma"), for a like-for-like
       !! comparison behind this same API. When active, `resp`/`sle`/`stepper`/
@@ -200,6 +204,7 @@ contains
       ! physical barystatic diagnostic (update_bsl needs C).
       allocate(self%gg%h_ice(np,nl), self%gg%rsl(np,nl), self%gg%z_bed(np,nl), &
                self%gg%C(np,nl), self%gg%C0(np,nl))
+      allocate(self%sigma_lm(self%sht%nlm));  self%sigma_lm = (0.0_wp, 0.0_wp)
       if (present(h_ice_init)) then
          call to_gauss(self, h_ice_init, self%gg%h_ice, conserve_mass=.true.)
          allocate(self%h_ice, source=h_ice_init)
@@ -351,7 +356,6 @@ contains
       real(wp),           intent(in)    :: h_ice(:,:)   !! grounded-ice thickness [m] (host grid)
       real(wp),           intent(in)    :: dt_yr        !! interval to advance [years]
       real(wp), allocatable :: ice_new(:,:), load(:,:)
-      complex(wp), allocatable :: sigma_lm(:)
       real(wp) :: dt, t0, t1, dt_sub
       integer  :: n_sub, k, np, nl
       integer(kind=8) :: pc0, pc1, prate            ! PROFILE: see %t_remap, %t_rot
@@ -412,15 +416,14 @@ contains
          call rotation_begin_step(self%rotation, self%sht, dt)
          call rotation_s_rot(self%rotation, self%sht, self%gg%s_rot)
          call system_clock(pc1);  self%t_rot = self%t_rot + real(pc1-pc0,wp)/prate
-         allocate(sigma_lm(self%sht%nlm))
          call stepper_advance(self%stepper, self%sht, self%resp, self%sle, self%gg%z_bed_eq, &
                                    self%gg%h_ice, ice_new, self%gg%h_ice_eq, t0, t1, &
-                                   self%gg%rsl, self%gg%C, s_rot=self%gg%s_rot, sigma_out=sigma_lm)
+                                   self%gg%rsl, self%gg%C, s_rot=self%gg%s_rot, sigma_out=self%sigma_lm)
          ! Advance the polar motion to the end of the interval under the end-of-interval
          ! load (held), sub-stepped to respect the Maxwell stability ceiling dt_fe_max.
          allocate(load(np, nl))
          call system_clock(pc0)
-         call sht_grid_synthesis(self%sht, sigma_lm, load)
+         call sht_grid_synthesis(self%sht, self%sigma_lm, load)
          n_sub  = max(1, ceiling(dt/self%rotation%dt_fe_max))
          dt_sub = dt/real(n_sub, wp)
          do k = 1, n_sub
@@ -430,7 +433,7 @@ contains
       else
          call stepper_advance(self%stepper, self%sht, self%resp, self%sle, self%gg%z_bed_eq, &
                                    self%gg%h_ice, ice_new, self%gg%h_ice_eq, t0, t1, &
-                                   self%gg%rsl, self%gg%C)
+                                   self%gg%rsl, self%gg%C, sigma_out=self%sigma_lm)
       end if
 
       self%gg%h_ice         = ice_new
@@ -618,6 +621,7 @@ contains
          self%sht => null()
       end if
       self%remap = .false.
+      if (allocated(self%sigma_lm))    deallocate(self%sigma_lm)
       if (allocated(self%gg%z_bed_eq)) deallocate(self%gg%z_bed_eq)
       if (allocated(self%gg%h_ice_eq)) deallocate(self%gg%h_ice_eq)
       if (allocated(self%gg%h_ice))    deallocate(self%gg%h_ice)

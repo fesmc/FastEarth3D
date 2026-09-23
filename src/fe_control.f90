@@ -39,6 +39,10 @@ module fe_control
 
       ! --- step output ----------------------------------------------------------
       character(len=512) :: file_out     = "fastearth_out.nc"  !! step output
+      ! Surface horizontal displacement, spheroidal + toroidal, written to its own
+      ! file on the same grid and time axis as file_out; empty = not written. Its
+      ! own file because each field is as large as rsl, and most runs need none.
+      character(len=512) :: file_hor     = ""                  !! horizontal output (off when empty)
 
       ! --- forcing time window --------------------------------------------------
       ! Time fields are SI [s] in the record; the nml supplies them in YEARS and
@@ -115,6 +119,8 @@ contains
       ! output
       call nml_read(filename, g, "file_out",      c%file_out)
       c%file_out = expand_path(c%file_out)
+      call nml_read(filename, g, "file_hor",      c%file_hor)
+      if (len_trim(c%file_hor) > 0) c%file_hor = expand_path(c%file_hor)
 
       ! time window (YEARS in the nml -> SI seconds in the record)
       time_init_yr = c%time_init/sec_per_year
@@ -163,6 +169,8 @@ contains
       write(u,'(a,es12.4,a,es12.4,a)') '   window:   t=[', c%time_init/sec_per_year, &
            ',', c%time_end/sec_per_year, '] yr'
       write(u,'(a,a)')     '   output:   ', trim(c%file_out)
+      if (len_trim(c%file_hor) > 0) &
+         write(u,'(a,a)')  '   horizontal: ', trim(c%file_hor)
       if (len_trim(c%restart_in_file) > 0) &
          write(u,'(a,a)')  '   restart:  ', trim(c%restart_in_file)
    end subroutine fe_ctl_print

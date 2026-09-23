@@ -35,7 +35,7 @@ module fe_drive
                            solid_earth_spinup, solid_earth_check_solver, FE_UNSET
    use fe_response,  only: RESP_MODAL
    use fe_remap,     only: remap_ll_gauss, remap_init, remap_to_gauss
-   use fe_io,        only: fe_write_step, fe_restart_write, fe_restart_read
+   use fe_io,        only: fe_write_step, fe_restart_write, fe_restart_read, fe_write_horizontal
    use ncio,         only: nc_read, nc_size, nc_exists_var
    use iso_fortran_env, only: error_unit
    implicit none
@@ -186,6 +186,11 @@ contains
       t0 = tyr(k0)*sec_per_year
       se%time = tyr(k0);  se%resp%time = t0          ! coupling clock in years; response clock in SI
       call fe_write_step(se, c%file_out, se%time, nms=out_names, init=.true.)
+      if (len_trim(c%file_hor) > 0) then
+         if (se%use_vilma) error stop 'fastearth_run: file_hor is not available with solver="vilma" '// &
+                                      '(VILMA returns no horizontal field)'
+         call fe_write_horizontal(se, c%file_hor, se%time, init=.true.)
+      end if
 
       se%resp%t_drift = 0.0_wp;  se%resp%t_mem = 0.0_wp   ! PROFILE: time the transient only
       se%resp%n_drift = 0;       se%resp%n_mem = 0
@@ -203,6 +208,7 @@ contains
          call system_clock(pc1);  t_upd = t_upd + real(pc1-pc0,wp)/prate
          call system_clock(pc0)
          call fe_write_step(se, c%file_out, se%time, nms=out_names, init=.false.)
+         if (len_trim(c%file_hor) > 0) call fe_write_horizontal(se, c%file_hor, se%time, init=.false.)
          call system_clock(pc1);  t_wrt = t_wrt + real(pc1-pc0,wp)/prate
          nstep = nstep + 1
          ! mass_resid is the native SLE's own residual; the VILMA backend leaves it
