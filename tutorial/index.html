@@ -904,7 +904,7 @@
       <h3>Where in the code</h3>
       <ul>
         <li><code>re_class</code> — loads and stores the radial <em>(ρ, μ, η, r)</em> profile.</li>
-        <li><code>ve_response</code> / <code>modal</code> — turns the profile into per-<em>l</em> Love-number time series (§ 3).</li>
+        <li><code>ve_response</code> — turns the profile into per-<em>l</em> Love-number time series (§ 3).</li>
         <li><code>fastearth3d</code> module — the top-level type <code>se%par</code> holds the configuration; <code>build_earth(p)</code> assembles the earth model at startup.</li>
       </ul>
       <div class="aside">
@@ -1060,14 +1060,12 @@
       <ul>
         <li><code>ve</code> — classical normal-mode decomposition. The layered problem is diagonalized into <em>j</em> = 1..<em>N</em><sub>modes</sub> exponentials per degree. This is the reference implementation and matches VILMA to around 0.1&nbsp;%.</li>
         <li><code>fe</code> — a finite-element radial solve driven directly by the load. It is cheaper per step and carries no mode-truncation error, but requires sub-stepping for stability at short <em>τ</em>.</li>
-        <li><code>modal</code> — a matrix-free Krylov eigensolve seeded by a load probe. This is the basis for the RESP_MODAL reduced viscoelastic model, currently on branch <code>modal</code>. It converges to <code>ve</code> to around 2×10<sup>−3</sup> on transient amplitudes.</li>
       </ul>
       <p>Our default configuration combines <code>fe</code> with a three-dimensional layer split. On standard deglaciation runs it is roughly 111× faster than trapezoidal-<code>ve</code> at comparable accuracy.</p>
       <h3>Where in the code</h3>
       <ul>
         <li><code>fe_response</code> — the finite-element radial solver.</li>
         <li><code>ve_response</code> — normal-mode reference implementation.</li>
-        <li><code>modal</code> — Krylov reduced model.</li>
       </ul>
     </div>
   </div>

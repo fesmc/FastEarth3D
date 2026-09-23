@@ -1,1 +1,1 @@
-Sitemap: https://fesmc.github.io/FastEarth3D/sitemap.xml
+Sitemap: https://fesmc.github.io/VILMA/sitemap.xml

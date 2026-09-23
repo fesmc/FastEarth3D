@@ -68,9 +68,9 @@ div.csl-indent {
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-bb7e5383e821d4830943584206d16657.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-c7376d12c21f0dfa3410453b88daf9f9.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-bb7e5383e821d4830943584206d16657.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-b4fe353c20efd084fc4a7e897873478f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-8125d913983b18cf7b0a744c5d78f6d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-b4fe353c20efd084fc4a7e897873478f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -603,7 +603,7 @@ window.Quarto = {
 <p>where <span class="math inline">\(\mathbf{S}^{(-1)},\mathbf{S}^{(1)},\mathbf{S}^{(0)}\)</span> are the spheroidal (radial, consoidal) and toroidal vector harmonics. Two simplifications follow from the physics:</p>
 <ul>
 <li><strong>No degree 0 in <span class="math inline">\(\mathbf{u}\)</span></strong> — incompressibility forbids the radial breathing mode.</li>
-<li><strong>Spheroidal-only for loading</strong> — a surface mass load excites no toroidal (<span class="math inline">\(W\)</span>) motion on a radially symmetric Earth; the <span class="math inline">\(W\)</span> block decouples and is dropped (eq. 110). The divergence reduces to <span class="math inline">\(\operatorname{div}\mathbf{u} = \sum (U' + 2U/r - J\,V/r)\,Y_{jm}\)</span>, <span class="math inline">\(J=j(j+1)\)</span> (eq. 58).</li>
+<li><strong>The toroidal block decouples</strong> — <span class="math inline">\(W\)</span> couples to nothing on the left-hand side (no pressure, self-gravity or <span class="math inline">\(U,V\)</span> shear terms), so a surface load on a radially symmetric Earth never excites it. Laterally varying viscosity does, through the memory stress (Martinec 2000, after eq. 110); <span class="math inline">\(W\)</span> is then solved by its own tridiagonal per-degree system alongside the spheroidal one. The divergence reduces to <span class="math inline">\(\operatorname{div}\mathbf{u} = \sum (U' + 2U/r - J\,V/r)\,Y_{jm}\)</span>, <span class="math inline">\(J=j(j+1)\)</span> (eq. 58).</li>
 </ul>
 <p>Each degree <span class="math inline">\(j\)</span> then reduces to an <strong>independent 1D radial problem</strong> in <span class="math inline">\(\{U_{jm},V_{jm},F_{jm},\Pi_{jm}\}\)</span> — the central economy of the method. The order <span class="math inline">\(m\)</span> enters only through the (real) load coefficients, so the operator is assembled and factored once per degree and reused across all <span class="math inline">\(m\)</span>.</p>
 </section>
@@ -737,7 +737,7 @@ Schaeffer, N. 2013. <span>“Efficient Spherical Harmonic Transforms Aimed at Ps
     }
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
       var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/fesmc\.github\.io\/FastEarth3D\/");
+        var filterRegex = new RegExp("https:\/\/fesmc\.github\.io\/VILMA\/");
       var isInternal = (href) => {
           return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }

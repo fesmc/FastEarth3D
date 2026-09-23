@@ -1,67 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/benchmarks/love-numbers.html</loc>
-    <lastmod>2026-09-19T08:01:17.055Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/implementation.html</loc>
+    <lastmod>2026-09-23T18:04:38.211Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/benchmarks/disc.html</loc>
-    <lastmod>2026-09-19T08:01:17.055Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/physics/rotation.html</loc>
+    <lastmod>2026-09-23T18:04:38.211Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/getting-started.html</loc>
-    <lastmod>2026-09-19T08:01:17.055Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/physics/sea-level.html</loc>
+    <lastmod>2026-09-23T18:04:38.211Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/physics/governing-equations.html</loc>
-    <lastmod>2026-09-19T08:01:17.055Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/discretization/spectral.html</loc>
+    <lastmod>2026-09-23T18:04:38.211Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/physics/rheology.html</loc>
-    <lastmod>2026-09-19T08:01:17.056Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/discretization/solver.html</loc>
+    <lastmod>2026-09-23T18:04:38.211Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/references.html</loc>
-    <lastmod>2026-09-19T08:01:17.056Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/references.html</loc>
+    <lastmod>2026-09-23T18:04:38.211Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/discretization/radial-fe.html</loc>
-    <lastmod>2026-09-19T08:01:17.055Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/benchmarks/love-numbers.html</loc>
+    <lastmod>2026-09-23T18:04:38.210Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/discretization/spectral.html</loc>
-    <lastmod>2026-09-19T08:01:17.055Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/benchmarks/index.html</loc>
+    <lastmod>2026-09-23T18:04:38.210Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/index.html</loc>
-    <lastmod>2026-09-19T08:01:17.055Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/index.html</loc>
+    <lastmod>2026-09-23T18:04:38.211Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/discretization/time-stepping.html</loc>
-    <lastmod>2026-09-19T08:01:17.055Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/benchmarks/sea-level.html</loc>
+    <lastmod>2026-09-23T18:04:38.210Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/discretization/solver.html</loc>
-    <lastmod>2026-09-19T08:01:17.055Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/benchmarks/disc.html</loc>
+    <lastmod>2026-09-23T18:04:38.210Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/implementation.html</loc>
-    <lastmod>2026-09-19T08:01:17.055Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/discretization/radial-fe.html</loc>
+    <lastmod>2026-09-23T18:04:38.210Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/physics/sea-level.html</loc>
-    <lastmod>2026-09-19T08:01:17.056Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/discretization/time-stepping.html</loc>
+    <lastmod>2026-09-23T18:04:38.211Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/physics/rotation.html</loc>
-    <lastmod>2026-09-19T08:01:17.056Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/getting-started.html</loc>
+    <lastmod>2026-09-23T18:04:38.211Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/benchmarks/index.html</loc>
-    <lastmod>2026-09-19T08:01:17.055Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/physics/rheology.html</loc>
+    <lastmod>2026-09-23T18:04:38.211Z</lastmod>
   </url>
   <url>
-    <loc>https://fesmc.github.io/FastEarth3D/benchmarks/sea-level.html</loc>
-    <lastmod>2026-09-19T08:01:17.055Z</lastmod>
+    <loc>https://fesmc.github.io/VILMA/physics/governing-equations.html</loc>
+    <lastmod>2026-09-23T18:04:38.211Z</lastmod>
   </url>
 </urlset>
