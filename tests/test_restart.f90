@@ -12,6 +12,12 @@ program test_restart
    !!       exactly (the restored prognostic state is all that is needed);
    !!   (3) multi-snapshot file — two snapshots at different times coexist, and a
    !!       specific earlier time can be selected on read.
+   !! RESP_VE is run twice: radially symmetric (4 memory channels) and with the
+   !! vendored lateral viscosity, which switches on the toroidal channels (6), so
+   !! the round trip covers the widened memory. Then (4) the migration: a
+   !! spheroidal-only file (l_toroidal = .false., 4 channels) read into a run
+   !! that carries the toroidal field restores the spheroidal memory exactly and
+   !! starts the toroidal channels at zero.
    use fe_precision,       only: wp
    use fe_constants,       only: pi, sec_per_year
    use fe_params,          only: fe_param_class
@@ -33,8 +39,10 @@ program test_restart
             h_ice(sht%nphi,sht%nlat))
    call make_fields(z_bed_eq, h_ice_eq, h_ice)
 
-   call roundtrip("ve",    "obj/test_restart_ve.nc",    ok)
-   call roundtrip("modal", "obj/test_restart_modal.nc", ok)
+   call roundtrip("ve",    .false., "obj/test_restart_ve.nc",    ok)
+   call roundtrip("ve",    .true.,  "obj/test_restart_ve3d.nc",  ok)
+   call roundtrip("modal", .false., "obj/test_restart_modal.nc", ok)
+   call migration("obj/test_restart_mig.nc", ok)
 
    call sht_grid_destroy(sht)
 
@@ -51,9 +59,10 @@ program test_restart
 
 contains
 
-   subroutine roundtrip(resp, file, ok)
+   subroutine roundtrip(resp, visc3d, file, ok)
       !! Full restart round-trip for one response kind on the shared grid/fields.
       character(len=*),  intent(in)    :: resp, file
+      logical,           intent(in)    :: visc3d   !! lateral viscosity (toroidal channels on)
       logical,           intent(inout) :: ok
       type(fe_param_class) :: p
       type(solid_earth)    :: a, b, c
@@ -66,6 +75,8 @@ contains
       p%earth_response = resp             ! "ve" (memory tensor) or "modal" (φ amplitudes)
       p%rotation      = .true.            ! rotation on: also round-trips the polar
                                           ! motion m + both channels' memory (rot_*)
+      p%l_visc_3d     = visc3d            ! vendored Bagge field: 3-D elements, 6 channels
+      p%visc_3d_file  = "input/bagge2021.nc"
 
       ! === reference run A ====================================================
       a%par = p; call solid_earth_init(a, z_bed_eq, h_ice_eq)
@@ -82,8 +93,12 @@ contains
       call fe_restart_write(a, t2, filename=file, init=.false.)  ! snapshot 2 (state @ K1+K2)
       a6_zbed = a%z_bed;  a6_rsl = a%rsl
 
-      write(*,'(a,a,a,i0,a,f6.2,a,f6.2)') ' restart [', trim(resp), ']: lmax=', LMAX, &
+      write(*,'(a,a,a,l1,a,i0,a,i0,a,f6.2,a,f6.2)') ' restart [', trim(resp), &
+           ', visc3d=', visc3d, ']: lmax=', LMAX, '   memory channels=', a%resp%nlam, &
            '   t1=', t1*1.0e-3_wp, ' kyr   t2=', t2*1.0e-3_wp
+      if (visc3d .and. a%resp%nlam == 4) then
+         write(*,'(a)') '   FAIL: lateral viscosity did not switch the toroidal channels on'; ok = .false.
+      end if
 
       ! === (3) multi-snapshot file ===========================================
       nt = nc_size(file, "time")
@@ -116,6 +131,38 @@ contains
 
       call solid_earth_finalize(a);  call solid_earth_finalize(b);  call solid_earth_finalize(c)
    end subroutine roundtrip
+
+   subroutine migration(file, ok)
+      !! A spheroidal-only restart (4 channels) into a run carrying the toroidal
+      !! field (6): the file's channels land in 1..4 bit for bit, 5..6 are zero —
+      !! exactly the toroidal state of a run that has only ever been spheroidal.
+      character(len=*), intent(in)    :: file
+      logical,          intent(inout) :: ok
+      type(fe_param_class) :: p
+      type(solid_earth)    :: a, b
+      real(wp) :: d_sph, d_tor
+      integer  :: step
+      p%lmax = LMAX;  p%nlat = 2*LMAX;  p%nphi = 4*LMAX
+      p%earth_response = "ve";  p%rotation = .true.;  p%l_visc_3d = .true.
+      p%visc_3d_file = "input/bagge2021.nc"
+      p%l_toroidal = .false.
+      a%par = p; call solid_earth_init(a, z_bed_eq, h_ice_eq)
+      do step = 1, K1
+         call solid_earth_update(a, h_ice, 1.0e3_wp)
+      end do
+      call fe_restart_write(a, a%time, filename=file, init=.true.)
+      p%l_toroidal = .true.
+      b%par = p; call solid_earth_init(b, z_bed_eq, h_ice_eq)
+      call fe_restart_read(b, file)
+      d_sph = max(maxval(abs(b%resp%Are(1:4,:,:) - a%resp%Are)), maxval(abs(b%resp%Cim(1:4,:,:) - a%resp%Cim)))
+      d_tor = max(maxval(abs(b%resp%Are(5:,:,:))), maxval(abs(b%resp%Cim(5:,:,:))))
+      write(*,'(a,i0,a,i0,a,es9.2,a,es9.2)') ' restart [migration ', a%resp%nlam, ' -> ', &
+           b%resp%nlam, ']: spheroidal max|B - A| =', d_sph, '   toroidal max|B| =', d_tor
+      if (a%resp%nlam /= 4 .or. b%resp%nlam /= 6 .or. d_sph /= 0.0_wp .or. d_tor /= 0.0_wp) then
+         write(*,'(a)') '   FAIL: a spheroidal restart did not migrate into the toroidal run'; ok = .false.
+      end if
+      call solid_earth_finalize(a);  call solid_earth_finalize(b)
+   end subroutine migration
 
    subroutine make_fields(z_bed_eq, h_ice_eq, h_ice)
       !! Polar land cap (colat<50°, +500 m) over deep ocean (−4000 m); no

@@ -18,7 +18,7 @@ module fe_io
    !! rsl, z_bed, C_ocean (lon,lat) — written for inspection and restored if present.
    use fe_precision,    only: wp
    use fe_constants,    only: rad2deg, sec_per_year
-   use fe_viscoelastic, only: NLAM
+   use fe_viscoelastic, only: NLAM, NLAM_TOR
    use fe_response,     only: response_prime_sigma, response, response_init_elastic, response_init_ve, &
                               response_init_null, RESP_VE, RESP_MODAL
    use fe_rotation,     only: rotation_ne, rotation_get_memory, rotation_set_memory, ROT_NCOMP
@@ -155,7 +155,7 @@ contains
       type(var_io_type) :: v
       call find_var_io_in_table(v, name, vtable, with_error=.true.)
       call nc_write(filename, name, dat, ncid=ncid, &
-           dim1="nlam", dim2="ne_rot", dim3="nrc", dim4="time", &
+           dim1="nlam_rot", dim2="ne_rot", dim3="nrc", dim4="time", &
            start=[1,1,1,n], count=[NLAM, ne, ROT_NCOMP, 1], &
            units=trim(v%units), long_name=trim(v%long_name))
    end subroutine put_rotmem
@@ -177,7 +177,9 @@ contains
       ! prognostic-memory dimensions depend on the response kind
       select case (self%resp%kind)
       case (RESP_VE)
-         call nc_write_dim(filename, "nlam", x=1, dx=1, nx=NLAM,          units="1")
+         ! nlam = memory channels the response carries: NLAM, or NLAM+NLAM_TOR once
+         ! a genuinely 3-D element has switched the toroidal field on
+         call nc_write_dim(filename, "nlam", x=1, dx=1, nx=self%resp%nlam, units="1")
          call nc_write_dim(filename, "ne",   x=1, dx=1, nx=self%resp%ne,  units="1")
          ! nk = # deforming (l>=1) coefficients, in the ve_response degree-grouped order
          call nc_write_dim(filename, "nk",   x=1, dx=1, nx=self%resp%nk,  units="1")
@@ -188,11 +190,12 @@ contains
          call nc_write_dim(filename, "nphi_modal", x=1, dx=1, nx=modal_nphi(self%resp), units="1")
       end select
       ! rotation memory dimensions (independent of the response kind / lmax). The
-      ! packed channel memory is (nlam, ne_rot, nrc); only the RESP_VE branch above
-      ! creates nlam, so create it here for the other kinds when rotation is on.
+      ! packed channel memory is (nlam_rot, ne_rot, nrc): degree-2 and radially
+      ! symmetric, so always spheroidal, and its own dimension now that the
+      ! response's nlam can be wider. Files written before the split carry it on
+      ! "nlam"; the read goes by variable and count, so both forms restore.
       if (self%rotation%enabled) then
-         if (self%resp%kind /= RESP_VE) &
-            call nc_write_dim(filename, "nlam", x=1, dx=1, nx=NLAM, units="1")
+         call nc_write_dim(filename, "nlam_rot", x=1, dx=1, nx=NLAM, units="1")
          call nc_write_dim(filename, "ne_rot", x=1, dx=1, nx=rotation_ne(self%rotation), units="1")
          call nc_write_dim(filename, "nrc",    x=1, dx=1, nx=ROT_NCOMP,                  units="1")
       end if
@@ -287,7 +290,7 @@ contains
       call find_var_io_in_table(v, name, vtable, with_error=.true.)
       call nc_write(filename, name, dat, ncid=ncid, &
            dim1="nlam", dim2="ne", dim3="nk", dim4="time", &
-           start=[1,1,1,n], count=[NLAM, self%resp%ne, self%resp%nk, 1], &
+           start=[1,1,1,n], count=[self%resp%nlam, self%resp%ne, self%resp%nk, 1], &
            units=trim(v%units), long_name=trim(v%long_name))
    end subroutine put3d
 
@@ -471,14 +474,27 @@ contains
       type(solid_earth), intent(inout) :: self
       character(len=*),   intent(in)    :: filename
       integer,            intent(in)    :: n, np, nl
-      integer :: ne, nk, nk_f, L
+      integer :: ne, nk, nk_f, nl_f, L
       logical :: cross_res, ok_block
 
       ne = self%resp%ne;  nk = self%resp%nk
-      ! the radial mesh (ne) and tensor rank (nlam) must always match; the horizontal
-      ! resolution (nk) may differ -> cross-resolution restart.
-      if (nc_size(filename, "nlam") /= NLAM .or. nc_size(filename, "ne") /= ne) &
-         error stop 'fe_restart_read: radial mesh (ne/nlam) does not match the model'
+      ! the radial mesh (ne) must always match; the horizontal resolution (nk) may
+      ! differ -> cross-resolution restart.
+      if (nc_size(filename, "ne") /= ne) &
+         error stop 'fe_restart_read: radial mesh (ne) does not match the model'
+      ! Memory channels. A spheroidal file (NLAM) restores into a run that carries
+      ! the toroidal channels too: they start at zero, which is exactly the
+      ! toroidal state of every run that has only ever been spheroidal. The
+      ! reverse would drop toroidal memory a laterally varying run built up, so
+      ! it is refused rather than truncated.
+      nl_f = nc_size(filename, "nlam")
+      if (nl_f /= self%resp%nlam .and. .not. (nl_f == NLAM .and. self%resp%nlam == NLAM + NLAM_TOR)) then
+         write(*,'(a,i0,a,i0,a)') ' fe_restart_read: the file carries ', nl_f, &
+              ' memory channels, the model ', self%resp%nlam, '.'
+         if (nl_f > self%resp%nlam) write(*,'(a)') '   The file holds toroidal memory from a run with '// &
+              'laterally varying viscosity; this run has none to put it in.'
+         error stop 'fe_restart_read: memory channel count does not match the model'
+      end if
       nk_f      = nc_size(filename, "nk")
       cross_res = (nk_f /= nk)
       if (cross_res .and. nk_f > nk) &
@@ -496,24 +512,24 @@ contains
 
       if (cross_res) then
          ! prognostic Maxwell memory: copy the shared low-degree block, zero-pad above.
-         call get3d_pad(filename, "tau_a_re", self%resp%Are, ne, nk_f, n)
-         call get3d_pad(filename, "tau_a_im", self%resp%Aim, ne, nk_f, n)
-         call get3d_pad(filename, "tau_b_re", self%resp%Bre, ne, nk_f, n)
-         call get3d_pad(filename, "tau_b_im", self%resp%Bim, ne, nk_f, n)
-         call get3d_pad(filename, "tau_c_re", self%resp%Cre, ne, nk_f, n)
-         call get3d_pad(filename, "tau_c_im", self%resp%Cim, ne, nk_f, n)
+         call get3d(filename, "tau_a_re", self%resp%Are, ne, nl_f, nk_f, n)
+         call get3d(filename, "tau_a_im", self%resp%Aim, ne, nl_f, nk_f, n)
+         call get3d(filename, "tau_b_re", self%resp%Bre, ne, nl_f, nk_f, n)
+         call get3d(filename, "tau_b_im", self%resp%Bim, ne, nl_f, nk_f, n)
+         call get3d(filename, "tau_c_re", self%resp%Cre, ne, nl_f, nk_f, n)
+         call get3d(filename, "tau_c_im", self%resp%Cim, ne, nl_f, nk_f, n)
          ! σ_n is on the file grid and the trapezoidal load is cheap to re-derive; let
          ! the first step re-prime it (O(Δt); exact for the explicit fe scheme).
          self%resp%sigma_primed = .false.
       else
          call check_reference(self, filename, np, nl)
          ! prognostic Maxwell memory at slice n
-         call get3d(filename, "tau_a_re", self%resp%Are, ne, nk, n)
-         call get3d(filename, "tau_a_im", self%resp%Aim, ne, nk, n)
-         call get3d(filename, "tau_b_re", self%resp%Bre, ne, nk, n)
-         call get3d(filename, "tau_b_im", self%resp%Bim, ne, nk, n)
-         call get3d(filename, "tau_c_re", self%resp%Cre, ne, nk, n)
-         call get3d(filename, "tau_c_im", self%resp%Cim, ne, nk, n)
+         call get3d(filename, "tau_a_re", self%resp%Are, ne, nl_f, nk, n)
+         call get3d(filename, "tau_a_im", self%resp%Aim, ne, nl_f, nk, n)
+         call get3d(filename, "tau_b_re", self%resp%Bre, ne, nl_f, nk, n)
+         call get3d(filename, "tau_b_im", self%resp%Bim, ne, nl_f, nk, n)
+         call get3d(filename, "tau_c_re", self%resp%Cre, ne, nl_f, nk, n)
+         call get3d(filename, "tau_c_im", self%resp%Cim, ne, nl_f, nk, n)
          call read_diagnostics(self, filename, n, np, nl)
          ! restore the trapezoidal start-of-step load σ_n (the other prognostic piece
          ! of the implicit scheme); without it the first step would re-derive σ_n to
@@ -593,11 +609,24 @@ contains
       call response_prime_sigma(self%resp, cmplx(sre, sim, wp))
    end subroutine restore_sigma
 
-   subroutine get3d(filename, name, dat, ne, nk, n)
-      character(len=*), intent(in)  :: filename, name
-      real(wp),         intent(out) :: dat(:,:,:)
-      integer,          intent(in)  :: ne, nk, n
-      call nc_read(filename, name, dat, start=[1,1,1,n], count=[NLAM, ne, nk, 1])
+   subroutine get3d(filename, name, dat, ne, nl_f, nk_f, n)
+      !! Read a Maxwell-memory field at slice n into dat(nlam, ne, nk). The file
+      !! holds nl_f ≤ nlam channels and nk_f ≤ nk degree-grouped slots; whatever it
+      !! does not hold — the higher degrees of a cross-resolution restart, the
+      !! toroidal channels of a spheroidal file — is zero. Read directly when the
+      !! shapes match, so a same-run restart continues bit for bit.
+      character(len=*), intent(in)    :: filename, name
+      real(wp),         intent(inout) :: dat(:,:,:)
+      integer,          intent(in)    :: ne, nl_f, nk_f, n
+      real(wp), allocatable :: buf(:,:,:)
+      if (nl_f == size(dat,1) .and. nk_f == size(dat,3)) then
+         call nc_read(filename, name, dat, start=[1,1,1,n], count=[nl_f, ne, nk_f, 1])
+         return
+      end if
+      allocate(buf(nl_f, ne, nk_f))
+      call nc_read(filename, name, buf, start=[1,1,1,n], count=[nl_f, ne, nk_f, 1])
+      dat = 0.0_wp
+      dat(1:nl_f,:,1:nk_f) = buf
    end subroutine get3d
 
    subroutine get2d(filename, name, dat, np, nl, n)
@@ -607,17 +636,5 @@ contains
       call nc_read(filename, name, dat, start=[1,1,n], count=[np, nl, 1])
    end subroutine get2d
 
-   subroutine get3d_pad(filename, name, dat, ne, nk_f, n)
-      !! Cross-resolution memory read: the file holds nk_f degree-grouped coeff slots;
-      !! copy them into the low-degree block of dat(NLAM,ne,nk>=nk_f) and zero the rest.
-      character(len=*), intent(in)    :: filename, name
-      real(wp),         intent(inout) :: dat(:,:,:)
-      integer,          intent(in)    :: ne, nk_f, n
-      real(wp), allocatable :: buf(:,:,:)
-      allocate(buf(NLAM, ne, nk_f))
-      call nc_read(filename, name, buf, start=[1,1,1,n], count=[NLAM, ne, nk_f, 1])
-      dat = 0.0_wp
-      dat(:,:,1:nk_f) = buf
-   end subroutine get3d_pad
 
 end module fe_io
