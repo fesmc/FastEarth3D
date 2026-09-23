@@ -981,7 +981,7 @@
       <p>Doubling <em>l</em><sub>max</sub> quadruples the number of coefficients — approximately <em>(l</em><sub>max</sub><em> + 1)</em>² — and multiplies the transform cost by roughly a factor of five. The typical trade-off is:</p>
       <ul>
         <li><code>lmax=64</code> — around 0.8 s per 100 yr of simulation; resolves patterns down to about 300 km.</li>
-        <li><code>lmax=128</code> — around 4.4 s per 100 yr; about 150 km resolution, matching VILMA-parity runs.</li>
+        <li><code>lmax=128</code> — around 4.4 s per 100 yr; about 150 km resolution, matching VILMA-v1-parity runs.</li>
       </ul>
       <p>The environment variable <code>SHT_QUICK_INIT=1</code> skips the SHTns internal transform-plan auto-tune, reducing startup from around 136 s to under one second. We set it in production runs and disable it only when benchmarking transform kernels.</p>
       <h3>Where in the code</h3>
@@ -1058,7 +1058,7 @@
     <div class="prose">
       <p>FastEarth3D offers three schemes for the viscoelastic response, selected by the <code>earth_scheme</code> parameter:</p>
       <ul>
-        <li><code>ve</code> — classical normal-mode decomposition. The layered problem is diagonalized into <em>j</em> = 1..<em>N</em><sub>modes</sub> exponentials per degree. This is the reference implementation and matches VILMA to around 0.1&nbsp;%.</li>
+        <li><code>ve</code> — classical normal-mode decomposition. The layered problem is diagonalized into <em>j</em> = 1..<em>N</em><sub>modes</sub> exponentials per degree. This is the reference implementation and matches VILMA-v1 to around 0.1&nbsp;%.</li>
         <li><code>fe</code> — a finite-element radial solve driven directly by the load. It is cheaper per step and carries no mode-truncation error, but requires sub-stepping for stability at short <em>τ</em>.</li>
       </ul>
       <p>Our default configuration combines <code>fe</code> with a three-dimensional layer split. On standard deglaciation runs it is roughly 111× faster than trapezoidal-<code>ve</code> at comparable accuracy.</p>

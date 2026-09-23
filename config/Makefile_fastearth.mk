@@ -20,7 +20,7 @@ obj_fastearth = \
 	$(objdir)/fe_timestep.o \
 	$(objdir)/fe_rotation.o \
 	$(objdir)/fe_remap.o \
-	$(objdir)/fe_vilma.o \
+	$(objdir)/vilma_v1.o \
 	$(objdir)/fe_coupling.o \
 	$(objdir)/fe_io.o \
 	$(objdir)/fe_drive.o \
@@ -52,11 +52,11 @@ $(objdir)/fe_timestep.o:         $(objdir)/fe_response.o $(objdir)/fe_sle.o \
 $(objdir)/fe_rotation.o:         $(objdir)/fe_sht.o $(objdir)/fe_constants.o \
                                  $(objdir)/fe_earth_structure.o $(objdir)/fe_radial_fe.o \
                                  $(objdir)/fe_viscoelastic.o
-# Optional VILMA backend. Compiled ALWAYS; with vilma=0 (the default) -DVILMA is
-# absent and this is a pure-Fortran stub that references no VILMA symbol.
-$(objdir)/fe_vilma.o:            $(objdir)/fe_precision.o $(objdir)/fe_constants.o \
+# Optional VILMA-v1 backend. Compiled ALWAYS; with vilma_v1=0 (the default) -DVILMA_V1 is
+# absent and this is a pure-Fortran stub that references no VILMA-v1 symbol.
+$(objdir)/vilma_v1.o:            $(objdir)/fe_precision.o $(objdir)/fe_constants.o \
                                  $(objdir)/fe_params.o $(objdir)/fe_sht.o
-$(objdir)/fe_coupling.o:         $(objdir)/fe_vilma.o \
+$(objdir)/fe_coupling.o:         $(objdir)/vilma_v1.o \
                                  $(objdir)/fe_response.o $(objdir)/fe_sle.o \
                                  $(objdir)/fe_rotation.o $(objdir)/fe_earth_structure.o \
                                  $(objdir)/fe_sht.o $(objdir)/fe_params.o $(objdir)/fe_remap.o \
@@ -414,11 +414,11 @@ usage:
 	@echo " make clean            : remove objects and binaries"
 	@echo " make showconfig       : show the active build configuration"
 	@echo ""
-	@echo "   switches:  debug=0|1|2   openmp=0|1   vilma=0|1"
+	@echo "   switches:  debug=0|1|2   openmp=0|1   vilma_v1=0|1"
 	@echo ""
-	@echo "   vilma=1 additionally links the optional VILMA backend (solver=\"vilma\"):"
-	@echo "     make fastearth vilma=1 VILMAROOT=/path/to/vilma"
-	@echo "   It is OFF by default and is not a dependency; see doc/vilma-backend.md."
+	@echo "   vilma_v1=1 additionally links the optional VILMA-v1 backend (solver=\"v1\"):"
+	@echo "     make fastearth vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma"
+	@echo "   It is OFF by default and is not a dependency; see doc/vilma-v1-backend.md."
 	@echo ""
 
 showconfig:
@@ -429,7 +429,7 @@ showconfig:
 	@echo "host      : $(shell hostname)"
 	@echo "openmp    : $(openmp)"
 	@echo "debug     : $(debug)"
-	@echo "vilma     : $(vilma)   (VILMAROOT=$(VILMAROOT))"
+	@echo "vilma_v1  : $(vilma_v1)   (VILMA_V1_ROOT=$(VILMA_V1_ROOT))"
 	@echo "FFLAGS    : $(FFLAGS)"
 	@echo "LFLAGS    : $(LFLAGS)"
 

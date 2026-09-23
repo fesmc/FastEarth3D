@@ -69,7 +69,7 @@ Net effect on `begin_step`:
 The full sea-level benchmark ($\ell_{\max}=128$, $\sim 750$ steps) thus runs in
 **minutes rather than hours**, which is what makes the
 [Martinec (2018) SLE cases](../benchmarks/sea-level.qmd) feasible as routine
-validation. At VILMA resolution (SH degree 170) the same machinery applies.
+validation. At VILMA-v1 resolution (SH degree 170) the same machinery applies.
 
 ::: {.callout-tip title="Where this lives in the code"}
 `fe_band` (pivoted banded LU + equilibration), `fe_radial_fe` (assembly,

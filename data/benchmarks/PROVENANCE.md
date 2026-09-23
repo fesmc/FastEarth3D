@@ -144,7 +144,7 @@ directly from the **Spada et al. (2011)** paper PDF (`doc/refs/Spada2011.pdf`).
   axisymmetric loads (cap/disc/point, Table 4), model M3-L70-V01, Heaviside
   history, load centroid θc = 25°, λc = 75°. Two contributors — **Vb**
   (Mathematica matrix-propagator, Sabadini & Vermeersen) and **Gs** (TABOO,
-  Spada) — both *normal-mode* codes; **VILMA (Vk) did not provide m for this
+  Spada) — both *normal-mode* codes; **VILMA-v1 (Vk) did not provide m for this
   test** (only LOD via 1+k^L), so this validates a time-domain solver the same
   cross-method way the giapy table validates rung 2. Two cases: Chandler wobble
   *included* (`incl`, Cw≠0) and *excluded* (`excl`, Cw=0). A quasi-static

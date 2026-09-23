@@ -9,9 +9,9 @@ validation.
 
 ## Physics and references
 
-FastEarth3D reproduces the physics of **VILMA**: an incompressible,
+FastEarth3D reproduces the physics of **VILMA-v1**: an incompressible,
 self-gravitating, Maxwell-viscoelastic sphere with rotational feedback and a
-full migrating-coastline sea-level equation. VILMA's character is documented
+full migrating-coastline sea-level equation. VILMA-v1's character is documented
 in @Albrecht2024 and @Bagge2021. The numerical method follows @Martinec2000,
 with rotation from @MartinecHagedoorn2014 and the sea-level equation from
 @KMM2005 and @Martinec2018.

@@ -1,6 +1,6 @@
 module fe_rotation
    !! Rotational feedback / true polar wander (Spada et al. 2011 §2.1.1; the
-   !! time-domain rotational theory of Martinec & Hagedoorn 2014, as in VILMA).
+   !! time-domain rotational theory of Martinec & Hagedoorn 2014, as in VILMA-v1).
    !!
    !! A surface load and the deformation it drives perturb the off-diagonal
    !! inertia (I₁₃, I₂₃); the linearized Liouville equation maps that to equatorial

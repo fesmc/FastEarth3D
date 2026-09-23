@@ -19,16 +19,16 @@
     ! ====================================================================
 
     ! --- solid-earth solver backend -----------------------------------
-    ! "fe3d"  = this model's native Gauss-grid FE/SLE solver (default).
-    ! "vilma" = the VILMA library behind the SAME driver, namelist, forcing, remap
+    ! "v2"   = this model's native Gauss-grid FE/SLE solver (default).
+    ! "v1"   = the VILMA-v1 library behind the SAME driver, namelist, forcing, remap
     !           and output, for a like-for-like comparison. Requires a build made
-    !           with `make fastearth vilma=1 VILMAROOT=<install>`; the default
+    !           with `make fastearth vilma_v1=1 VILMA_V1_ROOT=<install>`; the default
     !           build aborts with an actionable message if this is selected.
     !           When it is, the earth-structure / scheme / response / sle / dt /
-    !           rotation / spin-up settings below are IGNORED (VILMA has its own);
+    !           rotation / spin-up settings below are IGNORED (VILMA-v1 has its own);
     !           only lmax/nlat/nphi (the coupling + output grid) and l_visc_3d are
-    !           shared. See doc/vilma-backend.md.
-    solver    = "fe3d"
+    !           shared. See doc/vilma-v1-backend.md.
+    solver    = "v2"
 
     ! --- spectral grid (fe_sht) ---------------------------------------
     lmax      = 64          ! maximum spherical-harmonic degree
@@ -63,9 +63,9 @@
     ! PREM discontinuities. rho/mu are AUTO-FILLED from the r^2-weighted shell
     ! average of PREM (the values shown are for reference only and are ignored);
     ! only the geometry, eta, and rheology are read. The eta column is the
-    ! CLIMBER-X/VILMA "Clemens" 1-D radial reference (lower mantle 1e22, upper
+    ! CLIMBER-X/VILMA-v1 "Clemens" 1-D radial reference (lower mantle 1e22, upper
     ! mantle 4e20, elastic lithosphere); for production overlay the Bagge 3-D
-    ! field via l_visc_3d below — exactly as CLIMBER-X runs VILMA.
+    ! field via l_visc_3d below — exactly as CLIMBER-X runs VILMA-v1.
     !   n_layer  = 11
     !   r_bot    = 6291.0e3, 6151.0e3, 5971.0e3, 5771.0e3, 5701.0e3, 5600.0e3, 4943.0e3, 4287.0e3, 3630.0e3, 3480.0e3,    0.0
     !   r_top    = 6371.0e3, 6291.0e3, 6151.0e3, 5971.0e3, 5771.0e3, 5701.0e3, 5600.0e3, 4943.0e3, 4287.0e3, 3630.0e3, 3480.0e3
@@ -142,22 +142,22 @@
     l_toroidal     = .true.  ! carry the toroidal field once an element is genuinely 3-D; .false. is the
                              ! spheroidal-only control (design-toroidal.md V7), not a speed knob
 
-    ! --- VILMA backend (solver = "vilma" only; fe_vilma) --------------
-    ! INERT unless solver = "vilma". Mirrors what CLIMBER-X's VILMA wrapper
+    ! --- VILMA-v1 backend (solver = "v1" only; vilma_v1) --------------
+    ! INERT unless solver = "v1". Mirrors what CLIMBER-X's VILMA-v1 wrapper
     ! (src/geo/vilma.F90) hard-codes, so the two can be made to agree exactly.
-    ! VILMA's spectral resolution is a RUNTIME setting, not compiled in.
-    vilma_jmax         = 170                       ! VILMA spectral degree (vg%jmax)
-    vilma_input_dir    = "input/vilma"             ! densi.inp, tint.inp, SLI_data.inp, viscosity files
-    vilma_out_dir      = "vilma"                   ! VILMA scratch/output dir (created if absent)
-    vilma_grid_file    = "input/vilma/vilma_grid.nc" ! lon/lat axes of VILMA's own grid
-    vilma_visc_1d_file = "visko.inp"               ! 1-D radial viscosity, rel. to vilma_input_dir
-    vilma_visc_3d_file = "visc3d_Bagge2021.nc"     ! 3-D viscosity NetCDF, rel. to vilma_input_dir
-    vilma_l_prem       = 1                         ! 1: VILMA's polynomial PREM (densi.inp gives only
+    ! VILMA-v1's spectral resolution is a RUNTIME setting, not compiled in.
+    vilma_v1_jmax         = 170                       ! VILMA-v1 spectral degree (vg%jmax)
+    vilma_v1_input_dir    = "input/vilma"             ! densi.inp, tint.inp, SLI_data.inp, viscosity files
+    vilma_v1_out_dir      = "vilma_v1"                   ! VILMA-v1 scratch/output dir (created if absent)
+    vilma_v1_grid_file    = "input/vilma/vilma_grid.nc" ! lon/lat axes of VILMA-v1's own grid
+    vilma_v1_visc_1d_file = "visko.inp"               ! 1-D radial viscosity, rel. to vilma_v1_input_dir
+    vilma_v1_visc_3d_file = "visc3d_Bagge2021.nc"     ! 3-D viscosity NetCDF, rel. to vilma_v1_input_dir
+    vilma_v1_l_prem       = 1                         ! 1: VILMA-v1's polynomial PREM (densi.inp gives only
                                                    !    boundaries + element sizes). 0: use densi.inp's
                                                    !    rho/mu, e.g. one written from FastEarth3D's own
                                                    !    layer table by experiments/make_vilma_densi.jl
-    vilma_nsub         = 1                         ! VILMA sub-steps per coupling interval; raise
-                                                   ! until dt/nsub < VILMA's minimum Maxwell time
+    vilma_v1_nsub         = 1                         ! VILMA-v1 sub-steps per coupling interval; raise
+                                                   ! until dt/nsub < VILMA-v1's minimum Maxwell time
                                                    ! (it prints both and aborts if too large)
                                                    ! (read only when l_visc_3d = .true.)
 /

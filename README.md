@@ -2,7 +2,7 @@
 
 A state-of-the-art but simple and fast **3D solid-Earth model** — a
 visco-elastic deformation model coupled with the sea-level equation — intended
-as an **open-source replacement for VILMA** within the CLIMBER-X climate model.
+as an **open-source replacement for VILMA-v1** within the CLIMBER-X climate model.
 
 The method is a clean-room reimplementation of the **spectral–finite-element,
 time-domain** approach of Martinec (2000): spherical harmonics horizontally,
@@ -15,11 +15,11 @@ coastlines, and rotational feedback. It is built **3D-ready from the start**
 discretization, benchmarks, install & run), rendered from the Quarto sources
 under [`docs/`](docs/); see [doc/design.md](doc/design.md) for the design
 rationale and method comparison, and
-[doc/vilma-backend.md](doc/vilma-backend.md) for the optional VILMA backend
-(`&fe3d solver = "vilma"`), which drives VILMA itself through this model's
+[doc/vilma-v1-backend.md](doc/vilma-v1-backend.md) for the optional VILMA-v1 backend
+(`&fe3d solver = "v1"`), which drives VILMA-v1 itself through this model's
 driver, namelist, forcing, remap and output for a like-for-like comparison. It
 is **off by default and is not a dependency**: it needs an explicit
-`make fastearth vilma=1 VILMAROOT=<install>` and a hand-installed VILMA.
+`make fastearth vilma_v1=1 VILMA_V1_ROOT=<install>` and a hand-installed VILMA-v1.
 
 ## Status
 

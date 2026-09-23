@@ -48,7 +48,7 @@ module fe_drive
         [character(len=8) :: "h_ice", "rsl", "z_bed", "C_ocean", "bsl"]
    ! ... plus the polar motion when the rotation solver is active. Appended at
    ! runtime rather than made unconditional: with rotation off, or under the
-   ! VILMA backend (which runs its own rotation internally and never updates
+   ! VILMA-v1 backend (which runs its own rotation internally and never updates
    ! se%rotation), the state is not computed, and writing zeros would be
    ! indistinguishable from a computed zero.
    character(len=8), parameter :: ROT_OUT_VARS(2) = &
@@ -92,7 +92,7 @@ contains
       call fe_ctl_print(c)
 
       ! Solver backend check, before any work: an unknown &fe3d solver, or
-      ! solver="vilma" in a binary built without the optional VILMA backend (the
+      ! solver="v1" in a binary built without the optional VILMA-v1 backend (the
       ! default build), aborts here with an actionable message rather than after
       ! minutes of remap and I/O setup.
       call solid_earth_check_solver(p)
@@ -140,10 +140,10 @@ contains
       se%par = p; call solid_earth_init(se, z_bed_eq, h_ice_eq)              ! reference, memory 0
       if (len_trim(c%restart_in_file) > 0) then                              ! resume saved memory + clock
          ! KNOWN GAP: a FastEarth3D restart file carries the NATIVE solver's
-         ! prognostic memory, which has no VILMA counterpart. VILMA restarts through
+         ! prognostic memory, which has no VILMA-v1 counterpart. VILMA-v1 restarts through
          ! its own files (r_restart / w_restart), which this driver does not wire up.
-         if (se%use_vilma) &
-            error stop 'fastearth_run: restart_in_file is not supported with solver="vilma" (see doc/vilma-backend.md)'
+         if (se%use_vilma_v1) &
+            error stop 'fastearth_run: restart_in_file is not supported with solver="v1" (see doc/vilma-v1-backend.md)'
          call fe_restart_read(se, trim(c%restart_in_file))
       end if
       if (p%pre_spinup_1d .or. p%equil_time_max > 0.0_wp) then
@@ -180,8 +180,8 @@ contains
       se%time = tyr(k0);  se%resp%time = t0          ! coupling clock in years; response clock in SI
       call fe_write_step(se, c%file_out, se%time, nms=out_names, init=.true.)
       if (len_trim(c%file_hor) > 0) then
-         if (se%use_vilma) error stop 'fastearth_run: file_hor is not available with solver="vilma" '// &
-                                      '(VILMA returns no horizontal field)'
+         if (se%use_vilma_v1) error stop 'fastearth_run: file_hor is not available with solver="v1" '// &
+                                      '(VILMA-v1 returns no horizontal field)'
          call fe_write_horizontal(se, c%file_hor, se%time, init=.true.)
       end if
 
@@ -204,7 +204,7 @@ contains
          if (len_trim(c%file_hor) > 0) call fe_write_horizontal(se, c%file_hor, se%time, init=.false.)
          call system_clock(pc1);  t_wrt = t_wrt + real(pc1-pc0,wp)/prate
          nstep = nstep + 1
-         ! mass_resid is the native SLE's own residual; the VILMA backend leaves it
+         ! mass_resid is the native SLE's own residual; the VILMA-v1 backend leaves it
          ! at FE_UNSET (no analogue), so it is omitted rather than printed as a
          ! meaningless number.
          if (se%worst_mass_resid == FE_UNSET) then
@@ -229,23 +229,23 @@ contains
       ! round-trip when laterally 3-D); rest = SLE iteration + load/geoid SHTs.
       ! The remaining breakdowns instrument the NATIVE solver's phases (drift solve,
       ! memory advance, SLE iteration, adaptive stepper). None of them exist when
-      ! VILMA is the backend, so printing them would be a page of zeros; the VILMA
+      ! VILMA-v1 is the backend, so printing them would be a page of zeros; the VILMA-v1
       ! branch below prints the two timers that ARE meaningful for both backends.
-      if (nstep > 0 .and. se%use_vilma) then
+      if (nstep > 0 .and. se%use_vilma_v1) then
          write(*,'(a)') ' [PROFILE] solid_earth_update breakdown (per step, wall-clock):'
          write(*,'(a,f8.1,a,f5.1,a)') &
-            '   VILMA time_evolution  =', 1.0e3_wp*se%t_solver/nstep, ' ms (', &
+            '   VILMA-v1 time_evolution  =', 1.0e3_wp*se%t_solver/nstep, ' ms (', &
                100.0_wp*se%t_solver/max(t_upd,tiny(1.0_wp)), ' % of update)'
          write(*,'(a,f8.1,a,f5.1,a)') &
-            '   Gauss<->VILMA remap   =', 1.0e3_wp*se%t_remap/nstep, ' ms (', &
+            '   Gauss<->VILMA-v1 remap   =', 1.0e3_wp*se%t_remap/nstep, ' ms (', &
                100.0_wp*se%t_remap/max(t_upd,tiny(1.0_wp)), ' % of update)'
          write(*,'(a,f8.1,a,f5.1,a)') &
             '   other (diagnostics)   =', 1.0e3_wp*(t_upd-se%t_solver-se%t_remap)/nstep, ' ms (', &
                100.0_wp*(t_upd-se%t_solver-se%t_remap)/max(t_upd,tiny(1.0_wp)), ' % of update)'
          write(*,'(a)') '   (the native solver''s drift / memory / SLE / stepper timers do not'
-         write(*,'(a)') '    apply to this backend and are omitted -- see doc/vilma-backend.md)'
+         write(*,'(a)') '    apply to this backend and are omitted -- see doc/vilma-v1-backend.md)'
       end if
-      if (nstep > 0 .and. .not. se%use_vilma) then
+      if (nstep > 0 .and. .not. se%use_vilma_v1) then
          t_dr = se%resp%t_drift;  t_mm = se%resp%t_mem
          write(*,'(a,/,3(a,f8.1,a,f5.1,a,/))') &
             ' [PROFILE] solid_earth_update breakdown (per step, wall-clock):', &
@@ -262,7 +262,7 @@ contains
       ! two breakdowns additive. "unattributed" is the adaptive stepper's own
       ! overhead and anything no timer covers — it should be small, and a large
       ! value means a phase has been missed rather than that the stepper is slow.
-      if (nstep > 0 .and. .not. se%use_vilma) then
+      if (nstep > 0 .and. .not. se%use_vilma_v1) then
          rest   = t_upd - t_dr - t_mm
          t_sle  = se%sle%t_total - se%sle%t_resp          ! SLE work not counted above
          t_grid = t_sle - se%sle%t_sht - se%sle%t_apply
@@ -300,16 +300,16 @@ contains
             '   outer/solve =', real(se%sle%n_outer_tot,wp)/max(se%sle%n_solve,1), &
             '   inner/outer =', real(se%sle%n_inner_tot,wp)/max(se%sle%n_outer_tot,1)
       end if
-      if (nstep > 0 .and. .not. se%use_vilma) write(*,'(a,f7.1,a,f7.1,a)') &
+      if (nstep > 0 .and. .not. se%use_vilma_v1) write(*,'(a,f7.1,a,f7.1,a)') &
          '   sub-steps/interval: n_accept=', real(se%stepper%n_accept,wp)/nstep, &
          '  n_solve=', real(se%stepper%n_solve,wp)/nstep, '  (per coupling step)'
       write(*,'(a,a)') ' fastearth: wrote ', trim(c%file_out)
       ! A FastEarth3D restart snapshot is the NATIVE solver's prognostic memory; it
-      ! has no VILMA counterpart (VILMA persists its state through its own restart
-      ! files), so with solver="vilma" none is written rather than an empty one.
-      if (se%use_vilma) then
-         write(*,'(a)') ' fastearth: no FastEarth3D restart written (solver="vilma" keeps its'
-         write(*,'(a,a)') '            own state under ', trim(p%vilma_out_dir)
+      ! has no VILMA-v1 counterpart (VILMA-v1 persists its state through its own restart
+      ! files), so with solver="v1" none is written rather than an empty one.
+      if (se%use_vilma_v1) then
+         write(*,'(a)') ' fastearth: no FastEarth3D restart written (solver="v1" keeps its'
+         write(*,'(a,a)') '            own state under ', trim(p%vilma_v1_out_dir)
       else
          call fe_restart_write(se, se%time, folder=trim(rundir)//"/final")
          write(*,'(a,a)') ' fastearth: wrote restart ', trim(rundir)//'/final/fe_restart.nc'

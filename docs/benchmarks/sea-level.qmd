@@ -11,7 +11,7 @@ cases A and C2/D3/E2/F1 (SBK reference curves). **Tests:**
 
 This is the capstone benchmark: the full **self-consistent, migrating-coastline
 sea-level equation** driven by the viscoelastic response — the same benchmark
-VILMA itself passed. It exercises the ocean function, mass conservation,
+VILMA-v1 itself passed. It exercises the ocean function, mass conservation,
 coastline migration, grounded-ice flotation, and the sub-grid sloping coast all
 together.
 

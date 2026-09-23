@@ -102,7 +102,7 @@ $$
 $$
 
 In practice a **viscosity floor** (e.g. $\sim 10^{19}\ \mathrm{Pa\,s}$) caps the
-fastest relaxation and sets a usable step (VILMA-scale runs use
+fastest relaxation and sets a usable step (VILMA-v1-scale runs use
 $\Delta t \approx 2.5$ yr; the benchmark cases here use 20 yr). Elastic layers
 ($M\to 0$) freeze and carry no memory; fluid layers ($\mu = 0$) carry no memory
 either.

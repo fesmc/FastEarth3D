@@ -78,7 +78,7 @@ evaluation are validated to $\sim 10^{-15}$ in `test_sht` and `test_field`.
 Re-implementing a fast, accurate, well-tested Legendre transform is a project in
 itself; SHTns is the de-facto standard for pseudo-spectral geodynamo/GIA work
 and is many times faster than a naive transform at the resolutions of interest
-(SH degree $\sim 170$, grid $1024\times 2048$ at VILMA resolution). The one
+(SH degree $\sim 170$, grid $1024\times 2048$ at VILMA-v1 resolution). The one
 non-negotiable is pinning the normalization and phase convention everywhere, so
 that Love numbers, quadrature, and benchmark comparisons all use the same
 $Y_{jm}$.
@@ -86,7 +86,7 @@ $Y_{jm}$.
 
 ## Resolution
 
-The reference VILMA-scale configuration is SH degree 170 with a
+The reference VILMA-v1-scale configuration is SH degree 170 with a
 $1024\times 2048$ SLE grid. The benchmark cases here run at degree 32–128;
 the Love-number and disc benchmarks synthesize spatial profiles by summing the
 per-degree response against Legendre polynomials. **All spherical-harmonic

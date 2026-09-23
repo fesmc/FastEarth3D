@@ -42,7 +42,7 @@ reference; see each page for the full breakdown.
 - **Rung 4** turns on the full *self-consistent sea-level equation* — ocean
   function, mass conservation, coastline migration, flotation, and the sub-grid
   sloping coast — against the dedicated SLE intercomparison. This is the
-  benchmark VILMA itself passed.
+  benchmark VILMA-v1 itself passed.
 - **Rung 5** (rotation) is implemented and coupled into the SLE, with the
   Liouville polar-motion solve checked against Spada test 3/2. It is on by
   default for real-Earth runs (off for the non-rotating benchmarks).

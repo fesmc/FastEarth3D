@@ -149,7 +149,7 @@ contains
       real(wp),    allocatable :: sth(:,:), sph(:,:), tth(:,:), tph(:,:)
       real(wp),    allocatable :: lon_deg(:), lat_deg(:)
       integer :: ncid, n, np, nl
-      if (self%use_vilma) error stop 'fe_write_horizontal: the VILMA backend returns no horizontal field'
+      if (self%use_vilma_v1) error stop 'fe_write_horizontal: the VILMA-v1 backend returns no horizontal field'
       call ensure_table()
       np = self%sht%nphi;  nl = self%sht%nlat
       allocate(v_lm(self%sht%nlm), t_lm(self%sht%nlm))
@@ -322,7 +322,7 @@ contains
       ! DIAGNOSTIC output file carry it as well, via an explicit nms list.
       ! Only meaningful when the rotation solver ran -- fe_drive adds them to
       ! its list only if se%rotation%enabled, so a rotation=.false. run and the
-      ! VILMA backend (which keeps its own internal rotation and never touches
+      ! VILMA-v1 backend (which keeps its own internal rotation and never touches
       ! this state) omit the variables rather than writing a fabricated zero.
       case ("rot_m_re"); call put_scalar(filename, name, real(self%rotation%m, wp), n, ncid)
       case ("rot_m_im"); call put_scalar(filename, name, aimag(self%rotation%m),    n, ncid)
