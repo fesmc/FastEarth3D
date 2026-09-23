@@ -131,8 +131,10 @@ contains
       !! `a` is the lateral run: once it has a genuinely 3-D element it carries the
       !! toroidal channels NLAM+1.. as well, which the 1-D `b` never does. A uniform
       !! field has a mirror plane in every direction, so it can force no toroidal
-      !! flow (design-toroidal.md V3): those channels must be EXACTLY zero, and any
-      !! value there is reported as a difference in full.
+      !! flow (design-toroidal.md V3): those channels must vanish to transform
+      !! round-off (the dyadic analysis of a purely spheroidal tensor leaks ~1e-14
+      !! into Z³/Z⁴, test_tensor_sh (4)), and any value there counts in full
+      !! against the same tolerance as the spheroidal difference.
       real(wp), intent(in) :: a(:,:,:), b(:,:,:)
       real(wp), allocatable :: da(:,:,:)
       da = a(1:NLAM,:,:) - b

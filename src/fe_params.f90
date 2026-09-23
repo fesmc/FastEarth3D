@@ -156,6 +156,9 @@ module fe_params
          !! element is treated as genuinely 3-D (pays the dyadic SHT round-trip); below it the
          !! element collapses to its lateral-mean scalar rate (cheap degree-diagonal path). Raising
          !! it demotes weakly-3-D elements to 1-D and cuts the memory-advance cost (the dominant cost).
+      logical  :: l_toroidal     = .true.   !! carry the toroidal degree of freedom once a 3-D element
+         !! exists (Martinec 2000 after eq 110). .false. reproduces the spheroidal-only model
+         !! exactly: the control for measuring what the coupling does, not a speed knob.
 
       ! --- VILMA backend (solver="vilma" only; fe_vilma) -------------------------
       ! INERT unless solver="vilma". These mirror the settings CLIMBER-X's VILMA
@@ -308,6 +311,7 @@ contains
       call nml_read(filename, g, "visc_3d_file",   p%visc_3d_file,   defaults_file=df)
       p%visc_3d_file = expand_path(p%visc_3d_file)
       call nml_read(filename, g, "visc3d_tol",     p%visc3d_tol,     defaults_file=df)
+      call nml_read(filename, g, "l_toroidal",     p%l_toroidal,     defaults_file=df)
       call nml_read(filename, g, "name_visc",      p%name_visc,      defaults_file=df)
       call nml_read(filename, g, "name_visc_lon",  p%name_visc_lon,  defaults_file=df)
       call nml_read(filename, g, "name_visc_lat",  p%name_visc_lat,  defaults_file=df)
@@ -405,6 +409,7 @@ contains
               '            f_visc_sd=', p%f_visc_sd, '  f_visc_rel=', p%f_visc_rel, &
               '  clamp=[', p%visc_log10_min, ',', p%visc_log10_max, ']'
          write(u,'(a,es9.2,a)') '            visc3d_tol=', p%visc3d_tol, ' dex (3-D split)'
+         write(u,'(a,l1)')      '            l_toroidal=', p%l_toroidal
       end if
       if (trim(p%solver) == "vilma") then
          write(u,'(a,i0)')  '   vilma:  jmax=', p%vilma_jmax

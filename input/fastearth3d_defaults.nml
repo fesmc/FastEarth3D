@@ -145,6 +145,8 @@
     visc3d_tol     = 1.0e-3  ! lateral log10(eta) spread [dex] above which an element is genuinely
                              ! 3-D (pays the dyadic SHT round-trip); higher => fewer 3-D elements,
                              ! cheaper memory advance, at the cost of approximating weak lateral structure
+    l_toroidal     = .true.  ! carry the toroidal field once an element is genuinely 3-D; .false. is the
+                             ! spheroidal-only control (design-toroidal.md V7), not a speed knob
 
     ! --- VILMA backend (solver = "vilma" only; fe_vilma) --------------
     ! INERT unless solver = "vilma". Mirrors what CLIMBER-X's VILMA wrapper

@@ -142,6 +142,10 @@ module fe_response
       ! a surface load never forces it directly (eq 84 has no δW term), so it has
       ! no elastic gain and no xWn.
       integer  :: nlam = NLAM                           !! memory channels carried: NLAM or NLAM+NLAM_TOR
+      ! Carry the toroidal field when a 3-D element appears (default). .false.
+      ! reproduces the spheroidal-only model exactly — the control for measuring
+      ! what the toroidal coupling does (design-toroidal.md V7), not a speed knob.
+      logical  :: toroidal = .true.
       type(toroidal_operator), allocatable :: tops(:)   !! (1:lmax) per-degree W operator
       real(wp), allocatable :: nrmt(:,:)                !! (NLAM_TOR,1:lmax) Z³,Z⁴ norms
       real(wp), allocatable :: sat(:,:,:), sbt(:,:,:), sct(:,:,:)  !! (2,NLAM_TOR,1:lmax)
@@ -1609,7 +1613,7 @@ contains
       ! toroidal channels are on they stay on: a later laterally uniform field
       ! (the pre-spinup's mean field, say) no longer forces W, but whatever W and
       ! toroidal memory exist must still relax, not be dropped.
-      if (self%ne3d > 0 .and. self%nlam == NLAM) call enable_toroidal(self)
+      if (self%toroidal .and. self%ne3d > 0 .and. self%nlam == NLAM) call enable_toroidal(self)
    end subroutine response_enable_lateral_visc
 
    subroutine enable_toroidal(self)
@@ -1897,9 +1901,9 @@ contains
       type(response), intent(inout) :: self
       type(sht_grid),     intent(in)    :: sht
       complex(wp),        intent(in)    :: sigma_lm(:)
-      complex(wp), allocatable :: cma(:,:), cmb(:,:), cmc(:,:)   ! memory coeffs (TLAM_SPH,nlm)
-      complex(wp), allocatable :: cea(:,:), ceb(:,:), cec(:,:)   ! strain coeffs (TLAM_SPH,nlm)
-      complex(wp), allocatable :: cdel(:,:)                       ! analysed increment (TLAM_SPH,nlm)
+      complex(wp), allocatable :: cma(:,:), cmb(:,:), cmc(:,:)   ! memory coeffs (nlam,nlm)
+      complex(wp), allocatable :: cea(:,:), ceb(:,:), cec(:,:)   ! strain coeffs (nlam,nlm)
+      complex(wp), allocatable :: cdel(:,:)                       ! analysed increment (nlam,nlm)
       real(wp),    allocatable :: dtau(:,:,:), deps(:,:,:)        ! (nphi,nlat,6)
       type(c_ptr) :: cfg
       integer  :: e, ei, k, lm, nc
@@ -1907,9 +1911,11 @@ contains
       if (self%ne3d == 0) return        ! no genuinely-3-D element ⇒ all handled spectrally
       !$omp parallel default(shared) &
       !$omp   private(e, ei, k, lm, nc, cma, cmb, cmc, cea, ceb, cec, cdel, dtau, deps, cfg)
-      allocate(cma(TLAM_SPH,sht%nlm), cmb(TLAM_SPH,sht%nlm), cmc(TLAM_SPH,sht%nlm))
-      allocate(cea(TLAM_SPH,sht%nlm), ceb(TLAM_SPH,sht%nlm), cec(TLAM_SPH,sht%nlm))
-      allocate(cdel(TLAM_SPH,sht%nlm))
+      ! Block width = the channels carried: TLAM_SPH, or TLAM once toroidal (the
+      ! local channel orders of fe_tensor_sh and fe_viscoelastic agree, λ3,4 at 5,6).
+      allocate(cma(self%nlam,sht%nlm), cmb(self%nlam,sht%nlm), cmc(self%nlam,sht%nlm))
+      allocate(cea(self%nlam,sht%nlm), ceb(self%nlam,sht%nlm), cec(self%nlam,sht%nlm))
+      allocate(cdel(self%nlam,sht%nlm))
       allocate(dtau(sht%nphi,sht%nlat,6), deps(sht%nphi,sht%nlat,6))
       cfg = tensor_sh_thread_cfg(self%tsh)                          ! this thread's private config
       !$omp do schedule(dynamic)
@@ -1935,12 +1941,15 @@ contains
    subroutine gather_tensor_coeffs(self, sigma_lm, e, cma, cmb, cmc, cea, ceb, cec)
       !! Per element e, gather the memory shape-coeffs (Are/Aim …) and the current
       !! strain shape-coeffs (strain_coeffs of σ·xUn + drift, exactly as fe_advance)
-      !! into complex (TLAM, nlm) blocks for the dyadic transform — all (l,m).
+      !! into complex (nlam, nlm) blocks for the dyadic transform — all (l,m). With
+      !! the toroidal channels carried, channels 5,6 take the λ3,4 memory and the
+      !! strain of the nodal W drift (no load term: eq 84 does not force W).
       type(response), intent(in)  :: self
       complex(wp),        intent(in)  :: sigma_lm(:)
       integer,            intent(in)  :: e
       complex(wp),        intent(out) :: cma(:,:), cmb(:,:), cmc(:,:), cea(:,:), ceb(:,:), cec(:,:)
       real(wp) :: ar(NLAM), br(NLAM), cr(NLAM), ai(NLAM), bi(NLAM), ci(NLAM)
+      real(wp) :: at(NLAM_TOR), bt(NLAM_TOR), ct(NLAM_TOR), ati(NLAM_TOR), bti(NLAM_TOR), cti(NLAM_TOR)
       real(wp) :: sre, sim, Ur, Ur1, Vr, Vr1, Ui, Ui1, Vi, Vi1
       integer  :: k, l, lm, lam
       cma = (0.0_wp,0.0_wp); cmb = (0.0_wp,0.0_wp); cmc = (0.0_wp,0.0_wp)
@@ -1961,6 +1970,17 @@ contains
             cma(lam,lm) = cmplx(self%Are(lam,e,k), self%Aim(lam,e,k), wp)
             cmb(lam,lm) = cmplx(self%Bre(lam,e,k), self%Bim(lam,e,k), wp)
             cmc(lam,lm) = cmplx(self%Cre(lam,e,k), self%Cim(lam,e,k), wp)
+         end do
+         if (self%nlam == NLAM) cycle
+         call strain_coeffs_tor(self%dWn_re(e,k), self%dWn_re(e+1,k), self%Jr(l), at, bt, ct)
+         call strain_coeffs_tor(self%dWn_im(e,k), self%dWn_im(e+1,k), self%Jr(l), ati, bti, cti)
+         do lam = 1, NLAM_TOR
+            cea(NLAM+lam,lm) = cmplx(at(lam), ati(lam), wp)
+            ceb(NLAM+lam,lm) = cmplx(bt(lam), bti(lam), wp)
+            cec(NLAM+lam,lm) = cmplx(ct(lam), cti(lam), wp)
+            cma(NLAM+lam,lm) = cmplx(self%Are(NLAM+lam,e,k), self%Aim(NLAM+lam,e,k), wp)
+            cmb(NLAM+lam,lm) = cmplx(self%Bre(NLAM+lam,e,k), self%Bim(NLAM+lam,e,k), wp)
+            cmc(NLAM+lam,lm) = cmplx(self%Cre(NLAM+lam,e,k), self%Cim(NLAM+lam,e,k), wp)
          end do
       end do
    end subroutine gather_tensor_coeffs
@@ -2024,7 +2044,7 @@ contains
       type(response), intent(inout) :: self
       type(sht_grid),     intent(in)    :: sht
       complex(wp),        intent(in)    :: sigma_lm(:)              ! σ_{n+1}
-      complex(wp), allocatable :: cm0a(:,:), cm0b(:,:), cm0c(:,:)   ! τ_n coeffs (TLAM_SPH,nlm)
+      complex(wp), allocatable :: cm0a(:,:), cm0b(:,:), cm0c(:,:)   ! τ_n coeffs (nlam,nlm)
       complex(wp), allocatable :: cna(:,:),  cnb(:,:),  cnc(:,:)    ! ε_n coeffs
       complex(wp), allocatable :: c1a(:,:),  c1b(:,:),  c1c(:,:)    ! ε_{n+1} coeffs
       complex(wp), allocatable :: cdel(:,:)                         ! analysed increment
@@ -2035,10 +2055,10 @@ contains
       if (self%ne3d == 0) return        ! no genuinely-3-D element ⇒ all handled spectrally
       !$omp parallel default(shared) &
       !$omp   private(e, ei, k, lm, nc, cm0a, cm0b, cm0c, cna, cnb, cnc, c1a, c1b, c1c, cdel, dt0, den, de1, cfg)
-      allocate(cm0a(TLAM_SPH,sht%nlm), cm0b(TLAM_SPH,sht%nlm), cm0c(TLAM_SPH,sht%nlm))
-      allocate(cna(TLAM_SPH,sht%nlm),  cnb(TLAM_SPH,sht%nlm),  cnc(TLAM_SPH,sht%nlm))
-      allocate(c1a(TLAM_SPH,sht%nlm),  c1b(TLAM_SPH,sht%nlm),  c1c(TLAM_SPH,sht%nlm))
-      allocate(cdel(TLAM_SPH,sht%nlm))
+      allocate(cm0a(self%nlam,sht%nlm), cm0b(self%nlam,sht%nlm), cm0c(self%nlam,sht%nlm))
+      allocate(cna(self%nlam,sht%nlm),  cnb(self%nlam,sht%nlm),  cnc(self%nlam,sht%nlm))
+      allocate(c1a(self%nlam,sht%nlm),  c1b(self%nlam,sht%nlm),  c1c(self%nlam,sht%nlm))
+      allocate(cdel(self%nlam,sht%nlm))
       allocate(dt0(sht%nphi,sht%nlat,6), den(sht%nphi,sht%nlat,6), de1(sht%nphi,sht%nlat,6))
       cfg = tensor_sh_thread_cfg(self%tsh)
       !$omp do schedule(dynamic)
@@ -2066,8 +2086,9 @@ contains
                                         cna, cnb, cnc, c1a, c1b, c1c)
       !! Per element e, gather for the trapezoidal advance: τ_n (the *0 snapshot), the
       !! start strain ε_n (σ_n·xUn + dUn) and the endpoint strain ε_{n+1} (σ_{n+1}·xUn +
-      !! edUn), each as complex (TLAM_SPH,nlm) blocks. σ_n is sigma_n when primed, else the
-      !! first-step fallback σ_{n+1} (matching trapezoid_advance_all).
+      !! edUn), each as complex (nlam,nlm) blocks. σ_n is sigma_n when primed, else the
+      !! first-step fallback σ_{n+1} (matching trapezoid_advance_all). The toroidal
+      !! channels, when carried, take W from dWn (ε_n) and edWn (ε_{n+1}).
       type(response), intent(in)  :: self
       complex(wp),        intent(in)  :: sigma_lm(:)              ! σ_{n+1}
       integer,            intent(in)  :: e
@@ -2076,6 +2097,8 @@ contains
       complex(wp),        intent(out) :: c1a(:,:), c1b(:,:), c1c(:,:)
       real(wp) :: arn(NLAM), brn(NLAM), crn(NLAM), ain(NLAM), bin(NLAM), cin(NLAM)
       real(wp) :: ar1(NLAM), br1(NLAM), cr1(NLAM), ai1(NLAM), bi1(NLAM), ci1(NLAM)
+      real(wp) :: atn(NLAM_TOR), btn(NLAM_TOR), ctn(NLAM_TOR), atin(NLAM_TOR), btin(NLAM_TOR), ctin(NLAM_TOR)
+      real(wp) :: at1(NLAM_TOR), bt1(NLAM_TOR), ct1(NLAM_TOR), ati1(NLAM_TOR), bti1(NLAM_TOR), cti1(NLAM_TOR)
       real(wp) :: sre, sim, srn, sin
       real(wp) :: Urn, Urn1, Vrn, Vrn1, Uin, Uin1, Vin, Vin1
       real(wp) :: Ur1, Ur11, Vr1, Vr11, Ui1, Ui11, Vi1, Vi11
@@ -2115,6 +2138,22 @@ contains
             cm0a(lam,lm) = cmplx(self%Are0(lam,e,k), self%Aim0(lam,e,k), wp)
             cm0b(lam,lm) = cmplx(self%Bre0(lam,e,k), self%Bim0(lam,e,k), wp)
             cm0c(lam,lm) = cmplx(self%Cre0(lam,e,k), self%Cim0(lam,e,k), wp)
+         end do
+         if (self%nlam == NLAM) cycle
+         call strain_coeffs_tor(self%dWn_re(e,k),  self%dWn_re(e+1,k),  self%Jr(l), atn, btn, ctn)
+         call strain_coeffs_tor(self%dWn_im(e,k),  self%dWn_im(e+1,k),  self%Jr(l), atin, btin, ctin)
+         call strain_coeffs_tor(self%edWn_re(e,k), self%edWn_re(e+1,k), self%Jr(l), at1, bt1, ct1)
+         call strain_coeffs_tor(self%edWn_im(e,k), self%edWn_im(e+1,k), self%Jr(l), ati1, bti1, cti1)
+         do lam = 1, NLAM_TOR
+            cna(NLAM+lam,lm) = cmplx(atn(lam), atin(lam), wp)
+            cnb(NLAM+lam,lm) = cmplx(btn(lam), btin(lam), wp)
+            cnc(NLAM+lam,lm) = cmplx(ctn(lam), ctin(lam), wp)
+            c1a(NLAM+lam,lm) = cmplx(at1(lam), ati1(lam), wp)
+            c1b(NLAM+lam,lm) = cmplx(bt1(lam), bti1(lam), wp)
+            c1c(NLAM+lam,lm) = cmplx(ct1(lam), cti1(lam), wp)
+            cm0a(NLAM+lam,lm) = cmplx(self%Are0(NLAM+lam,e,k), self%Aim0(NLAM+lam,e,k), wp)
+            cm0b(NLAM+lam,lm) = cmplx(self%Bre0(NLAM+lam,e,k), self%Bim0(NLAM+lam,e,k), wp)
+            cm0c(NLAM+lam,lm) = cmplx(self%Cre0(NLAM+lam,e,k), self%Cim0(NLAM+lam,e,k), wp)
          end do
       end do
    end subroutine gather_tensor_coeffs_trap

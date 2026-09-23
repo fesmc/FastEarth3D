@@ -22,7 +22,8 @@ program test_rotinv
    use fe_constants,       only: kyr
    use fe_earth_structure, only: earth_model, build_M3L70V01
    use fe_radial_fe,       only: radial_fe_finalize
-   use fe_response,        only: response_destroy, response_commit_step, response_apply, response_begin_step, response_enable_lateral_visc, response, response_init_elastic, response_init_ve, response_init_null
+   use fe_response,        only: response_destroy, response_commit_step, response_apply, response_begin_step, response_enable_lateral_visc, response, response_init_elastic, response_init_ve, response_init_null, &
+                                 response_horizontal_toroidal
    use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_analysis, sht_grid_eval_point
    use fe_viscoelastic,    only: SCHEME_TRAP
    implicit none
@@ -39,7 +40,7 @@ program test_rotinv
    integer           :: lmax
    type(sht_grid)    :: sht
    type(earth_model) :: e
-   real(wp)          :: u_pole, u_off, relerr, tol
+   real(wp)          :: u_pole, u_off, relerr, tol, w_pole, w_off
    character(len=32) :: arg
    logical           :: ok
 
@@ -54,8 +55,8 @@ program test_rotinv
 
    write(*,'(a,i0,a,f5.2,a)') ' off-pole rotational-invariance (lmax=', lmax, &
         ', TRAP-3D, tol=', tol*100.0_wp, '%)'
-   call run_case(0.0_wp,     0.0_wp,     u_pole)   ! axis = north pole (m=0)
-   call run_case(55.0_wp*DEG, 40.0_wp*DEG, u_off)  ! off-pole axis (all m)
+   call run_case(0.0_wp,     0.0_wp,     u_pole, w_pole)   ! axis = north pole (m=0)
+   call run_case(55.0_wp*DEG, 40.0_wp*DEG, u_off,  w_off)    ! off-pole axis (all m)
 
    relerr = abs(u_off - u_pole)/max(abs(u_pole), tiny(1.0_wp))
    write(*,'(a)') ''
@@ -63,6 +64,14 @@ program test_rotinv
    write(*,'(a,f10.4,a)') '   off-pole cap-centre uplift = ', u_off,  ' m'
    write(*,'(a,es10.2)')  '   relative difference        = ', relerr
    ok = (relerr <= tol)
+   ! V3 (design-toroidal.md): cap and LVZ share an axis, so every plane through it
+   ! is a mirror and no toroidal flow can be forced. On the pole that is exact —
+   ! the fields are m = 0 and Z³, Z⁴ of an m = 0 tensor vanish identically. Off the
+   ! pole the Gauss grid breaks the symmetry at discretisation level, the same
+   ! level as the uplift mismatch above, and W must stay there.
+   write(*,'(a,es10.2)')  '   max|W(a)|/max|U(a)|, on-pole  = ', w_pole
+   write(*,'(a,es10.2)')  '   max|W(a)|/max|U(a)|, off-pole = ', w_off
+   ok = ok .and. (w_pole <= 1.0e-12_wp) .and. (w_off <= tol)
 
    call sht_grid_destroy(sht);  call radial_fe_finalize()
    write(*,'(a)') ''
@@ -75,20 +84,22 @@ program test_rotinv
 
 contains
 
-   subroutine run_case(beta_c, lon_c, u_peak)
+   subroutine run_case(beta_c, lon_c, u_peak, w_rel)
       !! Drive the cap+LVZ centred on axis n̂ = (colat beta_c, lon lon_c) to T_END and
-      !! return the cap-centre uplift. Cap height and LVZ extent taper smoothly about n̂.
+      !! return the cap-centre uplift, and the largest toroidal surface coefficient
+      !! relative to the largest uplift coefficient. Cap height and LVZ extent taper
+      !! smoothly about n̂.
       real(wp), intent(in)  :: beta_c, lon_c   !! axis colatitude / longitude [rad]
-      real(wp), intent(out) :: u_peak
+      real(wp), intent(out) :: u_peak, w_rel
       type(response) :: ve
-      complex(wp), allocatable :: cap_lm(:), slm(:), ulm(:), nlm(:)
+      complex(wp), allocatable :: cap_lm(:), slm(:), ulm(:), nlm(:), tlm(:)
       real(wp),    allocatable :: cap(:,:), pert(:,:,:)
       real(wp) :: gam, rmid, depth, t, H, uval
       integer  :: i, j, ie, nstep, istep
 
       call response_init_ve(ve, e, sht, DT)
       ve%scheme = SCHEME_TRAP;  ve%max_couple_iter = 2
-      allocate(cap_lm(sht%nlm), slm(sht%nlm), ulm(sht%nlm), nlm(sht%nlm))
+      allocate(cap_lm(sht%nlm), slm(sht%nlm), ulm(sht%nlm), nlm(sht%nlm), tlm(sht%nlm))
       allocate(cap(sht%nphi, sht%nlat), pert(sht%nphi, sht%nlat, ve%ne))
 
       ! Unit cap shape on the grid (raised-cosine taper in angular distance from n̂).
@@ -129,7 +140,9 @@ contains
          end if
       end do
 
-      deallocate(cap_lm, slm, ulm, nlm, cap, pert)
+      call response_horizontal_toroidal(ve, sht, tlm)
+      w_rel = maxval(abs(tlm))/maxval(abs(ulm))
+      deallocate(cap_lm, slm, ulm, nlm, tlm, cap, pert)
       call response_destroy(ve)
    end subroutine run_case
 

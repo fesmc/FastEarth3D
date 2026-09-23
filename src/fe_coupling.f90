@@ -286,6 +286,7 @@ contains
          error stop "solid_earth_init: unknown earth_response (use ve|modal|elastic|null)"
       end select
       self%resp%visc3d_tol = self%par%visc3d_tol   ! 3-D split threshold (read before any enable below)
+      self%resp%toroidal   = self%par%l_toroidal   ! toroidal coupling (likewise)
 
       ! laterally-varying (3D) viscosity (rung 6c), per self%par%l_visc_3d
       if (self%par%l_visc_3d) call solid_earth_enable_visc_3d(self, self%sht)
