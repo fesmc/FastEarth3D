@@ -20,7 +20,7 @@ program test_response_3d
    use fe_radial_fe,       only: radial_fe_finalize
    use fe_response,        only: response_apply, response_destroy, response_enable_lateral_visc, response_commit_step, response_begin_step, response, response_init_elastic, response_init_ve, response_init_null
    use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_lmidx
-   use fe_viscoelastic,    only: SCHEME_TRAP
+   use fe_viscoelastic,    only: SCHEME_TRAP, NLAM
    implicit none
 
    integer, parameter :: LMAX = 8
@@ -127,11 +127,18 @@ contains
       !! (its B13 norm is 0), so the dissipation never sees it; the 1-D scalar advance
       !! keeps a phantom value there while the tensor advance correctly zeros it. The
       !! difference is in the null space of the observable (the uplift check confirms).
+      !!
+      !! `a` is the lateral run: once it has a genuinely 3-D element it carries the
+      !! toroidal channels NLAM+1.. as well, which the 1-D `b` never does. A uniform
+      !! field has a mirror plane in every direction, so it can force no toroidal
+      !! flow (design-toroidal.md V3): those channels must be EXACTLY zero, and any
+      !! value there is reported as a difference in full.
       real(wp), intent(in) :: a(:,:,:), b(:,:,:)
       real(wp), allocatable :: da(:,:,:)
-      da = a - b
+      da = a(1:NLAM,:,:) - b
       da(4,:,1:nk1) = 0.0_wp          ! λ=6 has no degree-1 harmonic (all its orders)
       d = maxval(abs(da))
+      if (size(a,1) > NLAM) d = max(d, maxval(abs(a(NLAM+1:,:,:))))
    end function mem_diff
 
    real(wp) function mem_scale(a) result(s)

@@ -26,10 +26,14 @@ module fe_response
    use fe_constants,       only: pi, grav_G
    use fe_earth_structure, only: earth_gravity_at, earth_model, RHEOL_MAXWELL
    use fe_radial_fe,       only: radial_operator_load_rhs, radial_operator_solve_vec, radial_operator_destroy, radial_operator_solve, radial_operator_assemble, radial_mesh_build, radial_mesh, radial_operator, &
-                                 idx_u, idx_v, idx_f, ndof_of
+                                 idx_u, idx_v, idx_f, ndof_of, &
+                                 toroidal_operator, toroidal_operator_assemble, toroidal_operator_solve_vec, &
+                                 toroidal_operator_destroy
    use fe_viscoelastic,    only: NLAM, ve_strain_constants, dissipative_rhs, &
                                  advance_memory, strain_coeffs, scheme_is_implicit, &
-                                 SCHEME_FE, SCHEME_TRAP
+                                 SCHEME_FE, SCHEME_TRAP, &
+                                 NLAM_TOR, ve_strain_constants_tor, dissipative_rhs_tor, &
+                                 advance_memory_tor, strain_coeffs_tor
    use fe_sht,             only: sht_grid, sht_grid_lmidx, sht_grid_synthesis, sht_grid_analysis
    use fe_tensor_sh,       only: tensor_sh, TLAM_SPH, tensor_sh_init, tensor_sh_thread_cfg, tensor_sh_synth, tensor_sh_analysis, tensor_sh_destroy
    use fe_modal,           only: modal_solve, modal_spectrum, modal_spectrum_destroy
@@ -40,7 +44,7 @@ module fe_response
    public :: response, RESP_NULL, RESP_ELASTIC, RESP_VE, RESP_MODAL
    public :: LAT_LIE_CHAR, LAT_STRANG_CHAR, LAT_COUPLED, lat_method_from_name
    public :: response_init_null, response_init_elastic, response_init_ve, response_init_modal
-   public :: response_apply, response_horizontal, response_destroy
+   public :: response_apply, response_horizontal, response_horizontal_toroidal, response_destroy
    public :: response_begin_step, response_commit_step
    public :: response_prepare_endpoint, response_advance_endpoint
    public :: response_endpoint_converged, response_finalize_step
@@ -128,6 +132,23 @@ module fe_response
       integer  :: ne3d = 0                              !! # genuinely-3-D elements
       integer,  allocatable :: e3d(:)                   !! (ne3d) indices of the 3-D elements
       logical,  allocatable :: active1d(:)              !! (ne) advance spectrally (skip in 3-D path)
+      ! Toroidal degree of freedom (design-toroidal.md). A laterally varying
+      ! viscosity drives toroidal flow through the pointwise M(θ,φ)·τ product, and
+      ! that flow feeds back into the spheroidal memory (Martinec 2000 after eq
+      ! 110). It exists only when some element is genuinely 3-D: a radially
+      ! symmetric or laterally uniform field forces no W at all. Then the memory
+      ! arrays widen from NLAM to NLAM+NLAM_TOR channels (λ3, λ4 appended), each
+      ! degree gets its tridiagonal W operator, and W rides along as pure drift —
+      ! a surface load never forces it directly (eq 84 has no δW term), so it has
+      ! no elastic gain and no xWn.
+      integer  :: nlam = NLAM                           !! memory channels carried: NLAM or NLAM+NLAM_TOR
+      type(toroidal_operator), allocatable :: tops(:)   !! (1:lmax) per-degree W operator
+      real(wp), allocatable :: nrmt(:,:)                !! (NLAM_TOR,1:lmax) Z³,Z⁴ norms
+      real(wp), allocatable :: sat(:,:,:), sbt(:,:,:), sct(:,:,:)  !! (2,NLAM_TOR,1:lmax)
+      complex(wp), allocatable :: dWa(:)                !! (nk) surface toroidal drift W(a)
+      real(wp), allocatable :: dWn_re(:,:), dWn_im(:,:) !! (nr,nk) nodal W from τ_n
+      real(wp), allocatable :: edWn_re(:,:), edWn_im(:,:) !! (nr,nk) nodal W from the trial τ_{n+1}
+      complex(wp), allocatable :: dWa_prev(:)           !! (nk) prev-iterate W(a) (convergence)
       ! per-degree constants and unit-load response
       real(wp), allocatable :: Jr(:)                    !! (1:lmax) l(l+1)
       real(wp), allocatable :: nrmc(:,:)                !! (NLAM,1:lmax) Z:Z norms
@@ -1216,9 +1237,10 @@ contains
       self%kbeg(self%lmax+1) = k + 1           ! sentinel (one past the last slot)
 
       ! per-(l,m) memory + drift, all in degree-grouped k order (zeroed)
-      allocate(self%Are(NLAM,self%ne,self%nk), self%Aim(NLAM,self%ne,self%nk))
-      allocate(self%Bre(NLAM,self%ne,self%nk), self%Bim(NLAM,self%ne,self%nk))
-      allocate(self%Cre(NLAM,self%ne,self%nk), self%Cim(NLAM,self%ne,self%nk))
+      self%nlam = NLAM                          ! spheroidal only until a 3-D element appears
+      allocate(self%Are(self%nlam,self%ne,self%nk), self%Aim(self%nlam,self%ne,self%nk))
+      allocate(self%Bre(self%nlam,self%ne,self%nk), self%Bim(self%nlam,self%ne,self%nk))
+      allocate(self%Cre(self%nlam,self%ne,self%nk), self%Cim(self%nlam,self%ne,self%nk))
       ! Zeroed in PARALLEL, on the same schedule(static) partition over k that
       ! every consumer of these arrays uses (fe_advance, trapezoid_advance_all,
       ! response_memory_norm, the save/restore buffers). This is the first touch,
@@ -1250,19 +1272,29 @@ contains
       !! commit re-uses the same solver against the trial τ_{n+1} (see solve_drift).
       type(response), intent(inout) :: self
       type(sht_grid),     intent(in)    :: sht
-      call solve_drift(self, sht, self%dUn_re, self%dUn_im, self%dVn_re, self%dVn_im)
+      if (self%nlam > NLAM) then
+         call solve_drift(self, sht, self%dUn_re, self%dUn_im, self%dVn_re, self%dVn_im, &
+                          self%dWn_re, self%dWn_im)
+      else
+         call solve_drift(self, sht, self%dUn_re, self%dUn_im, self%dVn_re, self%dVn_im)
+      end if
    end subroutine ve_response_begin
 
-   subroutine solve_drift(self, sht, Un_re, Un_im, Vn_re, Vn_im)
+   subroutine solve_drift(self, sht, Un_re, Un_im, Vn_re, Vn_im, Wn_re, Wn_im)
       !! Solve the per-(l,m) drift (load=0 memory forcing) from self's CURRENT memory
       !! arrays (self%Are…): surface drift → self%dUa/dFa/dVa, nodal drift → the four
       !! target arrays. begin_step passes self%dUn_* (drift from τ_n); the implicit
       !! commit passes self%edUn_* (drift from the trial τ_{n+1}). Targets are distinct
       !! components from everything read via self, so there is no argument aliasing.
+      !! With the toroidal channels carried, Wn_re/Wn_im (required then) receive the
+      !! nodal W from its own operator, and self%dWa its surface value.
       type(response), intent(inout) :: self
       type(sht_grid),     intent(in)    :: sht
       real(wp),           intent(out)   :: Un_re(:,:), Un_im(:,:), Vn_re(:,:), Vn_im(:,:)
+      real(wp), optional, intent(out)   :: Wn_re(:,:), Wn_im(:,:)
       real(wp), allocatable :: fre(:), fim(:), xre(:), xim(:)
+      real(wp), allocatable :: gre(:), gim(:), wre(:), wim(:)
+      logical :: tor
       integer :: k, l, node, e, mm
       real(wp) :: thr, mk
       integer(kind=8) :: pc0, pc1, prate           ! PROFILE: drift-solve wall-clock
@@ -1276,7 +1308,7 @@ contains
       do k = 1, self%nk
          mk = 0.0_wp
          do e = 1, self%ne
-            do mm = 1, NLAM
+            do mm = 1, self%nlam
                mk = max(mk, abs(self%Are(mm,e,k)), abs(self%Bre(mm,e,k)), &
                            abs(self%Cre(mm,e,k)), abs(self%Aim(mm,e,k)), &
                            abs(self%Bim(mm,e,k)), abs(self%Cim(mm,e,k)))
@@ -1289,6 +1321,9 @@ contains
       ! negligible too): zero their drift instead of solving. thr is relative to the
       ! largest memory present.
       thr = self%skip_tol * maxval(self%mnorm)
+      tor = self%nlam > NLAM
+      if (tor .and. .not. (present(Wn_re) .and. present(Wn_im))) &
+         error stop 'solve_drift: the toroidal channels are carried, so W targets are required'
 
       ! Solve for the drift, PARALLEL OVER DEGREE l so each per-degree operator
       ! ops(l) is touched by a single thread. Safe because EVERY degree solves
@@ -1297,8 +1332,9 @@ contains
       ! fe_radial_fe). There is no LIS solver any more, so no degree has to be
       ! serialized for re-entrancy. The scratch vectors are per-thread; dynamic schedule balances the rising work
       ! per degree (l+1 orders). Inactive (ordinary serial loop) unless openmp=1.
-      !$omp parallel default(shared) private(l, k, node, fre, fim, xre, xim)
+      !$omp parallel default(shared) private(l, k, node, fre, fim, xre, xim, gre, gim, wre, wim)
       allocate(fre(self%ndof), fim(self%ndof), xre(self%ndof), xim(self%ndof))
+      if (tor) allocate(gre(self%nr), gim(self%nr), wre(self%nr), wim(self%nr))
       !$omp do schedule(dynamic)
       do l = 1, self%lmax
          do k = self%kbeg(l), self%kbeg(l+1) - 1
@@ -1307,6 +1343,10 @@ contains
                self%dVa(k) = (0.0_wp,0.0_wp)
                Un_re(:,k) = 0.0_wp;  Un_im(:,k) = 0.0_wp
                Vn_re(:,k) = 0.0_wp;  Vn_im(:,k) = 0.0_wp
+               if (tor) then
+                  self%dWa(k) = (0.0_wp,0.0_wp)
+                  Wn_re(:,k) = 0.0_wp;  Wn_im(:,k) = 0.0_wp
+               end if
                cycle
             end if
             fre = 0.0_wp;  fim = 0.0_wp
@@ -1334,10 +1374,26 @@ contains
                Vn_re(node,k) = xre(idx_v(node))
                Vn_im(node,k) = xim(idx_v(node))
             end do
+            if (tor) then
+               ! The toroidal drift: its own forcing, its own operator. No frame
+               ! projection at l = 1 — the net-rotation border already fixes it.
+               gre = 0.0_wp;  gim = 0.0_wp
+               call dissipative_rhs_tor(self%ne, self%r, self%sat(:,:,l), self%sbt(:,:,l), &
+                    self%sct(:,:,l), self%nrmt(:,l), self%Are(:,:,k), self%Bre(:,:,k), &
+                    self%Cre(:,:,k), gre)
+               call dissipative_rhs_tor(self%ne, self%r, self%sat(:,:,l), self%sbt(:,:,l), &
+                    self%sct(:,:,l), self%nrmt(:,l), self%Aim(:,:,k), self%Bim(:,:,k), &
+                    self%Cim(:,:,k), gim)
+               call toroidal_operator_solve_vec(self%tops(l), gre, wre)
+               call toroidal_operator_solve_vec(self%tops(l), gim, wim)
+               Wn_re(:,k) = wre;  Wn_im(:,k) = wim
+               self%dWa(k) = cmplx(wre(self%nr), wim(self%nr), wp)
+            end if
          end do
       end do
       !$omp end do
       deallocate(fre, fim, xre, xim)
+      if (tor) deallocate(gre, gim, wre, wim)
       !$omp end parallel
       call system_clock(pc1)
       self%t_drift = self%t_drift + real(pc1-pc0,wp)/prate;  self%n_drift = self%n_drift + 1
@@ -1385,6 +1441,24 @@ contains
       end do
    end subroutine ve_response_horizontal
 
+   subroutine response_horizontal_toroidal(self, sht, t_lm)
+      !! The toroidal part of the surface horizontal displacement, as coefficients
+      !! t_lm of u_h = e_r × ∇₁(Σ t_lm Y_lm) (fe_sht%tor_synthesis): the surface W(a)
+      !! of the last begin_step. Zero for every response that carries no toroidal
+      !! field — null, elastic, modal, and a VE response with no 3-D element — which
+      !! is exact, not an approximation: nothing forces W there.
+      type(response), intent(in)  :: self
+      type(sht_grid), intent(in)  :: sht
+      complex(wp),    intent(out) :: t_lm(:)
+      integer :: k
+      t_lm = (0.0_wp, 0.0_wp)
+      if (self%kind /= RESP_VE) return
+      if (self%nlam == NLAM) return
+      do k = 1, self%nk
+         t_lm(self%k2lm(k)) = self%dWa(k)
+      end do
+   end subroutine response_horizontal_toroidal
+
    subroutine ve_response_commit(self, sht, sigma_lm)
       !! Advance the memory with the converged load, frozen σ (held/slow-load step;
       !! §3c part 3a). Explicit (FE): total nodal strain = σ·(unit-load nodal) +
@@ -1409,18 +1483,17 @@ contains
       ! --- implicit (TRAP): iterate the endpoint to a consistent τ_{n+1} ------------
       call ensure_commit_scratch(self)
       call snapshot_taun(self)                      ! τ_n base for every trapezoid pass
-      self%dUa_prev = self%dUa
+      call keep_drift(self)
       do iter = 1, self%max_couple_iter
          ! Endpoint drift from the current τ_{n+1} estimate (self%Are…); also refreshes
          ! self%dUa (the surface drift, used as the convergence signal). Then reset to
          ! τ_n and trapezoid-advance with (ε_n, ε_{n+1}).
-         call solve_drift(self, sht, self%edUn_re, self%edUn_im, self%edVn_re, self%edVn_im)
+         call solve_endpoint_drift(self, sht)
          call trapezoid_advance_all(self, sht, sigma_lm)
          ! iter 1 re-solves drift from τ_n and so reproduces begin_step's drift; the
          ! fixed point only moves at iter 2 (never exit on the first pass).
-         cnorm = maxval(abs(self%dUa - self%dUa_prev))
-         snorm = maxval(abs(self%dUa))
-         self%dUa_prev = self%dUa
+         call drift_change(self, cnorm, snorm)
+         call keep_drift(self)
          if (iter >= 2 .and. cnorm <= self%couple_tol*max(snorm, tiny(1.0_wp))) exit
       end do
       self%couple_iters_last = min(iter, self%max_couple_iter)
@@ -1464,6 +1537,12 @@ contains
               self%Are(:,:,k), self%Bre(:,:,k), self%Cre(:,:,k), active=self%active1d)
          call advance_memory(self%ne, self%mu, self%Mk, Uim, Vim, self%Jr(l), &
               self%Aim(:,:,k), self%Bim(:,:,k), self%Cim(:,:,k), active=self%active1d)
+         if (self%nlam > NLAM) then              ! W is pure drift: no σ·xWn term
+            call advance_memory_tor(self%ne, self%mu, self%Mk, self%dWn_re(:,k), self%Jr(l), &
+                 self%Are(:,:,k), self%Bre(:,:,k), self%Cre(:,:,k), active=self%active1d)
+            call advance_memory_tor(self%ne, self%mu, self%Mk, self%dWn_im(:,k), self%Jr(l), &
+                 self%Aim(:,:,k), self%Bim(:,:,k), self%Cim(:,:,k), active=self%active1d)
+         end if
       end do
       !$omp end do
       deallocate(Ure, Uim, Vre, Vim)
@@ -1526,7 +1605,77 @@ contains
          end if
       end do
       self%lat_visc = .true.
+      ! A genuinely 3-D element is what couples spheroidal and toroidal. Once the
+      ! toroidal channels are on they stay on: a later laterally uniform field
+      ! (the pre-spinup's mean field, say) no longer forces W, but whatever W and
+      ! toroidal memory exist must still relax, not be dropped.
+      if (self%ne3d > 0 .and. self%nlam == NLAM) call enable_toroidal(self)
    end subroutine response_enable_lateral_visc
+
+   subroutine enable_toroidal(self)
+      !! Carry the toroidal degree of freedom from here on: per-degree W operators
+      !! and constants, the W drift arrays, and every memory array and state buffer
+      !! widened from NLAM to NLAM+NLAM_TOR channels with the new ones zeroed —
+      !! the exact toroidal state of a run that has only ever been spheroidal.
+      type(response), intent(inout) :: self
+      integer :: l
+      allocate(self%tops(self%lmax), self%nrmt(NLAM_TOR,self%lmax))
+      allocate(self%sat(2,NLAM_TOR,self%lmax), self%sbt(2,NLAM_TOR,self%lmax), &
+               self%sct(2,NLAM_TOR,self%lmax))
+      do l = 1, self%lmax
+         call toroidal_operator_assemble(self%tops(l), self%r, self%mu, l)
+         call ve_strain_constants_tor(self%Jr(l), self%nrmt(:,l), &
+                                      self%sat(:,:,l), self%sbt(:,:,l), self%sct(:,:,l))
+      end do
+      allocate(self%dWa(self%nk));  self%dWa = (0.0_wp, 0.0_wp)
+      allocate(self%dWn_re(self%nr,self%nk), self%dWn_im(self%nr,self%nk))
+      self%dWn_re = 0.0_wp;  self%dWn_im = 0.0_wp
+      self%nlam = NLAM + NLAM_TOR
+      call widen(self%Are);  call widen(self%Aim)
+      call widen(self%Bre);  call widen(self%Bim)
+      call widen(self%Cre);  call widen(self%Cim)
+      if (allocated(self%Are0)) then
+         call widen(self%Are0);  call widen(self%Aim0)
+         call widen(self%Bre0);  call widen(self%Bim0)
+         call widen(self%Cre0);  call widen(self%Cim0)
+         call ensure_commit_scratch_tor(self)
+      end if
+      if (allocated(self%Are_s)) then
+         call widen(self%Are_s);  call widen(self%Aim_s)
+         call widen(self%Bre_s);  call widen(self%Bim_s)
+         call widen(self%Cre_s);  call widen(self%Cim_s)
+         call widen(self%Are_c);  call widen(self%Aim_c)
+         call widen(self%Bre_c);  call widen(self%Bim_c)
+         call widen(self%Cre_c);  call widen(self%Cim_c)
+      end if
+   contains
+      subroutine widen(x)
+         !! (NLAM,ne,nk) → (NLAM+NLAM_TOR,ne,nk), spheroidal channels kept, the
+         !! new ones zero. Filled in parallel on the same schedule(static)
+         !! partition over k as every loop that reads these arrays: this is their
+         !! first touch, which places the pages (see response_init_ve).
+         real(wp), allocatable, intent(inout) :: x(:,:,:)
+         real(wp), allocatable :: y(:,:,:)
+         integer :: k
+         allocate(y(NLAM+NLAM_TOR, size(x,2), size(x,3)))
+         !$omp parallel do default(shared) private(k) schedule(static)
+         do k = 1, size(x,3)
+            y(1:NLAM,:,k) = x(:,:,k)
+            y(NLAM+1:,:,k) = 0.0_wp
+         end do
+         !$omp end parallel do
+         call move_alloc(y, x)
+      end subroutine widen
+   end subroutine enable_toroidal
+
+   subroutine ensure_commit_scratch_tor(self)
+      !! The implicit commit's W endpoint drift and convergence buffer.
+      type(response), intent(inout) :: self
+      if (allocated(self%edWn_re)) return
+      allocate(self%edWn_re(self%nr,self%nk), self%edWn_im(self%nr,self%nk))
+      allocate(self%dWa_prev(self%nk))
+      self%edWn_re = 0.0_wp;  self%edWn_im = 0.0_wp;  self%dWa_prev = (0.0_wp,0.0_wp)
+   end subroutine ensure_commit_scratch_tor
 
    subroutine response_enable_lateral_visc_from_nodes(self, sht, visc_node)
       !! Rung 6c — enable laterally-varying viscosity from a NODE-based ABSOLUTE
@@ -1753,11 +1902,11 @@ contains
       complex(wp), allocatable :: cdel(:,:)                       ! analysed increment (TLAM_SPH,nlm)
       real(wp),    allocatable :: dtau(:,:,:), deps(:,:,:)        ! (nphi,nlat,6)
       type(c_ptr) :: cfg
-      integer  :: e, ei, k, lm
+      integer  :: e, ei, k, lm, nc
 
       if (self%ne3d == 0) return        ! no genuinely-3-D element ⇒ all handled spectrally
       !$omp parallel default(shared) &
-      !$omp   private(e, ei, k, lm, cma, cmb, cmc, cea, ceb, cec, cdel, dtau, deps, cfg)
+      !$omp   private(e, ei, k, lm, nc, cma, cmb, cmc, cea, ceb, cec, cdel, dtau, deps, cfg)
       allocate(cma(TLAM_SPH,sht%nlm), cmb(TLAM_SPH,sht%nlm), cmc(TLAM_SPH,sht%nlm))
       allocate(cea(TLAM_SPH,sht%nlm), ceb(TLAM_SPH,sht%nlm), cec(TLAM_SPH,sht%nlm))
       allocate(cdel(TLAM_SPH,sht%nlm))
@@ -1772,9 +1921,10 @@ contains
          call advance_shape_tensor(self, sht, e, cmc, cec, dtau, deps, cdel, cfg)
          do k = 1, self%nk                                 ! write updated memory back
             lm = self%k2lm(k)
-            self%Are(:,e,k) = real(cma(:,lm), wp);  self%Aim(:,e,k) = aimag(cma(:,lm))
-            self%Bre(:,e,k) = real(cmb(:,lm), wp);  self%Bim(:,e,k) = aimag(cmb(:,lm))
-            self%Cre(:,e,k) = real(cmc(:,lm), wp);  self%Cim(:,e,k) = aimag(cmc(:,lm))
+            nc = size(cma,1)
+            self%Are(1:nc,e,k) = real(cma(:,lm), wp);  self%Aim(1:nc,e,k) = aimag(cma(:,lm))
+            self%Bre(1:nc,e,k) = real(cmb(:,lm), wp);  self%Bim(1:nc,e,k) = aimag(cmb(:,lm))
+            self%Cre(1:nc,e,k) = real(cmc(:,lm), wp);  self%Cim(1:nc,e,k) = aimag(cmc(:,lm))
          end do
       end do
       !$omp end do
@@ -1880,11 +2030,11 @@ contains
       complex(wp), allocatable :: cdel(:,:)                         ! analysed increment
       real(wp),    allocatable :: dt0(:,:,:), den(:,:,:), de1(:,:,:) ! (nphi,nlat,6)
       type(c_ptr) :: cfg
-      integer  :: e, ei, k, lm
+      integer  :: e, ei, k, lm, nc
 
       if (self%ne3d == 0) return        ! no genuinely-3-D element ⇒ all handled spectrally
       !$omp parallel default(shared) &
-      !$omp   private(e, ei, k, lm, cm0a, cm0b, cm0c, cna, cnb, cnc, c1a, c1b, c1c, cdel, dt0, den, de1, cfg)
+      !$omp   private(e, ei, k, lm, nc, cm0a, cm0b, cm0c, cna, cnb, cnc, c1a, c1b, c1c, cdel, dt0, den, de1, cfg)
       allocate(cm0a(TLAM_SPH,sht%nlm), cm0b(TLAM_SPH,sht%nlm), cm0c(TLAM_SPH,sht%nlm))
       allocate(cna(TLAM_SPH,sht%nlm),  cnb(TLAM_SPH,sht%nlm),  cnc(TLAM_SPH,sht%nlm))
       allocate(c1a(TLAM_SPH,sht%nlm),  c1b(TLAM_SPH,sht%nlm),  c1c(TLAM_SPH,sht%nlm))
@@ -1901,9 +2051,10 @@ contains
          call advance_shape_tensor_trap(self, sht, e, cm0c, cnc, c1c, dt0, den, de1, cdel, cfg)
          do k = 1, self%nk                                 ! write updated memory back
             lm = self%k2lm(k)
-            self%Are(:,e,k) = real(cm0a(:,lm), wp);  self%Aim(:,e,k) = aimag(cm0a(:,lm))
-            self%Bre(:,e,k) = real(cm0b(:,lm), wp);  self%Bim(:,e,k) = aimag(cm0b(:,lm))
-            self%Cre(:,e,k) = real(cm0c(:,lm), wp);  self%Cim(:,e,k) = aimag(cm0c(:,lm))
+            nc = size(cm0a,1)
+            self%Are(1:nc,e,k) = real(cm0a(:,lm), wp);  self%Aim(1:nc,e,k) = aimag(cm0a(:,lm))
+            self%Bre(1:nc,e,k) = real(cm0b(:,lm), wp);  self%Bim(1:nc,e,k) = aimag(cm0b(:,lm))
+            self%Cre(1:nc,e,k) = real(cm0c(:,lm), wp);  self%Cim(1:nc,e,k) = aimag(cm0c(:,lm))
          end do
       end do
       !$omp end do
@@ -2001,6 +2152,40 @@ contains
       c0 = c0 + cdel
    end subroutine advance_shape_tensor_trap
 
+   subroutine solve_endpoint_drift(self, sht)
+      !! solve_drift into the endpoint (ε_{n+1}) targets, W included when carried.
+      type(response), intent(inout) :: self
+      type(sht_grid),     intent(in)    :: sht
+      if (self%nlam > NLAM) then
+         call solve_drift(self, sht, self%edUn_re, self%edUn_im, self%edVn_re, self%edVn_im, &
+                          self%edWn_re, self%edWn_im)
+      else
+         call solve_drift(self, sht, self%edUn_re, self%edUn_im, self%edVn_re, self%edVn_im)
+      end if
+   end subroutine solve_endpoint_drift
+
+   subroutine keep_drift(self)
+      !! Remember the current surface drift for the next convergence test.
+      type(response), intent(inout) :: self
+      self%dUa_prev = self%dUa
+      if (self%nlam > NLAM) self%dWa_prev = self%dWa
+   end subroutine keep_drift
+
+   subroutine drift_change(self, cnorm, snorm)
+      !! Change in the surface drift since keep_drift, and its size: the coupling
+      !! iteration's convergence signal. W(a) joins U(a) once it is carried — the
+      !! toroidal field is part of the fixed point, and U(a) alone could settle
+      !! while W is still moving.
+      type(response), intent(in)  :: self
+      real(wp),       intent(out) :: cnorm, snorm
+      cnorm = maxval(abs(self%dUa - self%dUa_prev))
+      snorm = maxval(abs(self%dUa))
+      if (self%nlam > NLAM) then
+         cnorm = max(cnorm, maxval(abs(self%dWa - self%dWa_prev)))
+         snorm = max(snorm, maxval(abs(self%dWa)))
+      end if
+   end subroutine drift_change
+
    subroutine snapshot_taun(self)
       !! Snapshot the entering memory τ_n into the *0 arrays so every trapezoid pass
       !! advances from τ_n (not compounding). ε_n nodal drift is in self%dUn_* (set by
@@ -2066,6 +2251,14 @@ contains
          call advance_memory(self%ne, self%mu, self%Mk, Uim, Vim, self%Jr(l), &
               self%Aim(:,:,k), self%Bim(:,:,k), self%Cim(:,:,k), &
               scheme=SCHEME_TRAP, Un_prev=Uim_n, Vn_prev=Vim_n, active=self%active1d)
+         if (self%nlam > NLAM) then     ! W: ε_n from τ_n's drift, ε_{n+1} from the endpoint's
+            call advance_memory_tor(self%ne, self%mu, self%Mk, self%edWn_re(:,k), self%Jr(l), &
+                 self%Are(:,:,k), self%Bre(:,:,k), self%Cre(:,:,k), &
+                 scheme=SCHEME_TRAP, Wn_prev=self%dWn_re(:,k), active=self%active1d)
+            call advance_memory_tor(self%ne, self%mu, self%Mk, self%edWn_im(:,k), self%Jr(l), &
+                 self%Aim(:,:,k), self%Bim(:,:,k), self%Cim(:,:,k), &
+                 scheme=SCHEME_TRAP, Wn_prev=self%dWn_im(:,k), active=self%active1d)
+         end if
       end do
       !$omp end do
       deallocate(Ure, Uim, Vre, Vim, Ure_n, Uim_n, Vre_n, Vim_n)
@@ -2091,7 +2284,10 @@ contains
       call snapshot_taun(self)
       self%edUn_re = self%dUn_re;  self%edUn_im = self%dUn_im
       self%edVn_re = self%dVn_re;  self%edVn_im = self%dVn_im
-      self%dUa_prev = self%dUa
+      if (self%nlam > NLAM) then
+         self%edWn_re = self%dWn_re;  self%edWn_im = self%dWn_im
+      end if
+      call keep_drift(self)
    end subroutine ve_response_prepare_endpoint
 
    subroutine ve_response_advance_endpoint(self, sht, sigma_lm)
@@ -2116,11 +2312,10 @@ contains
       call trapezoid_advance_all(self, sht, sigma_lm)   ! ε_{n+1} from the previous estimate
       self%sigma_next = sigma_lm                   ! stage σ_{n+1}; finalize commits it to σ_n
       ! refresh dUa + ε_{n+1} drift from the new τ_{n+1} (Are…), ready for the next pass
-      call solve_drift(self, sht, self%edUn_re, self%edUn_im, self%edVn_re, self%edVn_im)
+      call solve_endpoint_drift(self, sht)
       self%couple_pass = self%couple_pass + 1
-      cnorm = maxval(abs(self%dUa - self%dUa_prev))
-      snorm = maxval(abs(self%dUa))
-      self%dUa_prev = self%dUa
+      call drift_change(self, cnorm, snorm)
+      call keep_drift(self)
       self%couple_done = (self%couple_pass >= 2 .and. &
                           cnorm <= self%couple_tol*max(snorm, tiny(1.0_wp)))
    end subroutine ve_response_advance_endpoint
@@ -2164,12 +2359,12 @@ contains
       !! Lazily allocate the controller's state buffers A (τ_n) and B (τ_coarse).
       type(response), intent(inout) :: self
       if (allocated(self%Are_s)) return
-      allocate(self%Are_s(NLAM,self%ne,self%nk), self%Aim_s(NLAM,self%ne,self%nk))
-      allocate(self%Bre_s(NLAM,self%ne,self%nk), self%Bim_s(NLAM,self%ne,self%nk))
-      allocate(self%Cre_s(NLAM,self%ne,self%nk), self%Cim_s(NLAM,self%ne,self%nk))
-      allocate(self%Are_c(NLAM,self%ne,self%nk), self%Aim_c(NLAM,self%ne,self%nk))
-      allocate(self%Bre_c(NLAM,self%ne,self%nk), self%Bim_c(NLAM,self%ne,self%nk))
-      allocate(self%Cre_c(NLAM,self%ne,self%nk), self%Cim_c(NLAM,self%ne,self%nk))
+      allocate(self%Are_s(self%nlam,self%ne,self%nk), self%Aim_s(self%nlam,self%ne,self%nk))
+      allocate(self%Bre_s(self%nlam,self%ne,self%nk), self%Bim_s(self%nlam,self%ne,self%nk))
+      allocate(self%Cre_s(self%nlam,self%ne,self%nk), self%Cim_s(self%nlam,self%ne,self%nk))
+      allocate(self%Are_c(self%nlam,self%ne,self%nk), self%Aim_c(self%nlam,self%ne,self%nk))
+      allocate(self%Bre_c(self%nlam,self%ne,self%nk), self%Bim_c(self%nlam,self%ne,self%nk))
+      allocate(self%Cre_c(self%nlam,self%ne,self%nk), self%Cim_c(self%nlam,self%ne,self%nk))
       allocate(self%sigma_n_s(self%nlm))
    end subroutine ensure_state_scratch
 
@@ -2270,7 +2465,7 @@ contains
       !$omp   reduction(max:err_inf,tau_inf)
       do k = 1, self%nk
          do e = 1, self%ne
-            do m = 1, NLAM
+            do m = 1, self%nlam
                d = max(abs(self%Are(m,e,k) - self%Are_c(m,e,k)), &
                        abs(self%Aim(m,e,k) - self%Aim_c(m,e,k)), &
                        abs(self%Bre(m,e,k) - self%Bre_c(m,e,k)), &
@@ -2316,7 +2511,7 @@ contains
       !$omp parallel do default(shared) private(k,e,m,v) reduction(max:nrm) schedule(static)
       do k = 1, self%nk
          do e = 1, self%ne
-            do m = 1, NLAM
+            do m = 1, self%nlam
                v = max(abs(self%Are(m,e,k)), abs(self%Aim(m,e,k)), &
                        abs(self%Bre(m,e,k)), abs(self%Bim(m,e,k)), &
                        abs(self%Cre(m,e,k)), abs(self%Cim(m,e,k)))
@@ -2332,12 +2527,13 @@ contains
       !! the memory footprint, so it is only paid when a TRAP commit is first used).
       type(response), intent(inout) :: self
       if (allocated(self%Are0)) return
-      allocate(self%Are0(NLAM,self%ne,self%nk), self%Aim0(NLAM,self%ne,self%nk))
-      allocate(self%Bre0(NLAM,self%ne,self%nk), self%Bim0(NLAM,self%ne,self%nk))
-      allocate(self%Cre0(NLAM,self%ne,self%nk), self%Cim0(NLAM,self%ne,self%nk))
+      allocate(self%Are0(self%nlam,self%ne,self%nk), self%Aim0(self%nlam,self%ne,self%nk))
+      allocate(self%Bre0(self%nlam,self%ne,self%nk), self%Bim0(self%nlam,self%ne,self%nk))
+      allocate(self%Cre0(self%nlam,self%ne,self%nk), self%Cim0(self%nlam,self%ne,self%nk))
       allocate(self%edUn_re(self%nr,self%nk), self%edUn_im(self%nr,self%nk))
       allocate(self%edVn_re(self%nr,self%nk), self%edVn_im(self%nr,self%nk))
       allocate(self%dUa_prev(self%nk))
+      if (self%nlam > NLAM) call ensure_commit_scratch_tor(self)
       call ensure_sigma(self)
    end subroutine ensure_commit_scratch
 
@@ -2425,6 +2621,16 @@ contains
       if (allocated(self%Are_c))      deallocate(self%Are_c, self%Aim_c, self%Bre_c, &
                                                  self%Bim_c, self%Cre_c, self%Cim_c)
       if (allocated(self%sigma_n_s))  deallocate(self%sigma_n_s)
+      if (allocated(self%tops)) then
+         do l = 1, size(self%tops);  call toroidal_operator_destroy(self%tops(l));  end do
+         deallocate(self%tops)
+      end if
+      if (allocated(self%nrmt))     deallocate(self%nrmt, self%sat, self%sbt, self%sct)
+      if (allocated(self%dWa))      deallocate(self%dWa)
+      if (allocated(self%dWn_re))   deallocate(self%dWn_re, self%dWn_im)
+      if (allocated(self%edWn_re))  deallocate(self%edWn_re, self%edWn_im)
+      if (allocated(self%dWa_prev)) deallocate(self%dWa_prev)
+      self%nlam = NLAM
       self%lmax = 0;  self%nlm = 0;  self%nk = 0
       self%sigma_primed = .false.;  self%sigma_primed_s = .false.
    end subroutine ve_response_destroy
