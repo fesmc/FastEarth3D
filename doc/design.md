@@ -408,6 +408,10 @@ mass conserved, the bed shifts up to 6.7 m vs rotation-off.
 
 ## 12. 3D laterally-varying viscosity (rung 6) — working notes
 
+> **Superseded in one respect** (2026-09): these notes describe a spheroidal-only
+> memory, λ∈{1,2,5,6}. Lateral viscosity also drives toroidal flow, which the
+> model now carries (λ3,4 and the displacement W) — see `design-toroidal.md`.
+
 **The one structural change.** Lateral viscosity makes the Maxwell factor
 `M = μΔt/η` a *field* `M(θ,φ)`, so the memory update `τ⁺ = (1−M)τ − 2μM·ε` has a
 pointwise lateral product that *couples* harmonics. Everything else is untouched:

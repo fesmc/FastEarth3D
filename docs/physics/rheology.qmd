@@ -79,6 +79,11 @@ double-dot $\sum_\lambda \lVert Z^\lambda\rVert^2\,\tau^{V,\lambda}\,\delta\vare
 with the component norms $\{1,\ J/2,\ 2J^2,\ 2J(J-2)\}$, $J = \ell(\ell+1)$
 (eqs. 110, B13).
 
+With laterally varying viscosity the pointwise product $M(\theta,\varphi)\,\tau$
+mixes spheroidal and toroidal stress, so the toroidal components
+$\lambda\in\{3,4\}$ (norms $J/2$, $J(J-2)/2$) are carried as well, and the
+toroidal displacement $W$ they force feeds back into the spheroidal field.
+
 In the **3D** (laterally varying viscosity) case, the *identical* kernel runs,
 but the memory update $M = \mu\Delta t/\eta$ is evaluated **pointwise on the
 Gauss–Legendre grid** and transformed back to spectral space each step

@@ -32,7 +32,10 @@ the dissipative `F_diss` is rung 3). Variations: eqs 40–46.
 Vector/scalar SH expansion (55–57), `J ≡ j(j+1)`:
 - `u = Σ_{j≥1} [U_jm(r) S⁽⁻¹⁾ + V_jm(r) S⁽¹⁾ + W_jm(r) S⁽⁰⁾]` — **no j=0** (incompressibility)
 - `φ₁ = Σ_{j≥0} F_jm(r) Y_jm`,  `Π = Σ_{j≥0} Π_jm(r) Y_jm`
-- **Spheroidal-only for 1D loading: W=0** (the W block decouples, eq 110).
+- **W decouples on the LHS** (no pressure, gravity or U/V shear coupling), so a
+  radially symmetric Earth never forces it: W=0 there. Lateral viscosity drives it
+  through the memory; it is then solved by its own tridiagonal per-degree operator
+  (`toroidal_operator`, `doc/design-toroidal.md`).
 - `div u = Σ (U' + 2U/r − J V/r) Y_jm`  (58)
 
 Each degree `j` decouples (radially symmetric μ); solve a 1D radial problem per j.
@@ -124,7 +127,8 @@ every step.
 
 1-D (radially symmetric η): the memory stress evolves directly on the tensor-SH
 coefficients (§9, eq 107) — no spatial grid. Per element it is stored as `A,B,C`
-for the four spheroidal tensor components λ ∈ {1,2,5,6} (eq 109); the strain
+for the four spheroidal tensor components λ ∈ {1,2,5,6} (eq 109; with lateral
+viscosity the toroidal λ ∈ {3,4} are appended as channels 5–6); the strain
 coefficients `a,b,c` come from nodal `U,V` (eq 87, `ε = a/h + bψ_k/r + cψ_{k+1}/r`,
 eq 88). The dissipative RHS is a 2-point radial Gauss quadrature (eqs 94-95) of
 the spectral double-dot `Σ_λ ‖Z^λ‖² τ^{V,λ} δε^λ` with norms `{1, J/2, 2J², 2J(J−2)}`

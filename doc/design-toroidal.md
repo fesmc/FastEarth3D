@@ -1,14 +1,61 @@
 # FastEarth3D — the toroidal degree of freedom (design)
 
-**Status: proposed, not started.** This is a scoping document, written to be
-picked up cold. It complements `design.md` (the Martinec FE method) and
-`formulation.md` (the equations as implemented).
+**Status: implemented** (branch `toroidal`, 2026-09). §0 records what was
+built and where it departs from the plan; §1–§6 are the original scoping
+document, kept as written except where marked. It complements `design.md` (the
+Martinec FE method) and `formulation.md` (the equations as implemented).
 
-Nothing here has been implemented. The equation transcriptions in §2 were read
-off `doc/refs/Martinec2000.pdf` in a scoping pass and have **not** been
-independently re-derived — check them against the paper before writing code.
-Where something could not be sourced from the repo or the paper, it is flagged
-in situ.
+## 0. As implemented
+
+| commit | content |
+|---|---|
+| `cff40ba` | `fe_sht`: toroidal synthesis `e_r×∇₁T`, one-call sph+tor synthesis, sph+tor analysis |
+| `de90472` | `fe_tensor_sh`: Z³, Z⁴ as channels 5, 6 (λ3, λ4 appended) |
+| `8d955f0` | `fe_radial_fe`: `toroidal_operator`; shared `bordered_band` |
+| `58005d0` | `fe_viscoelastic`: toroidal strain rows, norms, RHS, memory advance |
+| `745f672` | `fe_response`: W carried as drift once a 3-D element exists |
+| `c9a9269` | the switch: the 3-D advance carries λ3, λ4; `&fe3d l_toroidal` |
+| `a6ccc3d` | restarts carry the channel count; 4 → 6 migration |
+| `cbf77bd` | `&ctl file_hor`: horizontal displacement, total and toroidal |
+
+Every refactor-only commit was checked variable by variable against a
+`dump_reference` baseline of `main`; only the switch moves results, and only
+for non-axisymmetric lateral viscosity.
+
+**Where it departs from §2–§5, and why.**
+
+- **The equations were re-derived**, not transcribed: with S⁽⁰⁾ = e_r×∇₁Y and
+  the code's ½-symmetrised dyads, u = W e_r×∇₁Y has strain (W′−W/r) Z³ +
+  (W/r) Z⁴, Z³ = sym(e_r ⊗ e_r×∇₁Y), Z⁴ = sym ∇₁(e_r×∇₁Y) = G e_θφ − H(e_θθ −
+  e_φφ). That reproduces §2's eq-87 rows, B13 norms and dyadic map exactly.
+  SHTns' toroidal field is −e_r×∇ (pinned exactly in `test_sht`).
+- **W has its own operator** instead of a fifth interleaved field (§3.1): it
+  couples to nothing on the left-hand side, so a tridiagonal per-degree system
+  costs nothing in the spheroidal band, and the spheroidal operator is untouched.
+  §6.3's multi-border question then lives in the small W system only.
+- **The μ = 0 gauge** (§6.2): dead W dofs pinned, W = 0, as proposed.
+- **The degree-1 gauge** (§2, eq 83): no net rotation per solid shell,
+  w = ∫ψ r³ dr — derived from ∫ x × u dV = 0 for u = W e_r×∇₁Y₁ₘ. The ∫ψ r²
+  transcribed in §2 cannot be that integral. One border per solid shell, since a
+  stack with a solid inner core has two rigid rotations. A gauge only: a rigid
+  rotation has no strain and moves no output.
+- **4 or 6 channels at run time** instead of `NLAM 4 → 6` everywhere (§3.2):
+  radially symmetric and laterally uniform fields force no W, so those runs
+  keep four channels and pay nothing. `NLAM` still means the spheroidal four.
+- **The modal path was removed** rather than fenced off (§3.5, C8).
+- **§4's zero test was stated too broadly.** Toroidal flow vanishes for
+  AXISYMMETRIC configurations, not for any shared mirror plane: under a
+  reflection the toroidal potential is odd, so a Y₂₀ load over a cos 2φ field
+  drives W ∝ sin 2φ. V4 needs no chirality.
+
+**Validation** (`test_sht`, `test_tensor_sh`, `test_assembly`, `test_toroidal`,
+`test_rotinv`, `test_restart`): V1 W stiffness = strain-route energy to 2e-16;
+V2 six channels reproduce an arbitrary symmetric tensor to 9e-15 (four miss
+35 %), channel cross-talk at nlat = 2·lmax+2 ≤ 8e-13 (§6.4's aliasing is not
+there); V3 W = 0 exactly for axisymmetric configurations, off-pole W falls
+2.6e-4 → 1.5e-6 from lmax 16 to 32; V4 W driven, reflection selection rule to
+4e-16, W ∝ δ^0.987 and its uplift feedback ∝ δ^1.986. V6/V7 (VILMA, the
+deglaciation) are the paper's, not this note's.
 
 **Context.** The GitHub repository was renamed `fesmc/FastEarth3D` →
 `fesmc/VILMA` ahead of a wider rename: Volker Klemann, VILMA's author, is
@@ -300,6 +347,8 @@ and two new `idx_w` scatter targets); `advance_memory` (`:383-488`, needs
   need **no** change: M is a scalar field applied pointwise to all six planes.
 
 ### 3.5 The modal path
+
+*Superseded: the modal solver was removed from the code instead (§0).*
 
 **Leave `fe_modal` spheroidal-only with an explicit `error stop`.** Its lateral
 model is a per-mode scalar rate modulation (`fe_response.f90:1476-1566`,

@@ -28,9 +28,12 @@ from the physics:
 
 - **No degree 0 in $\mathbf{u}$** — incompressibility forbids the radial
   breathing mode.
-- **Spheroidal-only for loading** — a surface mass load excites no toroidal
-  ($W$) motion on a radially symmetric Earth; the $W$ block decouples and is
-  dropped (eq. 110). The divergence reduces to
+- **The toroidal block decouples** — $W$ couples to nothing on the left-hand
+  side (no pressure, self-gravity or $U,V$ shear terms), so a surface load on a
+  radially symmetric Earth never excites it. Laterally varying viscosity does,
+  through the memory stress (Martinec 2000, after eq. 110); $W$ is then solved by
+  its own tridiagonal per-degree system alongside the spheroidal one. The
+  divergence reduces to
   $\operatorname{div}\mathbf{u} = \sum (U' + 2U/r - J\,V/r)\,Y_{jm}$, $J=j(j+1)$
   (eq. 58).
 
