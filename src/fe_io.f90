@@ -20,7 +20,7 @@ module fe_io
    use fe_constants,    only: rad2deg, sec_per_year
    use fe_viscoelastic, only: NLAM, NLAM_TOR
    use fe_response,     only: response_prime_sigma, response, response_init_elastic, response_init_ve, &
-                              response_init_null, RESP_VE, RESP_MODAL, &
+                              response_init_null, RESP_VE, &
                               response_horizontal, response_horizontal_toroidal
    use fe_sht,          only: sht_grid_sph_synthesis, sht_grid_tor_synthesis
    use fe_rotation,     only: rotation_ne, rotation_get_memory, rotation_set_memory, ROT_NCOMP
@@ -35,16 +35,14 @@ module fe_io
 
    ! The full time-varying variable set a restart writes, split by response kind.
    ! COMMON_VARS apply to every kind; the prognostic memory differs: RESP_VE carries
-   ! the Maxwell stress tensor + trapezoidal σ_n, RESP_MODAL the per-(l,m) modal
-   ! amplitudes φ. RESP_ELASTIC/RESP_NULL are memoryless (COMMON_VARS only).
+   ! the Maxwell stress tensor + trapezoidal σ_n; RESP_ELASTIC/RESP_NULL are
+   ! memoryless (COMMON_VARS only).
    ! Static reference fields are written once in the init branch.
    character(len=12), parameter :: COMMON_VARS(6) = [character(len=12) :: &
         "h_ice", "rsl", "z_bed", "C_ocean", "dt_try", "bsl"]
    character(len=12), parameter :: VE_MEM_VARS(9) = [character(len=12) :: &
         "tau_a_re", "tau_a_im", "tau_b_re", "tau_b_im", "tau_c_re", "tau_c_im", &
         "sigma_n_re", "sigma_n_im", "sigma_primed"]
-   character(len=12), parameter :: MODAL_MEM_VARS(2) = [character(len=12) :: &
-        "phi_re", "phi_im"]
 
    character(len=256), save              :: table_file = "input/fastearth-variables.md"
    type(var_io_type), allocatable, save  :: vtable(:)
@@ -118,7 +116,6 @@ contains
             character(len=12), allocatable :: vars(:)
             select case (self%resp%kind)
             case (RESP_VE);    vars = [VE_MEM_VARS,    COMMON_VARS]
-            case (RESP_MODAL); vars = [MODAL_MEM_VARS, COMMON_VARS]
             case default;      vars = COMMON_VARS            ! elastic / null: memoryless
             end select
             do q = 1, size(vars);  call write_one(self, filename, trim(vars(q)), n, ncid);  end do
@@ -139,8 +136,8 @@ contains
       !! sub-step — the same state rsl and z_bed were solved in.
       !!
       !! The toroidal part is zero, exactly, for every response that carries no
-      !! toroidal field (radially symmetric or laterally uniform viscosity, elastic,
-      !! modal); it is written anyway so the file has one layout.
+      !! toroidal field (radially symmetric or laterally uniform viscosity,
+      !! elastic); it is written anyway so the file has one layout.
       !!
       !! East/north from the colatitude-ordered (θ, φ) components: e_φ is east,
       !! e_θ points south, so north = −u_θ.
@@ -251,9 +248,6 @@ contains
          call nc_write_dim(filename, "nk",   x=1, dx=1, nx=self%resp%nk,  units="1")
          ! nlm = # spherical-harmonic (l,m) coefficients (carries the σ_n load vector)
          call nc_write_dim(filename, "nlm",  x=1, dx=1, nx=self%resp%nlm, units="1")
-      case (RESP_MODAL)
-         ! nphi_modal = total ragged modal-amplitude count Σ_k nmode_deg(kdeg(k))
-         call nc_write_dim(filename, "nphi_modal", x=1, dx=1, nx=modal_nphi(self%resp), units="1")
       end select
       ! rotation memory dimensions (independent of the response kind / lmax). The
       ! packed channel memory is (nlam_rot, ne_rot, nrc): degree-2 and radially
@@ -335,8 +329,6 @@ contains
       case ("dt_try");   call put_scalar(filename, name, self%stepper%dt_try/sec_per_year, n, ncid)
       case ("sigma_n_re"); call put_sigma(self, filename, name, want_re=.true.,  n=n, ncid=ncid)
       case ("sigma_n_im"); call put_sigma(self, filename, name, want_re=.false., n=n, ncid=ncid)
-      case ("phi_re");     call put1d_modal(self, filename, name, want_re=.true.,  n=n, ncid=ncid)
-      case ("phi_im");     call put1d_modal(self, filename, name, want_re=.false., n=n, ncid=ncid)
       case ("sigma_primed")
          call put_scalar(filename, name, &
               merge(1.0_wp, 0.0_wp, allocated(self%resp%sigma_n) .and. self%resp%sigma_primed), &
@@ -384,32 +376,6 @@ contains
            start=[1,n], count=[nlm,1], units=trim(v%units), long_name=trim(v%long_name))
    end subroutine put_sigma
 
-   pure integer function modal_nphi(resp) result(nphi)
-      !! Total ragged modal-amplitude count = phi_off(nk+1) = size(resp%phi).
-      type(response), intent(in) :: resp
-      nphi = resp%phi_off(resp%nk + 1)
-   end function modal_nphi
-
-   subroutine put1d_modal(self, filename, name, want_re, n, ncid)
-      !! Write the real or imaginary part of the ragged modal amplitudes φ
-      !! (an (nphi_modal) vector) at time slice n.
-      type(solid_earth), intent(in) :: self
-      character(len=*),   intent(in) :: filename, name
-      logical,            intent(in) :: want_re
-      integer,            intent(in) :: n, ncid
-      type(var_io_type)     :: v
-      real(wp), allocatable :: dat(:)
-      integer :: nphi
-      nphi = modal_nphi(self%resp)
-      allocate(dat(nphi))
-      if (want_re) then;  dat = real(self%resp%phi, wp)
-      else;               dat = aimag(self%resp%phi)
-      end if
-      call find_var_io_in_table(v, name, vtable, with_error=.true.)
-      call nc_write(filename, name, dat, ncid=ncid, dim1="nphi_modal", dim2="time", &
-           start=[1,n], count=[nphi,1], units=trim(v%units), long_name=trim(v%long_name))
-   end subroutine put1d_modal
-
    subroutine put_scalar(filename, name, val, n, ncid)
       !! Write a single time-varying scalar (controller state) at time slice n.
       character(len=*), intent(in) :: filename, name
@@ -454,8 +420,6 @@ contains
       !!   RESP_VE    — the Maxwell memory-stress tensor tau_* (+ trapezoidal σ_n).
       !!                Same-resolution restore is exact (bit-for-bit continuation);
       !!                a lower-resolution file upsamples via the degree-grouped block.
-      !!   RESP_MODAL — the per-(l,m) modal amplitudes φ. The spectrum is rebuilt by
-      !!                init(), so only φ is restored; same-resolution only.
       !!   elastic/null — memoryless: only the diagnostics + clock are restored.
       !!
       !! The clock and the adaptive controller's dt_try seed are restored for every
@@ -483,7 +447,6 @@ contains
       ! kind-specific prognostic memory + (where applicable) reference/diagnostics
       select case (self%resp%kind)
       case (RESP_VE);    call read_ve_state(self, filename, n, np, nl)
-      case (RESP_MODAL); call read_modal_state(self, filename, n, np, nl)
       case default;      call read_diagnostics(self, filename, n, np, nl)  ! memoryless
       end select
 
@@ -603,30 +566,6 @@ contains
          call restore_sigma(self, filename, n)
       end if
    end subroutine read_ve_state
-
-   subroutine read_modal_state(self, filename, n, np, nl)
-      !! Restore RESP_MODAL memory at slice n: the per-(l,m) modal amplitudes φ. The
-      !! modal spectrum (τ_k, residues, slot maps) is a deterministic function of the
-      !! earth structure + lmax + n_modes/mode_rank/dt_be, all rebuilt by init(), so
-      !! only φ is persisted. Same-resolution only: a cross-resolution modal restart
-      !! (degree-grouped φ block copy) is not yet supported.
-      type(solid_earth), intent(inout) :: self
-      character(len=*),   intent(in)    :: filename
-      integer,            intent(in)    :: n, np, nl
-      real(wp), allocatable :: pre(:), pim(:)
-      integer :: nphi, nphi_f
-      nphi   = modal_nphi(self%resp)
-      nphi_f = nc_size(filename, "nphi_modal")
-      if (nphi_f /= nphi) &
-         error stop 'fe_restart_read: modal φ count mismatch (cross-resolution modal restart not supported)'
-      call check_reference(self, filename, np, nl)
-      allocate(pre(nphi), pim(nphi))
-      call nc_read(filename, "phi_re", pre, start=[1,n], count=[nphi,1])
-      call nc_read(filename, "phi_im", pim, start=[1,n], count=[nphi,1])
-      self%resp%phi   = cmplx(pre, pim, wp)
-      self%resp%phi_n = self%resp%phi               ! entering-step base for the next step
-      call read_diagnostics(self, filename, n, np, nl)
-   end subroutine read_modal_state
 
    subroutine check_reference(self, filename, np, nl)
       !! Verify the file's static reference fields match the initialised model, so

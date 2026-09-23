@@ -27,13 +27,11 @@ The full model is implemented and validated: the spectral–finite-element solve
 core, viscoelastic time stepping, the self-consistent migrating-coastline
 sea-level equation, rotational feedback (polar motion), and laterally varying
 (3D) viscosity — plus restart, spin-up, online lon-lat→Gauss remapping, and a
-host-coupling API. A second response operator, a reduced **modal solver**, offers
-a tunable, faster approximation that converges back to the full solver.
+host-coupling API.
 
 Validated against the Spada et al. (2011) and Martinec et al. (2018) community
 benchmarks (radial Love numbers, disc-load response, sea-level equation) and
-Spada test 3/2 (rotation). Cross-code validation of the 3D path and the
-modal-vs-VE accuracy/cost study are ongoing.
+Spada test 3/2 (rotation). Cross-code validation of the 3D path is ongoing.
 
 ## Install
 
@@ -71,7 +69,7 @@ complete, documented defaults set; a run can pass a sparse file overlaid on it
 - **Earth structure** — `earth`: a named built-in (e.g. `"M3-L70-V01"`) or
   `"custom"` to assemble from the surface-first layer arrays.
 - **Response solver** — `earth_response`: `"ve"` (full viscoelastic, default),
-  `"modal"` (reduced, with `n_modes` / `mode_rank`), `"elastic"`, `"null"`.
+  `"elastic"`, `"null"`.
 - **Time scheme** — `scheme = "fe"` (1st-order explicit) or `"trap"` (2nd-order
   adaptive), advanced by the `fe_timestep` controller.
 - **3D viscosity / spin-up / restart** — `l_visc_3d`, `dt_equil`, `spinup_1d`,
@@ -96,9 +94,6 @@ comma-lists in `-p` define ensemble dimensions):
 ```bash
 runme -o runs/deglac -e main --omp 8 -r -p fe3d.lmax=128 fe3d.earth_response=ve
 ```
-
-The [`scripts/run_modal_vs_ve.sh`](scripts/run_modal_vs_ve.sh) launcher stages
-the full modal-vs-VE accuracy/cost sweep through runme.
 
 Embedding the model in a host (the CLIMBER-X coupling path) uses the same API
 behind a single `use fastearth3d`:

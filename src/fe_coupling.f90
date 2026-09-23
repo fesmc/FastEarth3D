@@ -36,10 +36,7 @@ module fe_coupling
    use fe_earth_structure, only: earth_model, build_earth, load_visc_3d
    use fe_viscoelastic,    only: scheme_from_name
    use fe_response,        only: response_destroy, response_enable_lateral_visc_from_nodes, response, &
-                                 response_init_elastic, response_init_ve, response_init_null, response_init_modal, &
-                                 response_enable_lateral_visc_modal_from_nodes, RESP_VE, RESP_MODAL, &
-                                 lat_method_from_name
-   use fe_modal,           only: rank_from_name
+                                 response_init_elastic, response_init_ve, response_init_null, RESP_VE
    use fe_sle,             only: sle_solver, ocean_function
    use fe_timestep,        only: stepper_advance, adaptive_stepper
    use fe_rotation,        only: rotation_destroy, rotation_update, rotation_s_rot, rotation_begin_step, rotation_init, rotation_state
@@ -274,21 +271,12 @@ contains
          call response_init_ve(self%resp, self%earth, self%sht, dt0)
          self%resp%scheme          = scheme_from_name(self%par%scheme)
          self%resp%max_couple_iter = self%par%max_couple_iter
-      case ("modal")
-         ! Reduced modal response: scheme is forced FE internally (exact exponential
-         ! advance, unconditionally stable). dt_be is the eigensolve BE shift Δt.
-         call response_init_modal(self%resp, self%earth, self%sht, n_modes=self%par%n_modes, &
-                                  mode_rank=rank_from_name(self%par%mode_rank), dt_be=self%par%dt_be, &
-                                  p_block=self%par%n_krylov)
-         self%resp%max_couple_iter = self%par%max_couple_iter
-         self%resp%modal_adaptive  = self%par%modal_adaptive   ! A3 sub-stepping (off by default)
-         self%resp%lat_method      = lat_method_from_name(self%par%lat_method)  ! lateral-η treatment
       case ("elastic")
          call response_init_elastic(self%resp, self%earth, self%sht%lmax)
       case ("null")
          call response_init_null(self%resp)
       case default
-         error stop "solid_earth_init: unknown earth_response (use ve|modal|elastic|null)"
+         error stop "solid_earth_init: unknown earth_response (use ve|elastic|null)"
       end select
       self%resp%visc3d_tol = self%par%visc3d_tol   ! 3-D split threshold (read before any enable below)
       self%resp%toroidal   = self%par%l_toroidal   ! toroidal coupling (likewise)
@@ -338,11 +326,9 @@ contains
       type(sht_grid),       intent(in), target  :: sht
       real(wp), allocatable :: visc_node(:,:)
       call load_visc_3d(self%par, sht, self%resp%r, visc_node)
-      select case (self%resp%kind)
-      case (RESP_VE);    call response_enable_lateral_visc_from_nodes(self%resp, sht, visc_node)
-      case (RESP_MODAL); call response_enable_lateral_visc_modal_from_nodes(self%resp, sht, visc_node)
-      case default;      error stop 'solid_earth_enable_visc_3d: lateral viscosity needs earth_response=ve|modal'
-      end select
+      if (self%resp%kind /= RESP_VE) &
+         error stop 'solid_earth_enable_visc_3d: lateral viscosity needs earth_response=ve'
+      call response_enable_lateral_visc_from_nodes(self%resp, sht, visc_node)
    end subroutine solid_earth_enable_visc_3d
 
    subroutine solid_earth_update(self, h_ice, dt_yr)
@@ -517,10 +503,7 @@ contains
             do r = 1, size(visc_node, 2)
                visc_unif(:, r) = sum(visc_node(:, r)) / real(nh, wp)   ! lateral mean of log10(eta)
             end do
-            select case (self%resp%kind)
-            case (RESP_VE);    call response_enable_lateral_visc_from_nodes(self%resp, self%sht, visc_unif)
-            case (RESP_MODAL); call response_enable_lateral_visc_modal_from_nodes(self%resp, self%sht, visc_unif)
-            end select
+            call response_enable_lateral_visc_from_nodes(self%resp, self%sht, visc_unif)
          end if
          call relax_hold(self, h_ice_lgm, -1.0_wp, "1-D ")    ! converge; internal pass cap only
          if (self%par%l_visc_3d) call solid_earth_enable_visc_3d(self, self%sht)  ! restore the real 3-D field

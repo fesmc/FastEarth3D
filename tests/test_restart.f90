@@ -1,13 +1,12 @@
 program test_restart
    !! netCDF restart round-trip for the coupling state (yelmo-convention I/O via
-   !! fe_io: a time axis lets several snapshots share one file). Run for BOTH
-   !! response kinds — RESP_VE (Maxwell memory tensor + σ_n) and RESP_MODAL (the
-   !! per-(l,m) modal amplitudes φ; the spectrum is rebuilt by init). Checks:
+   !! fe_io: a time axis lets several snapshots share one file), for RESP_VE (the
+   !! Maxwell memory tensor + σ_n). Checks:
    !!
    !!   (1) direct state restore — read the last snapshot into a fresh model and
    !!       its z_bed/rsl match what was written;
    !!   (2) bit-for-bit continuation — restore the EARLIER snapshot's memory
-   !!       (tau_*/φ, plus the rotation state m + channel memory rot_*) + adaptive-Δt
+   !!       (tau_*, plus the rotation state m + channel memory rot_*) + adaptive-Δt
    !!       seed and step forward; the trajectory reproduces the uninterrupted run
    !!       exactly (the restored prognostic state is all that is needed);
    !!   (3) multi-snapshot file — two snapshots at different times coexist, and a
@@ -41,7 +40,6 @@ program test_restart
 
    call roundtrip("ve",    .false., "obj/test_restart_ve.nc",    ok)
    call roundtrip("ve",    .true.,  "obj/test_restart_ve3d.nc",  ok)
-   call roundtrip("modal", .false., "obj/test_restart_modal.nc", ok)
    call migration("obj/test_restart_mig.nc", ok)
 
    call sht_grid_destroy(sht)
@@ -49,7 +47,7 @@ program test_restart
    write(*,'(a)') ''
    if (ok) then
       write(*,'(a)') ' PASS: netCDF restart restores state, continues bit-for-bit,'
-      write(*,'(a)') '       and stores several snapshots in one file (RESP_VE + RESP_MODAL)'
+      write(*,'(a)') '       and stores several snapshots in one file (RESP_VE, 4 and 6 channels)'
    else
       write(*,'(a)') ' FAIL: restart round-trip did not all pass'
       call radial_fe_finalize()
@@ -72,7 +70,7 @@ contains
 
       dt_yr           = 1.0e3_wp          ! interval per update [years]
       p%lmax = LMAX;  p%nlat = 2*LMAX;  p%nphi = 4*LMAX  ! model builds its own grid from par
-      p%earth_response = resp             ! "ve" (memory tensor) or "modal" (φ amplitudes)
+      p%earth_response = resp
       p%rotation      = .true.            ! rotation on: also round-trips the polar
                                           ! motion m + both channels' memory (rot_*)
       p%l_visc_3d     = visc3d            ! vendored Bagge field: 3-D elements, 6 channels

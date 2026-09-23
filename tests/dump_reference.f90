@@ -6,7 +6,7 @@ program dump_reference
    !! Usage:  dump_reference.x [outdir] [item ...]
    !!   outdir  default ./reference (run from the FastEarth3D root)
    !!   items   any of: sht radial ve_degree response sle disc rotation coupling
-   !!           martinec modal visc3d   (default: all)
+   !!           martinec visc3d martinec_sle   (default: all)
    !!
    !! All values SI (m, s, kg m^-2, Pa) except explicit time axes in years. The
    !! variable documentation lives in <outdir>/README.md.
@@ -28,11 +28,10 @@ program dump_reference
    use fe_field,           only: spherical_cap, exp_basin
    use fe_tensor_sh,       only: tensor_sh, TLAM_SPH, tensor_sh_init, tensor_sh_synth, tensor_sh_analysis, &
                                  tensor_sh_destroy
-   use fe_response,        only: response, response_init_elastic, response_init_ve, response_init_modal, &
+   use fe_response,        only: response, response_init_elastic, response_init_ve, &
                                  response_begin_step, response_apply, response_horizontal, &
                                  response_commit_step, response_set_dt, response_destroy, &
                                  response_enable_lateral_visc
-   use fe_modal,           only: RANK_ISOSTATIC
    use fe_sle,             only: sle_solver, sle_result, sle_solve
    use fe_rotation,        only: rotation_state, rotation_init, rotation_update, rotation_destroy
    use fe_params,          only: fe_param_class
@@ -57,7 +56,7 @@ program dump_reference
    real(wp), parameter :: MS_SPINTOL = 1.0_wp               ! F1: mean|present - B2| [m]
 
    character(len=512) :: outdir, arg
-   logical :: want(12), all_items
+   logical :: want(11), all_items
    integer :: nargs, i
 
    outdir = "./reference"
@@ -76,9 +75,8 @@ program dump_reference
       case ("rotation");  want(7)  = .true.
       case ("coupling");  want(8)  = .true.
       case ("martinec");  want(9)  = .true.
-      case ("modal");     want(10) = .true.
-      case ("visc3d");    want(11) = .true.
-      case ("martinec_sle"); want(12) = .true.
+      case ("visc3d");    want(10) = .true.
+      case ("martinec_sle"); want(11) = .true.
       case default
          write(*,'(3a)') ' unknown item "', trim(arg), '"';  error stop 1
       end select
@@ -96,9 +94,8 @@ program dump_reference
    if (want(7))  call dump_rotation(trim(outdir)//"/rotation.nc")
    if (want(8))  call dump_coupling(trim(outdir)//"/coupling.nc", trim(outdir))
    if (want(9))  call dump_martinec(trim(outdir)//"/martinec_A.nc")
-   if (want(10)) call dump_modal(trim(outdir)//"/modal.nc")
-   if (want(11)) call dump_visc3d(trim(outdir)//"/visc3d.nc")
-   if (want(12)) call dump_martinec_sle(trim(outdir)//"/martinec_sle.nc")
+   if (want(10)) call dump_visc3d(trim(outdir)//"/visc3d.nc")
+   if (want(11)) call dump_martinec_sle(trim(outdir)//"/martinec_sle.nc")
 
    call radial_fe_finalize()
    write(*,'(a)') ' dump_reference: done'
@@ -1181,67 +1178,7 @@ contains
    end subroutine dump_martinec
 
    ! =====================================================================
-   ! 10. modal.nc
-   ! =====================================================================
-
-   subroutine dump_modal(f)
-      character(len=*), intent(in) :: f
-      integer, parameter :: NSTEP = 20
-      type(sht_grid)    :: g
-      type(earth_model) :: e
-      type(response)    :: md
-      complex(wp), allocatable :: slm(:), ulm(:), nlm(:), vlm(:), us(:,:), ns(:,:), vs(:,:)
-      real(wp), allocatable :: tyr(:)
-      integer :: is, tot
-
-      write(*,'(a)') ' [modal] modal spectrum per degree lmax=32 (n_modes=-1) + held-load response'
-      call sht_grid_init(g, LMAX32, nlat=2*LMAX32, nphi=4*LMAX32)
-      e = build_M3L70V01()
-      call response_init_modal(md, e, g, n_modes=-1, mode_rank=RANK_ISOSTATIC, dt_be=kyr, p_block=20)
-      tot = size(md%mtau)
-      call response_set_dt(md, DT100)
-      allocate(slm(g%nlm), ulm(g%nlm), nlm(g%nlm), vlm(g%nlm))
-      allocate(us(g%nlm,NSTEP), ns(g%nlm,NSTEP), vs(g%nlm,NSTEP), tyr(NSTEP))
-      call held_load(g, slm)
-      do is = 1, NSTEP
-         tyr(is) = md%time/sec_per_year
-         call response_begin_step(md, g)
-         call response_apply(md, g, slm, ulm, nlm)
-         call response_horizontal(md, g, slm, vlm)
-         us(:,is) = ulm;  ns(:,is) = nlm;  vs(:,is) = vlm
-         call response_commit_step(md, g, slm)
-      end do
-
-      call nc_create(f, overwrite=.true.)
-      call stamp(f, "modal")
-      call w_one(f)
-      call grid_dims_std(f, g)
-      call nc_write_dim(f, "time",   x=tyr, units="years", long_name="report time (state before commit)")
-      call nc_write_dim(f, "degree", x=0, dx=1, nx=LMAX32+1, units="1")
-      call nc_write_dim(f, "mode",   x=1, dx=1, nx=tot, units="1")
-      call nc_write_dim(f, "elem",   x=1, dx=1, nx=md%ne, units="1")
-      call nc_write_attr(f, "modal_settings", "response_init_modal(n_modes=-1, mode_rank=isostatic, dt_be=1 kyr, p_block=20); ragged: degree l owns modes spec_off(l)+1..spec_off(l)+nmode_deg(l)")
-      call ws(f, "dt", DT100, "s", "response time step (response_set_dt)")
-      call ws(f, "dt_be", kyr, "s", "eigensolve backward-Euler shift")
-      call nc_write(f, "nmode_deg", md%nmode_deg, dim1="degree", units="1", long_name="modes kept per degree")
-      call nc_write(f, "spec_off",  md%spec_off,  dim1="degree", units="1", long_name="base index into mode arrays per degree")
-      call nc_write(f, "tau", md%mtau, dim1="mode", units="s", long_name="relaxation time tau_k")
-      call nc_write(f, "Cu",  md%mCu,  dim1="mode", units="m / (kg m-2)", long_name="step-response strength C^u_k = r^u b_k tau_k")
-      call nc_write(f, "Cn",  md%mCn,  dim1="mode", units="m / (kg m-2)", long_name="step-response strength C^N_k")
-      call nc_write(f, "Cv",  md%mCv,  dim1="mode", units="m / (kg m-2)", long_name="step-response strength C^V_k")
-      call nc_write(f, "w",   md%mwgt, dim1="elem", dim2="mode", units="1", long_name="per-mode radial strain-energy weight (sum_e = 1)")
-      call nc_write(f, "gu", md%gu, dim1="degree", units="m / (kg m-2)", long_name="elastic gain U")
-      call nc_write(f, "gn", md%gn, dim1="degree", units="m / (kg m-2)", long_name="elastic gain N (gn(1)=0)")
-      call nc_write(f, "gv", md%gv, dim1="degree", units="m / (kg m-2)", long_name="elastic gain V")
-      call wc1(f, "sigma", slm, "lm", "kg m-2", "held load (same as response.nc)")
-      call wc2(f, "u_lm", us, "lm", "time", "m", "modal response u coefficients")
-      call wc2(f, "N_lm", ns, "lm", "time", "m", "modal response N coefficients")
-      call wc2(f, "V_lm", vs, "lm", "time", "m", "modal response V coefficients")
-      call response_destroy(md);  call sht_grid_destroy(g)
-   end subroutine dump_modal
-
-   ! =====================================================================
-   ! 11. visc3d.nc
+   ! 10. visc3d.nc
    ! =====================================================================
 
    subroutine dump_visc3d(f)
@@ -1361,7 +1298,7 @@ contains
 
 
    ! =====================================================================
-   ! 12. martinec_sle.nc -- Martinec 2018 SLE cases C2/D3/E2/F1
+   ! 11. martinec_sle.nc -- Martinec 2018 SLE cases C2/D3/E2/F1
    !     (mirrors tests/test_benchmark_sle.f90 exactly, at lmax 64 and 128)
    ! =====================================================================
 

@@ -78,14 +78,8 @@
     scheme          = "fe"     ! fe | etd1 | trap | be  (fe = 1st-order explicit, default; trap = 2nd-order adaptive)
     max_couple_iter = 20       ! SLE<->memory co-convergence cap (implicit schemes)
 
-    ! --- response kind selector (fe_response / fe_modal) --------------
-    earth_response  = "ve"     ! ve | modal | elastic | null  (ve = full Martinec FE, default)
-    n_modes         = -1       ! modal: # relaxation modes per degree (<=0 => all above tol)
-    mode_rank       = "isostatic" ! modal rank metric: isostatic | rate | residue
-    lat_method      = "coupled" ! modal lateral-η: coupled (default, stable) | lie | strang
-    dt_be           = 1000.0   ! modal eigensolve backward-Euler Δt [years]
-    n_krylov        = 20       ! modal: Arnoldi/Krylov block size (caps modes/degree found; raise so all->VE)
-    modal_adaptive  = .false.  ! modal: sub-step each interval to rtol (A3). false=1 exact step/interval (fast); only helps 1-D temporal accuracy, not 3-D
+    ! --- response kind selector (fe_response) -------------------------
+    earth_response  = "ve"     ! ve | elastic | null  (ve = full Martinec FE, default)
 
     ! --- sea-level equation (fe_sle) ----------------------------------
     sle_n_outer      = 3

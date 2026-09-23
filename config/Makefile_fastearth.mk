@@ -15,7 +15,6 @@ obj_fastearth = \
 	$(objdir)/fe_band.o \
 	$(objdir)/fe_radial_fe.o \
 	$(objdir)/fe_viscoelastic.o \
-	$(objdir)/fe_modal.o \
 	$(objdir)/fe_response.o \
 	$(objdir)/fe_sle.o \
 	$(objdir)/fe_timestep.o \
@@ -42,12 +41,9 @@ $(objdir)/fe_band.o:             $(objdir)/fe_precision.o
 $(objdir)/fe_radial_fe.o:        $(objdir)/fe_constants.o $(objdir)/fe_earth_structure.o \
                                  $(objdir)/fe_radial_integrals.o $(objdir)/fe_band.o
 $(objdir)/fe_viscoelastic.o:     $(objdir)/fe_radial_fe.o $(objdir)/fe_earth_structure.o
-$(objdir)/fe_modal.o:            $(objdir)/fe_radial_fe.o $(objdir)/fe_earth_structure.o \
-                                 $(objdir)/fe_viscoelastic.o $(objdir)/fe_precision.o
 $(objdir)/fe_response.o:         $(objdir)/fe_radial_fe.o $(objdir)/fe_earth_structure.o \
                                  $(objdir)/fe_sht.o $(objdir)/fe_tensor_sh.o \
-                                 $(objdir)/fe_constants.o $(objdir)/fe_viscoelastic.o \
-                                 $(objdir)/fe_modal.o
+                                 $(objdir)/fe_constants.o $(objdir)/fe_viscoelastic.o
 $(objdir)/fe_sle.o:              $(objdir)/fe_sht.o $(objdir)/fe_constants.o \
                                  $(objdir)/fe_response.o
 $(objdir)/fe_timestep.o:         $(objdir)/fe_response.o $(objdir)/fe_sle.o \
@@ -345,43 +341,6 @@ test_remap: fastearth-static | $(bindir)
 		-o $(bindir)/test_remap.x $(objdir)/libfastearth.a $(LFLAGS)
 	@echo "    $(bindir)/test_remap.x is ready."
 
-test_modal: fastearth-static | $(bindir)
-	$(FC) $(DFLAGS) $(CPPFLAGS) $(FFLAGS) $(testdir)/test_modal.f90 \
-		-o $(bindir)/test_modal.x $(objdir)/libfastearth.a $(LFLAGS)
-	@echo "    $(bindir)/test_modal.x is ready."
-
-test_modal_resp: fastearth-static | $(bindir)
-	$(FC) $(DFLAGS) $(CPPFLAGS) $(FFLAGS) $(testdir)/test_modal_resp.f90 \
-		-o $(bindir)/test_modal_resp.x $(objdir)/libfastearth.a $(LFLAGS)
-	@echo "    $(bindir)/test_modal_resp.x is ready."
-
-test_modal_visc3d: fastearth-static | $(bindir)
-	$(FC) $(DFLAGS) $(CPPFLAGS) $(FFLAGS) $(testdir)/test_modal_visc3d.f90 \
-		-o $(bindir)/test_modal_visc3d.x $(objdir)/libfastearth.a $(LFLAGS)
-	@echo "    $(bindir)/test_modal_visc3d.x is ready."
-
-# Diagnostic (not in `check`): sweep the modal Krylov block size n_krylov and
-# report convergence of n_modes=all toward RESP_VE over the full degree spectrum.
-diag_modal_pblock: fastearth-static | $(bindir)
-	$(FC) $(DFLAGS) $(CPPFLAGS) $(FFLAGS) $(testdir)/diag_modal_pblock.f90 \
-		-o $(bindir)/diag_modal_pblock.x $(objdir)/libfastearth.a $(LFLAGS)
-	@echo "    $(bindir)/diag_modal_pblock.x is ready."
-
-diag_modal_ramp: fastearth-static | $(bindir)
-	$(FC) $(DFLAGS) $(CPPFLAGS) $(FFLAGS) $(testdir)/diag_modal_ramp.f90 \
-		-o $(bindir)/diag_modal_ramp.x $(objdir)/libfastearth.a $(LFLAGS)
-	@echo "    $(bindir)/diag_modal_ramp.x is ready."
-
-diag_modal_sle: fastearth-static | $(bindir)
-	$(FC) $(DFLAGS) $(CPPFLAGS) $(FFLAGS) $(testdir)/diag_modal_sle.f90 \
-		-o $(bindir)/diag_modal_sle.x $(objdir)/libfastearth.a $(LFLAGS)
-	@echo "    $(bindir)/diag_modal_sle.x is ready."
-
-diag_modal_latvisc: fastearth-static | $(bindir)
-	$(FC) $(DFLAGS) $(CPPFLAGS) $(FFLAGS) $(testdir)/diag_modal_latvisc.f90 \
-		-o $(bindir)/diag_modal_latvisc.x $(objdir)/libfastearth.a $(LFLAGS)
-	@echo "    $(bindir)/diag_modal_latvisc.x is ready."
-
 test_toroidal: fastearth-static | $(bindir)
 	$(FC) $(DFLAGS) $(CPPFLAGS) $(FFLAGS) $(testdir)/test_toroidal.f90 \
 		-o $(bindir)/test_toroidal.x $(objdir)/libfastearth.a $(LFLAGS)
@@ -397,7 +356,7 @@ diag_visc3d_paths: fastearth-static | $(bindir)
 		-o $(bindir)/diag_visc3d_paths.x $(objdir)/libfastearth.a $(LFLAGS)
 	@echo "    $(bindir)/diag_visc3d_paths.x is ready."
 
-TESTS = test_params test_drive test_band test_sht test_earth test_mesh test_integrals test_assembly test_love test_relax test_tidal test_rotation test_rotation_sle test_response test_sle test_flotation test_flotation_load test_marine_reference test_etd1 test_ve_response test_tensor_sh test_response_3d test_toroidal test_sle_ve test_benchmark_love test_coupling test_couple_remap test_spinup test_restart test_benchmark_disc test_benchmark_martinec test_field test_sle_subgrid test_visc_load test_rotinv test_remap test_modal test_modal_resp test_modal_visc3d
+TESTS = test_params test_drive test_band test_sht test_earth test_mesh test_integrals test_assembly test_love test_relax test_tidal test_rotation test_rotation_sle test_response test_sle test_flotation test_flotation_load test_marine_reference test_etd1 test_ve_response test_tensor_sh test_response_3d test_toroidal test_sle_ve test_benchmark_love test_coupling test_couple_remap test_spinup test_restart test_benchmark_disc test_benchmark_martinec test_field test_sle_subgrid test_visc_load test_rotinv test_remap
 
 check: $(TESTS)
 	@echo ""

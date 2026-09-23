@@ -2,9 +2,8 @@
 #
 # run_ve_res_sweep.sh — stage/submit a resolution + sub-stepping sweep of the FULL
 # viscoelastic (VE) solver on the real 3-D deglaciation (Bagge 2021 lateral
-# viscosity, Tarasov deglaciation forcing, LGM->present). Sister script to
-# run_modal_vs_ve.sh, but here there is no modal solver: every run is earth_response=ve
-# and we vary only the spherical-harmonic resolution (lmax) and the explicit-scheme
+# viscosity, Tarasov deglaciation forcing, LGM->present). Every run is
+# earth_response=ve and we vary only the spherical-harmonic resolution (lmax) and the explicit-scheme
 # sub-step ceiling (cfl), measuring how the answer and the cost change.
 #
 # The production target is lmax=128 (LMAX_REF): high enough for the margins, low
@@ -73,12 +72,12 @@ EQUIL_TIME_MAX=${EQUIL_TIME_MAX:-10000.0}    # LGM-memory spin-up cap [yr]
 OMP=${OMP:-8}                                # OpenMP threads per run
 EXP=${EXP:-runs/ve_res_sweep}                # experiment root (under gitignored runs/)
 
-# How runme launches each run (see run_modal_vs_ve.sh):
+# How runme launches each run:
 #   "-s -r" prepare SLURM scripts AND submit (HPC, default); "-s" stage only;
 #   "-r" run locally in the background; "" stage the run dirs only.
 RUNME_FLAGS=${RUNME_FLAGS--s -r}             # note: `-` not `:-`, so RUNME_FLAGS="" = stage-only
 
-# 3-D viscosity + cheap 1-D LGM spin-up (the deglac3d setup from run_modal_vs_ve.sh).
+# 3-D viscosity + cheap 1-D LGM spin-up (the deglac3d setup).
 VISC3D_ON=(fe3d.l_visc_3d=true fe3d.pre_spinup_1d=true fe3d.visc_3d_file="$VISC3D")
 
 # Parameters common to every run (machine paths + the shared deglaciation setup).

@@ -66,13 +66,8 @@
     rtol           = 1.0e-4    ! relative local-error tolerance (adaptive schemes)
     rotation       = .true.    ! TPW rotational feedback (off for non-rotating benchmarks)
 
-    ! --- response kind (1-D VE vs reduced modal) ----------------------
-    earth_response = "ve"      ! ve | modal | elastic | null
-    n_modes        = -1        ! modal: # modes/degree (<=0 => all above tol)
-    mode_rank      = "isostatic" ! modal rank metric: isostatic | rate | residue
-    lat_method     = "coupled" ! modal lateral-η: coupled | lie | strang
-    n_krylov       = 20        ! modal: Arnoldi/Krylov block size
-    modal_adaptive = .false.   ! modal: sub-step each interval to rtol (1-D accuracy only)
+    ! --- response kind -------------------------------------------------
+    earth_response = "ve"      ! ve | elastic | null
 
     ! --- LGM-memory spin-up -------------------------------------------
     equil_time_max = 0.0       ! [years] >0: full-model spin-up cap (else no spin-up)

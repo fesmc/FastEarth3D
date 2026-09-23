@@ -128,4 +128,6 @@ and the approximation error grew rapidly once lateral viscosity contrasts or
 strongly time-varying loads were introduced. Since the explicit memory-stress
 scheme is already cheap — one back-substitution per step, with no angular
 coupling — the added complexity of maintaining a second response operator was
-not justified. The full solver is retained as the single response path.
+not justified. The full solver is retained as the single response path, and
+the reduced solver has been removed from the code; it survives in the git
+history up to commit `cbf77bd`.
