@@ -419,17 +419,17 @@ contains
       call require_monotonic(r_s,   filename, trim(rnm))
       if (nlon >= 2) then
          if (lon_s(nlon) < lon_s(1)) then
-            lon_s = lon_s(nlon:1:-1);  eta_s = eta_s(nlon:1:-1,:,:)
+            lon_s = lon_s(nlon:1:-1);  call reverse_axis(eta_s, 1)
          end if
       end if
       if (nlat_s >= 2) then
          if (lat_s(nlat_s) < lat_s(1)) then
-            lat_s = lat_s(nlat_s:1:-1);  eta_s = eta_s(:,nlat_s:1:-1,:)
+            lat_s = lat_s(nlat_s:1:-1);  call reverse_axis(eta_s, 2)
          end if
       end if
       if (nr_s >= 2) then
          if (r_s(nr_s) < r_s(1)) then
-            r_s = r_s(nr_s:1:-1);  eta_s = eta_s(:,:,nr_s:1:-1)
+            r_s = r_s(nr_s:1:-1);  call reverse_axis(eta_s, 3)
          end if
       end if
 
@@ -468,6 +468,37 @@ contains
          end do
       end do
    end subroutine fe_read_visc_3d
+
+   subroutine reverse_axis(a, dim)
+      !! Reverse a 3-D field along one dimension through an explicit heap copy.
+      !! The self-referencing section assignment a = a(:,n:1:-1,:) makes the
+      !! compiler build a temporary of the WHOLE field, and ifx puts it on the
+      !! stack: for input/bagge2021.nc that is ~340 MB, which overflows any
+      !! default stack limit (test_restart, reading the vendored field at 8 MB).
+      real(wp), allocatable, intent(inout) :: a(:,:,:)
+      integer,               intent(in)    :: dim
+      real(wp), allocatable :: b(:,:,:)
+      integer :: n1, n2, n3, k
+      n1 = size(a,1);  n2 = size(a,2);  n3 = size(a,3)
+      allocate(b(n1, n2, n3))
+      select case (dim)
+      case (1)
+         do k = 1, n3
+            b(:,:,k) = a(n1:1:-1,:,k)
+         end do
+      case (2)
+         do k = 1, n3
+            b(:,:,k) = a(:,n2:1:-1,k)
+         end do
+      case (3)
+         do k = 1, n3
+            b(:,:,k) = a(:,:,n3+1-k)
+         end do
+      case default
+         error stop 'reverse_axis: dim must be 1, 2 or 3'
+      end select
+      call move_alloc(b, a)
+   end subroutine reverse_axis
 
    pure real(wp) function bilin(f, i0, i1, wi, j0, j1, wj) result(v)
       !! Bilinear sample of f(lon,lat) given precomputed bracketing indices/weights.
