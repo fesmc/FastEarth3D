@@ -19,7 +19,7 @@ rationale and method comparison, and
 (`&fe3d solver = "v1"`), which drives VILMA-v1 itself through this model's
 driver, namelist, forcing, remap and output for a like-for-like comparison. It
 is **off by default and is not a dependency**: it needs an explicit
-`make fastearth vilma_v1=1 VILMA_V1_ROOT=<install>` and a hand-installed VILMA-v1.
+`make vilma vilma_v1=1 VILMA_V1_ROOT=<install>` and a hand-installed VILMA-v1.
 
 ## Status
 
@@ -49,9 +49,9 @@ configme install FastEarth3D --link fesm-utils=/abs/path/to/fesm-utils   # reuse
 ## Build
 
 ```bash
-make fastearth        # -> bin/fastearth.x        (standalone forced-run driver)
-make fastearth_mkref  # -> bin/fastearth_mkref.x  (build a Gauss-grid reference)
-make fastearth_remap  # -> bin/fastearth_remap.x  (offline lon-lat -> Gauss remap)
+make vilma        # -> bin/vilma.x        (standalone forced-run driver)
+make vilma_mkref  # -> bin/vilma_mkref.x  (build a Gauss-grid reference)
+make vilma_remap  # -> bin/vilma_remap.x  (offline lon-lat -> Gauss remap)
 make check            # build + run the test suite
 ```
 
@@ -61,7 +61,7 @@ threaded degree loop at production resolutions).
 ## Configure & run
 
 All runtime parameters live in a single namelist group `&fe3d`, loaded into the
-`fe_param_class` record by `fe_par_load`. [`fastearth.nml`](fastearth.nml) is the
+`vilma_param_class` record by `vilma_par_load`. [`fastearth.nml`](fastearth.nml) is the
 complete, documented defaults set; a run can pass a sparse file overlaid on it
 (yelmo `defaults_file` convention), overriding only what it needs. Time fields
 (`dt_*`, `time_*`) are given in **years** and converted to SI seconds on load.
@@ -71,7 +71,7 @@ complete, documented defaults set; a run can pass a sparse file overlaid on it
 - **Response solver** — `earth_response`: `"ve"` (full viscoelastic, default),
   `"elastic"`, `"null"`.
 - **Time scheme** — `scheme = "fe"` (1st-order explicit) or `"trap"` (2nd-order
-  adaptive), advanced by the `fe_timestep` controller.
+  adaptive), advanced by the `vilma_timestep` controller.
 - **3D viscosity / spin-up / restart** — `l_visc_3d`, `dt_equil`, `spinup_1d`,
   `restart_in_file`.
 - **Rotation** — `rotation` (TPW feedback): on by default; `.false.` for the
@@ -80,7 +80,7 @@ complete, documented defaults set; a run can pass a sparse file overlaid on it
 Run the standalone driver directly (sparse overlay + complete defaults):
 
 ```bash
-./bin/fastearth.x examples/deglac_lgm.nml fastearth.nml
+./bin/vilma.x examples/deglac_lgm.nml fastearth.nml
 ```
 
 It reads a reference state and an ice-thickness forcing (`file_forcing`,
@@ -96,13 +96,13 @@ runme -o runs/deglac -e main --omp 8 -r -p fe3d.lmax=128 fe3d.earth_response=ve
 ```
 
 Embedding the model in a host (the CLIMBER-X coupling path) uses the same API
-behind a single `use fastearth3d`:
+behind a single `use vilma`:
 
 ```fortran
-use fastearth3d
-type(fe_param_class) :: par
+use vilma
+type(vilma_param_class) :: par
 type(solid_earth)    :: se
-call fe_par_load(par, "fastearth.nml")
+call vilma_par_load(par, "fastearth.nml")
 call solid_earth_init(se, par, sht, z_bed_eq, h_ice_ref)
 call solid_earth_update(se, h_ice, dt)   ! advance time -> time+dt; reads se%rsl, se%z_bed
 ```

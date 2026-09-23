@@ -17,7 +17,7 @@ with rotation from @MartinecHagedoorn2014 and the sea-level equation from
 @KMM2005 and @Martinec2018.
 
 The implementation is modern and minimal: a small, dependency-light Fortran
-codebase organized as single-purpose modules (`fe_*`), validated rung-by-rung
+codebase organized as single-purpose modules (`vilma_*`), validated rung-by-rung
 against the community benchmarks. It is 3D-ready from the start — laterally
 varying viscosity costs nothing extra in the solver — while validated first
 in 1D.
@@ -41,7 +41,7 @@ Condon–Shortley phase, Gauss grid) is pinned across the whole code. See
 [Spectral reduction](discretization/spectral.qmd).
 
 The linear solver, by contrast, is hand-rolled: a dependency-free,
-re-entrant, pivoted banded LU (`fe_band`). This choice avoids an external
+re-entrant, pivoted banded LU (`vilma_band`). This choice avoids an external
 dependency (LIS, LAPACK) that would complicate linking into an OpenMP host.
 See [Solver](discretization/solver.qmd).
 

@@ -11,7 +11,7 @@ deformation and sea-level change. FastEarth3D implements this two-way
 memory-stress machinery.
 
 ::: {.callout-note title="Status: implemented, on by default"}
-Rotation is implemented (`fe_rotation`), coupled self-consistently into the
+Rotation is implemented (`vilma_rotation`), coupled self-consistently into the
 [sea-level equation](sea-level.qmd), persisted across restarts, and tested against
 the Spada et al. (2011) polar-motion benchmark (`test_rotation`,
 `test_rotation_sle`). It is **on by default** (`rotation = .true.`) for real-Earth
@@ -79,8 +79,8 @@ rotation ↔ SLE per-step fixed point is exercised by `test_rotation_sle`. See t
 [validation ladder](../benchmarks/index.qmd).
 
 ::: {.callout-tip title="Where this lives in the code"}
-`fe_rotation` holds the two degree-2 channels, the Liouville solve, and the
-`s_rot` SLE contribution; `fe_coupling` drives the rotation ↔ SLE fixed point;
-`fe_io` persists the polar motion and channel memory on restart. On by default
+`vilma_rotation` holds the two degree-2 channels, the Liouville solve, and the
+`s_rot` SLE contribution; `vilma_coupling` drives the rotation ↔ SLE fixed point;
+`vilma_io` persists the polar motion and channel memory on restart. On by default
 (`rotation = .true.`); set `rotation = .false.` for non-rotating benchmarks.
 :::

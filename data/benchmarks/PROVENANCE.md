@@ -81,7 +81,7 @@ vertical displacement `u`, geoid `n`, and uplift rate `dudt`, for the
 - **Degree-1 / geoid frame:** the displacement is in the CE-like gauge (h₁≈0,
   geocenter), the geoid in the CM frame (N₁=0). FastEarth3D reproduces both: u to
   ~1% near-field, n to ~1% once the degree-1 geoid is referenced to CM (N₁=0; see
-  fe_response). The far-field (θ≳12°) forebulge in `u` is small-amplitude and
+  vilma_response). The far-field (θ≳12°) forebulge in `u` is small-amplitude and
   shows larger relative differences (low-degree-truncation sensitive).
 
 ## `sle_martinec2018/*_SBK.dat`

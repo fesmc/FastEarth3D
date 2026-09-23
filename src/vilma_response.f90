@@ -1,6 +1,6 @@
-module fe_response
+module vilma_response
    !! Surface-load response operator: the abstraction the sea-level equation
-   !! (fe_sle) is built on. Given a spectral surface mass-density load σ_lm
+   !! (vilma_sle) is built on. Given a spectral surface mass-density load σ_lm
    !! [kg m^-2], it returns the two fields the SLE needs,
    !!
    !!     u_lm  — radial displacement of the solid surface  [m]
@@ -13,7 +13,7 @@ module fe_response
    !! surface coefficients of radial displacement and the perturbed gravitational
    !! potential. Martinec's φ₁ carries the load's own direct potential with the
    !! sign OPPOSITE to φ^L (φ₁ → −φ^L for a rigid sphere, k = −F/φ^L − 1; see
-   !! fe_radial_fe%loading_love). The geopotential perturbation is therefore −F,
+   !! vilma_radial_fe%loading_love). The geopotential perturbation is therefore −F,
    !! and Bruns' formula gives the geoid height
    !!
    !!     N(a) = −F(a)/g .
@@ -22,20 +22,20 @@ module fe_response
    !! normalization is still being calibrated — so the SLE is not blocked by
    !! that open item. Both U and the −F/g geoid are pinned by the validated
    !! rigid (U→0, 1+k→1) and fluid (U→−(2j+1)/3·φ^L/g, 1+k→0) limits.
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, grav_G
-   use fe_earth_structure, only: earth_gravity_at, earth_model, RHEOL_MAXWELL
-   use fe_radial_fe,       only: radial_operator_load_rhs, radial_operator_solve_vec, radial_operator_destroy, radial_operator_solve, radial_operator_assemble, radial_mesh_build, radial_mesh, radial_operator, &
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, grav_G
+   use vilma_earth_structure, only: earth_gravity_at, earth_model, RHEOL_MAXWELL
+   use vilma_radial_fe,       only: radial_operator_load_rhs, radial_operator_solve_vec, radial_operator_destroy, radial_operator_solve, radial_operator_assemble, radial_mesh_build, radial_mesh, radial_operator, &
                                  idx_u, idx_v, idx_f, ndof_of, &
                                  toroidal_operator, toroidal_operator_assemble, toroidal_operator_solve_vec, &
                                  toroidal_operator_destroy
-   use fe_viscoelastic,    only: NLAM, ve_strain_constants, dissipative_rhs, &
+   use vilma_viscoelastic,    only: NLAM, ve_strain_constants, dissipative_rhs, &
                                  advance_memory, strain_coeffs, scheme_is_implicit, &
                                  SCHEME_FE, SCHEME_TRAP, &
                                  NLAM_TOR, ve_strain_constants_tor, dissipative_rhs_tor, &
                                  advance_memory_tor, strain_coeffs_tor
-   use fe_sht,             only: sht_grid, sht_grid_lmidx, sht_grid_synthesis, sht_grid_analysis
-   use fe_tensor_sh,       only: tensor_sh, TLAM_SPH, tensor_sh_init, tensor_sh_thread_cfg, tensor_sh_synth, tensor_sh_analysis, tensor_sh_destroy
+   use vilma_sht,             only: sht_grid, sht_grid_lmidx, sht_grid_synthesis, sht_grid_analysis
+   use vilma_tensor_sh,       only: tensor_sh, TLAM_SPH, tensor_sh_init, tensor_sh_thread_cfg, tensor_sh_synth, tensor_sh_analysis, tensor_sh_destroy
    use, intrinsic :: iso_c_binding, only: c_ptr
    implicit none
    private
@@ -60,7 +60,7 @@ module fe_response
       !!   RESP_NULL    rigid, non-self-gravitating: u ≡ 0, N ≡ 0 (eustatic limit)
       !!   RESP_ELASTIC time-independent per-degree gains, precomputed once
       !!   RESP_VE      viscoelastic field driver (stateful Maxwell memory)
-      !! The sea-level equation (fe_sle) depends only on this interface, so the
+      !! The sea-level equation (vilma_sle) depends only on this interface, so the
       !! three earth responses are interchangeable. A default-initialised value
       !! (kind = RESP_NULL) is a valid null response with no construction needed.
       integer :: kind = RESP_NULL
@@ -167,7 +167,7 @@ module fe_response
       complex(wp), allocatable :: dUa(:), dFa(:), dVa(:) !! (nk) surface drift (U,F,V)
       real(wp), allocatable :: dUn_re(:,:), dUn_im(:,:) !! (nr,nk) nodal drift U from τ_n (ε_n)
       real(wp), allocatable :: dVn_re(:,:), dVn_im(:,:) !! (nr,nk) nodal drift V from τ_n
-      ! Memory time-integration scheme (see fe_viscoelastic). FE (default) advances
+      ! Memory time-integration scheme (see vilma_viscoelastic). FE (default) advances
       ! the memory once in commit_step from the report strain — the historical path,
       ! bit-identical. TRAP (2nd-order) is implicit in the end-of-step strain, so
       ! commit_step Picard-iterates the endpoint (frozen load: σ held at the converged
@@ -176,10 +176,10 @@ module fe_response
       integer  :: max_couple_iter = 1        !! coupling-iteration cap for implicit schemes
       real(wp) :: couple_tol = 1.0e-6_wp     !! relative surface-drift change to stop iterating
       integer  :: couple_iters_last = 0      !! iterations taken last commit (diagnostic)
-      ! PROFILE: phase wall-clock [s] + call counts, cumulative. The host (fe_drive)
+      ! PROFILE: phase wall-clock [s] + call counts, cumulative. The host (vilma_drive)
       ! zeroes these at the start of the transient so the reported per-step breakdown
       ! covers the transient only. t_drift = solve_drift (per-degree band LU);
-      ! t_mem = the memory advance (fe_advance / trapezoid_advance_all, which in the
+      ! t_mem = the memory advance (vilma_advance / trapezoid_advance_all, which in the
       ! 3-D case is dominated by the dyadic SHT round-trip). The remainder of the
       ! solid_earth_update cost (SLE iteration, load/geoid SHTs) is t_upd - t_drift - t_mem.
       real(wp) :: t_drift = 0.0_wp, t_mem = 0.0_wp
@@ -653,7 +653,7 @@ contains
       allocate(self%Bre(self%nlam,self%ne,self%nk), self%Bim(self%nlam,self%ne,self%nk))
       allocate(self%Cre(self%nlam,self%ne,self%nk), self%Cim(self%nlam,self%ne,self%nk))
       ! Zeroed in PARALLEL, on the same schedule(static) partition over k that
-      ! every consumer of these arrays uses (fe_advance, trapezoid_advance_all,
+      ! every consumer of these arrays uses (vilma_advance, trapezoid_advance_all,
       ! response_memory_norm, the save/restore buffers). This is the first touch,
       ! so it is what maps the pages onto NUMA domains: zeroing serially puts all
       ! ~6 x NLAM x ne x nk of it on the master thread's domain, and every threaded
@@ -738,9 +738,9 @@ contains
 
       ! Solve for the drift, PARALLEL OVER DEGREE l so each per-degree operator
       ! ops(l) is touched by a single thread. Safe because EVERY degree solves
-      ! through the re-entrant banded LU (fe_band) on threadprivate scratch,
+      ! through the re-entrant banded LU (vilma_band) on threadprivate scratch,
       ! including degree 1, whose dense KKT border merely widens the band (see
-      ! fe_radial_fe). There is no LIS solver any more, so no degree has to be
+      ! vilma_radial_fe). There is no LIS solver any more, so no degree has to be
       ! serialized for re-entrancy. The scratch vectors are per-thread; dynamic schedule balances the rising work
       ! per degree (l+1 orders). Inactive (ordinary serial loop) unless openmp=1.
       !$omp parallel default(shared) private(l, k, node, fre, fim, xre, xim, gre, gim, wre, wim)
@@ -854,7 +854,7 @@ contains
 
    subroutine response_horizontal_toroidal(self, sht, t_lm)
       !! The toroidal part of the surface horizontal displacement, as coefficients
-      !! t_lm of u_h = e_r × ∇₁(Σ t_lm Y_lm) (fe_sht%tor_synthesis): the surface W(a)
+      !! t_lm of u_h = e_r × ∇₁(Σ t_lm Y_lm) (vilma_sht%tor_synthesis): the surface W(a)
       !! of the last begin_step. Zero for every response that carries no toroidal
       !! field — null, elastic, and a VE response with no 3-D element — which
       !! is exact, not an approximation: nothing forces W there.
@@ -885,7 +885,7 @@ contains
       integer  :: iter
 
       if (.not. scheme_is_implicit(self%scheme)) then
-         call fe_advance(self, sht, sigma_lm)       ! explicit: byte-for-byte historical
+         call vilma_advance(self, sht, sigma_lm)       ! explicit: byte-for-byte historical
          self%couple_iters_last = 1
          self%time = self%time + self%dt
          return
@@ -912,7 +912,7 @@ contains
       self%time = self%time + self%dt
    end subroutine ve_response_commit
 
-   subroutine fe_advance(self, sht, sigma_lm)
+   subroutine vilma_advance(self, sht, sigma_lm)
       !! Explicit forward-Euler memory advance: one Maxwell update per (l,m) from the
       !! report strain σ·(unit-load nodal) + drift(τ_n). The historical path, shared by
       !! commit_step and advance_endpoint so both stay byte-identical for FE. With
@@ -960,7 +960,7 @@ contains
       !$omp end parallel
       call system_clock(pc1)
       self%t_mem = self%t_mem + real(pc1-pc0,wp)/prate;  self%n_mem = self%n_mem + 1
-   end subroutine fe_advance
+   end subroutine vilma_advance
 
    subroutine response_enable_lateral_visc(self, sht, pert_elem)
       !! Rung 6 — turn on laterally-varying viscosity. `pert_elem` is the log10
@@ -1091,7 +1091,7 @@ contains
    subroutine response_enable_lateral_visc_from_nodes(self, sht, visc_node)
       !! Rung 6c — enable laterally-varying viscosity from a NODE-based ABSOLUTE
       !! log10(η) field on the Gauss grid, visc_node(nphi*nlat, nr) (as produced by
-      !! fe_read_visc_3d). Bridges node→element by the log10-mean of the two
+      !! vilma_read_visc_3d). Bridges node→element by the log10-mean of the two
       !! bracketing nodes (geometric mean of η), forms the per-element log10
       !! perturbation against the element's radial reference viscosity
       !! η_radial(e) = μ(e)/MkPerDt(e), and calls enable_lateral_visc. Elastic/
@@ -1125,14 +1125,14 @@ contains
       !! viscosity (rung 6, general order). The Maxwell update τ⁺=(1−M)τ−2μM·ε is
       !! pointwise in PHYSICAL space, so per radial element and per radial shape-
       !! coefficient (A,B,C) the memory and strain TENSORS are reconstructed on the
-      !! Gauss grid via their six dyadic components (fe_tensor_sh; Martinec 2000
+      !! Gauss grid via their six dyadic components (vilma_tensor_sh; Martinec 2000
       !! B10/B11), advanced pointwise with the lateral field M(θ,φ), and projected
       !! back. With a uniform M the dyadic round trip is the identity ⇒ reduces to the
       !! 1-D advance.
       !!
       !! Parallel over elements: each element's dyadic transforms run on the calling
       !! thread's PRIVATE SHTns config (tsh%thread_cfg) — a single config is not safe
-      !! for concurrent calls, but the per-thread pool (fe_tensor_sh) makes the element
+      !! for concurrent calls, but the per-thread pool (vilma_tensor_sh) makes the element
       !! loop embarrassingly parallel. Per-thread coeff/grid scratch is allocated
       !! inside the region; the memory writeback touches a distinct element per
       !! iteration, so there is no race.
@@ -1150,7 +1150,7 @@ contains
       !$omp parallel default(shared) &
       !$omp   private(e, ei, k, lm, nc, cma, cmb, cmc, cea, ceb, cec, cdel, dtau, deps, cfg)
       ! Block width = the channels carried: TLAM_SPH, or TLAM once toroidal (the
-      ! local channel orders of fe_tensor_sh and fe_viscoelastic agree, λ3,4 at 5,6).
+      ! local channel orders of vilma_tensor_sh and vilma_viscoelastic agree, λ3,4 at 5,6).
       allocate(cma(self%nlam,sht%nlm), cmb(self%nlam,sht%nlm), cmc(self%nlam,sht%nlm))
       allocate(cea(self%nlam,sht%nlm), ceb(self%nlam,sht%nlm), cec(self%nlam,sht%nlm))
       allocate(cdel(self%nlam,sht%nlm))
@@ -1178,7 +1178,7 @@ contains
 
    subroutine gather_tensor_coeffs(self, sigma_lm, e, cma, cmb, cmc, cea, ceb, cec)
       !! Per element e, gather the memory shape-coeffs (Are/Aim …) and the current
-      !! strain shape-coeffs (strain_coeffs of σ·xUn + drift, exactly as fe_advance)
+      !! strain shape-coeffs (strain_coeffs of σ·xUn + drift, exactly as vilma_advance)
       !! into complex (nlam, nlm) blocks for the dyadic transform — all (l,m). With
       !! the toroidal channels carried, channels 5,6 take the λ3,4 memory and the
       !! strain of the nodal W drift (no load term: eq 84 does not force W).
@@ -1580,7 +1580,7 @@ contains
       real(wp) :: cnorm, snorm
 
       if (.not. scheme_is_implicit(self%scheme)) then
-         call fe_advance(self, sht, sigma_lm)
+         call vilma_advance(self, sht, sigma_lm)
          self%couple_pass = 1
          self%couple_done = .true.
          return
@@ -1624,7 +1624,7 @@ contains
       self%dt = dt
       ! Only RESP_VE carries a Maxwell factor. RESP_ELASTIC / RESP_NULL never
       ! allocate Mk/MkPerDt at all — so returning early for everything but VE is what keeps
-      ! the elastic path off an unallocated array (fe_timestep calls this
+      ! the elastic path off an unallocated array (vilma_timestep calls this
       ! unconditionally on the explicit path, which elastic reaches).
       if (self%kind /= RESP_VE) return
       self%Mk = self%MkPerDt * dt
@@ -1887,4 +1887,4 @@ contains
       self%sigma_primed = .false.;  self%sigma_primed_s = .false.
    end subroutine ve_response_destroy
 
-end module fe_response
+end module vilma_response

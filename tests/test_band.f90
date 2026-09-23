@@ -1,9 +1,9 @@
 program test_band
-   !! Validate fe_band (pivoted banded LU) against a dense Gaussian-elimination
+   !! Validate vilma_band (pivoted banded LU) against a dense Gaussian-elimination
    !! reference, including a saddle-point-style matrix with ZERO diagonal entries
    !! (which forces pivoting — the case the radial operator's pressure block hits).
-   use fe_precision, only: wp
-   use fe_band,      only: band_lu, band_build, band_solve, band_destroy
+   use vilma_precision, only: wp
+   use vilma_band,      only: band_lu, band_build, band_solve, band_destroy
    implicit none
    logical :: ok
    ok = .true.

@@ -1,5 +1,5 @@
 program test_relax
-   !! Rung-3 validation: explicit Maxwell viscoelastic relaxation (fe_viscoelastic).
+   !! Rung-3 validation: explicit Maxwell viscoelastic relaxation (vilma_viscoelastic).
    !! A degree-j load held on a homogeneous Maxwell sphere must relax from the
    !! ELASTIC Love number (t=0, deviatoric stress fully present) to the FLUID
    !! limit (t→∞, deviatoric stress fully relaxed) — the two states already
@@ -8,11 +8,11 @@ program test_relax
    !!   (2) h(t→∞) → −(2j+1)/3 (fluid limit),
    !!   (3) the relaxation is smooth and monotonic,
    !!   (4) the relaxation time scales linearly with viscosity η.
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, grav_G, sec_per_year
-   use fe_earth_structure, only: earth_model, earth_layer, RHEOL_MAXWELL
-   use fe_radial_fe,       only: radial_operator_destroy, radial_operator_solve, radial_operator_assemble, radial_mesh_build, radial_mesh, radial_operator, radial_fe_finalize
-   use fe_viscoelastic,    only: ve_destroy, ve_step, ve_init, ve_degree
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, grav_G, sec_per_year
+   use vilma_earth_structure, only: earth_model, earth_layer, RHEOL_MAXWELL
+   use vilma_radial_fe,       only: radial_operator_destroy, radial_operator_solve, radial_operator_assemble, radial_mesh_build, radial_mesh, radial_operator, radial_fe_finalize
+   use vilma_viscoelastic,    only: ve_destroy, ve_step, ve_init, ve_degree
    implicit none
 
    real(wp), parameter :: km = 1.0e3_wp, yr = sec_per_year
@@ -118,7 +118,7 @@ contains
    end subroutine relax_run
 
    subroutine ve_degree1_smoke()
-      !! fe_viscoelastic must run for j=1 too. The stepper uses the SAME bordered
+      !! vilma_viscoelastic must run for j=1 too. The stepper uses the SAME bordered
       !! KKT operator (radial_operator handles j=1 internally), so ve_degree needs
       !! no special-casing. Confirm a held degree-1 load on a Maxwell sphere steps
       !! stably — finite, non-trivial, and actually relaxing (the surface response

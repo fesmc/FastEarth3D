@@ -1,7 +1,7 @@
 # Spada et al. (2011) GIA benchmark — Test 3/2: polar motion and rate of polar motion
 # Source: Spada et al. (2011), Geophys. J. Int. 185, 106-132, Table 14 (p. 129).
 #   doi:10.1111/j.1365-246X.2011.04952.x  (Charles University GIA Benchmark)
-# Earth model: M3-L70-V01 (Table 3; = fe_earth_structure build_M3L70V01).
+# Earth model: M3-L70-V01 (Table 3; = vilma_earth_structure build_M3L70V01).
 # Load: three axisymmetric ice models (Table 4), Heaviside time history f(t)=H(t),
 #   centroid at colatitude theta_c = 25 deg, longitude lambda_c = 75 deg.
 #

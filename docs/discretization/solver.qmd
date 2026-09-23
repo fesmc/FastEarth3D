@@ -20,7 +20,7 @@ solve ideal:
   and factored **once per degree** and reused for all $m$, all loads, and all
   time steps. A step costs only a band back-substitution.
 - It is **indefinite** (zero pressure block), so **partial pivoting is
-  required**; the `fe_band` LU pivots within the band.
+  required**; the `vilma_band` LU pivots within the band.
 
 Degree 1 carries the dense KKT border (the rigid-mode constraint), giving that
 one degree a near-full bandwidth — it factors as a dense LU through the *same*
@@ -30,7 +30,7 @@ preconditioner fill to evict from cache.
 
 ## No external linear-algebra dependency
 
-`fe_band` is hand-rolled and **dependency-free**: it pulls in no LAPACK and no
+`vilma_band` is hand-rolled and **dependency-free**: it pulls in no LAPACK and no
 LIS. This is a deliberate design choice driven by linking into a larger,
 OpenMP-parallel host:
 
@@ -72,8 +72,8 @@ The full sea-level benchmark ($\ell_{\max}=128$, $\sim 750$ steps) thus runs in
 validation. At VILMA-v1 resolution (SH degree 170) the same machinery applies.
 
 ::: {.callout-tip title="Where this lives in the code"}
-`fe_band` (pivoted banded LU + equilibration), `fe_radial_fe` (assembly,
-factorization, reuse), `fe_response` (`skip_tol`, degree-grouped slots,
+`vilma_band` (pivoted banded LU + equilibration), `vilma_radial_fe` (assembly,
+factorization, reuse), `vilma_response` (`skip_tol`, degree-grouped slots,
 OpenMP loop). Build with `make openmp=1` for the threaded degree loop
 (serial dependencies + `-fopenmp`).
 :::

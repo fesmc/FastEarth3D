@@ -9,11 +9,11 @@ Martinec FE method) and `formulation.md` (the equations as implemented).
 
 | commit | content |
 |---|---|
-| `cff40ba` | `fe_sht`: toroidal synthesis `e_r×∇₁T`, one-call sph+tor synthesis, sph+tor analysis |
-| `de90472` | `fe_tensor_sh`: Z³, Z⁴ as channels 5, 6 (λ3, λ4 appended) |
-| `8d955f0` | `fe_radial_fe`: `toroidal_operator`; shared `bordered_band` |
-| `58005d0` | `fe_viscoelastic`: toroidal strain rows, norms, RHS, memory advance |
-| `745f672` | `fe_response`: W carried as drift once a 3-D element exists |
+| `cff40ba` | `vilma_sht`: toroidal synthesis `e_r×∇₁T`, one-call sph+tor synthesis, sph+tor analysis |
+| `de90472` | `vilma_tensor_sh`: Z³, Z⁴ as channels 5, 6 (λ3, λ4 appended) |
+| `8d955f0` | `vilma_radial_fe`: `toroidal_operator`; shared `bordered_band` |
+| `58005d0` | `vilma_viscoelastic`: toroidal strain rows, norms, RHS, memory advance |
+| `745f672` | `vilma_response`: W carried as drift once a 3-D element exists |
 | `c9a9269` | the switch: the 3-D advance carries λ3, λ4; `&fe3d l_toroidal` |
 | `a6ccc3d` | restarts carry the channel count; 4 → 6 migration |
 | `cbf77bd` | `&ctl file_hor`: horizontal displacement, total and toroidal |
@@ -73,11 +73,11 @@ FastEarth3D has no toroidal degree of freedom anywhere:
 
 | | where |
 |---|---|
-| `NLAM = 4`, for Martinec's λ ∈ {1,2,5,6}; λ=3,4 dropped | `src/fe_viscoelastic.f90:41` |
-| DOF map is `4nr−1` — `idx_u/idx_v/idx_f/idx_p`, no `idx_w` | `src/fe_radial_fe.f90:173-181` |
-| strain coefficients, "Martinec eq 87, W dropped" | `src/fe_viscoelastic.f90:318-330` |
-| radial stiffness, "toroidal W block dropped" | `src/fe_radial_fe.f90:209` |
-| the scalar SHT computes the toroidal part and discards it | `src/fe_sht.f90:237` |
+| `NLAM = 4`, for Martinec's λ ∈ {1,2,5,6}; λ=3,4 dropped | `src/vilma_viscoelastic.f90:41` |
+| DOF map is `4nr−1` — `idx_u/idx_v/idx_f/idx_p`, no `idx_w` | `src/vilma_radial_fe.f90:173-181` |
+| strain coefficients, "Martinec eq 87, W dropped" | `src/vilma_viscoelastic.f90:318-330` |
+| radial stiffness, "toroidal W block dropped" | `src/vilma_radial_fe.f90:209` |
+| the scalar SHT computes the toroidal part and discards it | `src/vilma_sht.f90:237` |
 
 The justification given in the code is *"spheroidal-only 1-D loading"*. That is
 correct for a radially symmetric Earth and wrong once viscosity varies
@@ -127,7 +127,7 @@ elastic:
 ```fortran
 if (self%MkPerDt(e) == 0.0_wp) cycle    ! elastic/fluid: stay as-is
 ```
-`src/fe_response.f90:1462`
+`src/vilma_response.f90:1462`
 
 Block D's layer 1 is `rheology = 0` to 80 km, so FastEarth3D runs a laterally
 uniform rigid plate exactly where the Bagge field has its strongest lateral
@@ -136,7 +136,7 @@ the weak zones. Two things follow:
 
 - there is no laterally varying lithosphere **thickness** in the model at all —
   no parameter, no field, no reader (`earth_layer` carries scalar `r_bot`/`r_top`;
-  `DEPTH_LITHO` at `src/fe_radial_fe.f90:46` is a mesh-spacing constant);
+  `DEPTH_LITHO` at `src/vilma_radial_fe.f90:46` is a mesh-spacing constant);
 - `isostasy_data/earth_structure/lithothickness/pan2022.nc` exists, i.e. the
   input is available and unusable.
 
@@ -156,14 +156,14 @@ conservatively.
 
 | Martinec eq | content | where |
 |---|---|---|
-| B8/B10 | the six Regge–Wheeler tensor harmonics Z^(1..6) | `fe_tensor_sh.f90:11-15` (4 of 6) |
-| B11 | E, F, G, H angular functions | `fe_tensor_sh.f90:160-181` |
-| B13 | Z^λ:Z^λ orthogonality norms | `fe_viscoelastic.f90:335` |
-| 80 | δE_shear, U/V/W stiffness | `fe_radial_fe.f90:268-290` (W omitted) |
-| 81–84 | grav / press / uniq / surface forcing | `fe_radial_fe.f90:292-350`, `:488-491` |
-| 87–88 | strain coefficients (a,b,c) from nodal U,V,W | `fe_viscoelastic.f90:318-328` (W rows omitted) |
-| 102/107 | Maxwell memory advance (3-D pointwise / 1-D spectral) | `fe_response.f90:1730-1752`, `fe_viscoelastic.f90:383-488` |
-| 109/110 | memory shape functions + spectral double-dot | `fe_viscoelastic.f90:342-381` |
+| B8/B10 | the six Regge–Wheeler tensor harmonics Z^(1..6) | `vilma_tensor_sh.f90:11-15` (4 of 6) |
+| B11 | E, F, G, H angular functions | `vilma_tensor_sh.f90:160-181` |
+| B13 | Z^λ:Z^λ orthogonality norms | `vilma_viscoelastic.f90:335` |
+| 80 | δE_shear, U/V/W stiffness | `vilma_radial_fe.f90:268-290` (W omitted) |
+| 81–84 | grav / press / uniq / surface forcing | `vilma_radial_fe.f90:292-350`, `:488-491` |
+| 87–88 | strain coefficients (a,b,c) from nodal U,V,W | `vilma_viscoelastic.f90:318-328` (W rows omitted) |
+| 102/107 | Maxwell memory advance (3-D pointwise / 1-D spectral) | `vilma_response.f90:1730-1752`, `vilma_viscoelastic.f90:383-488` |
+| 109/110 | memory shape functions + spectral double-dot | `vilma_viscoelastic.f90:342-381` |
 
 ### The missing toroidal terms, same numbering
 
@@ -183,7 +183,7 @@ the λ=4 and λ=6 norms as `½(j−1)j(j+1)(j+2)` and `2(j−1)j(j+1)(j+2)`; sin
 - `Z³ = −F e_rθ + E e_rφ` — toroidal companion of `Z² = E e_rθ + F e_rφ`
 - `Z⁴ = G e_θφ − H (e_θθ − e_φφ)` — toroidal companion of `Z⁶ = G(e_θθ − e_φφ) + 4H e_θφ`
 
-Extending `tensor_sh_synth` (`fe_tensor_sh.f90:135-158`), the full dyadic map
+Extending `tensor_sh_synth` (`vilma_tensor_sh.f90:135-158`), the full dyadic map
 becomes:
 
 ```
@@ -198,7 +198,7 @@ Cross-checked against eq 92's `b` dyad, which carries W explicitly
 (`b_θθ ∋ −W^k H`, `b_θφ ∋ W^k G`, `b_φφ ∋ +W^k H`).
 
 **Eq 87 toroidal strain rows** — the two rows dropped at
-`fe_viscoelastic.f90:326-327`:
+`vilma_viscoelastic.f90:326-327`:
 
 ```
 λ=3:  a³ = −W^k + W^{k+1},   b³ = −W^k,   c³ = −W^{k+1}
@@ -215,12 +215,12 @@ J·( I¹_ab − I³_ab − I³_ba + I⁶_ab )·W^a δW^b  +  J(J−2)·I⁶_ab·
 ```
 
 No U, V, F or Π appears. All integrals already exist in
-`src/fe_radial_integrals.f90`.
+`src/vilma_radial_integrals.f90`.
 
 **Eq 83 (δE_uniq)** carries a second rank-1 penalty at j=1 —
 `(4π/3)·[Σ_a K³_a W^a_{1m}]·[Σ_b K³_b δW^b_{1m}]` — the rigid-**rotation** null
 space, alongside the existing rigid-translation one
-(`fe_radial_fe.f90:354-372`). Not optional: at j=1, `norm₄ = 0`, so only λ=3
+(`vilma_radial_fe.f90:354-372`). Not optional: at j=1, `norm₄ = 0`, so only λ=3
 survives, `ε³ = dW/dr − W/r`, which vanishes identically for `W ∝ r`. The j=1 W
 block **is** exactly singular.
 
@@ -228,7 +228,7 @@ block **is** exactly singular.
 driven only through the dissipative RHS (eq 110's λ=3,4 terms), i.e. only once
 lateral viscosity has mixed the memory. Two consequences:
 
-- the elastic gains `gu/gn/gv` (`fe_response.f90:1112-1119`) are untouched, so
+- the elastic gains `gu/gn/gv` (`vilma_response.f90:1112-1119`) are untouched, so
   **every elastic benchmark must stay bit-identical**;
 - W has no elastic-gain counterpart to `xUn`/`xVn` — it comes entirely from the
   drift solve.
@@ -239,7 +239,7 @@ lateral viscosity has mixed the memory. Two consequences:
   `Λ_Ω Y = e_r × ∇_Ω Y` has components `(−F, E)`; SHTns' `SHtor_to_spat`
   produces `((1/sinθ)∂_φT, −∂_θT) = (F, −E)`, i.e. `−Λ_Ω`. That is a derivation,
   not a citation. Pin it with the same per-degree calibration the code already
-  uses for the spin-2 channel (`fe_tensor_sh.f90:85-110`) — do not assume it.
+  uses for the spin-2 channel (`vilma_tensor_sh.f90:85-110`) — do not assume it.
 - **Order-in-contrast.** "Toroidal flow appears at first order in the viscosity
   contrast, back-coupling at second order" is standard perturbation reasoning,
   not stated in Martinec (2000). Used in §4 only to predict a scaling exponent.
@@ -270,20 +270,20 @@ written down here because the code cannot tell you.
 **Bottom line: an extension, not a reformulation.** ~600–750 lines of production
 change across 8 files, roughly 80 % mechanical, plus ~400–500 lines of tests.
 
-### 3.1 DOF layout — `src/fe_radial_fe.f90`
+### 3.1 DOF layout — `src/vilma_radial_fe.f90`
 
 Adding `idx_w` makes the stride 5 and `ndof_of = 5nr − 1`. Mechanical at the
 index level: every consumer goes through the `idx_*` accessors, never a literal
-stride (verified across `fe_viscoelastic`, `fe_response`, `fe_rotation`,
-`fe_modal`, `tests/`). `band_build` infers `kl`/`ku` from the COO pattern
-(`fe_band.f90:38-47`), so bandwidth grows automatically — roughly 2.2× per
+stride (verified across `vilma_viscoelastic`, `vilma_response`, `vilma_rotation`,
+`vilma_modal`, `tests/`). `band_build` infers `kl`/`ku` from the COO pattern
+(`vilma_band.f90:38-47`), so bandwidth grows automatically — roughly 2.2× per
 radial solve. Assembly widens `Aloc(7,7)→(9,9)`, `gmap(7)→(9)`
-(`fe_radial_fe.f90:230-231`).
+(`vilma_radial_fe.f90:230-231`).
 
 **Two real design questions, both for the author:**
 
 1. **μ = 0 regions have no W stiffness at all.** With `build_M3L70V01` the core
-   is `r < 3480 km` with μ = 0 (`fe_earth_structure.f90:232`) — ~40 % of the
+   is `r < 3480 km` with μ = 0 (`vilma_earth_structure.f90:232`) — ~40 % of the
    218-node mesh. Every interior core W node gets an all-zero row and the
    operator is singular. `tests/test_assembly.f90` check (2b) will fail
    immediately, which is the right place for it to surface. Options: (a) pin
@@ -293,28 +293,28 @@ radial solve. Assembly widens `Aloc(7,7)→(9,9)`, `gmap(7)→(9)`
    costs much more. (a) looks right, but it is a judgement call.
 2. **A second KKT border row at j=1.** `radial_operator` supports exactly one
    border (`self%w`, `self%bordered`, `ndof_solve = nd+1`,
-   `fe_radial_fe.f90:402-432`). Eq 83's W penalty needs a second, orthogonal
+   `vilma_radial_fe.f90:402-432`). Eq 83's W penalty needs a second, orthogonal
    one. This collides with the degree-1 machinery (`nullmode`, the `border=`
    argument on `radial_operator_solve_vec`, `response_deg1_to_cm`). Generalising
    `w(:)` → `w(:,nborder)` is ~40 lines but touches the equilibration logic,
    which folds the border row/column into the row/column maxima. **This is the
    one piece that is architecture rather than transcription.**
 
-### 3.2 `src/fe_viscoelastic.f90` — NLAM 4→6
+### 3.2 `src/vilma_viscoelastic.f90` — NLAM 4→6
 
 Most of it is already λ-generic (`do m = 1, NLAM` at `:364, :369, :438, :445,
 :459, :471, :479`). What hard-codes 4: `NLAM` (`:41`); `strain_coeffs`
 (`:318-328`, gains `w1,w2` — **signature change, 6 call sites**); the `norm`
 literal (`:335`); `sa/sb/sc(4,NLAM)` (`:65, :334`, and `ve_strain_constants`
 `:330-340`) where the 4 is the *test dofs* and becomes 6, mirrored at
-`fe_response.f90:1092`; `dissipative_rhs` (`:342-381` — `floc(4)`, `do t = 1,4`,
+`vilma_response.f90:1092`; `dissipative_rhs` (`:342-381` — `floc(4)`, `do t = 1,4`,
 and two new `idx_w` scatter targets); `advance_memory` (`:383-488`, needs
 `Wn`/`Wn_prev`).
 
-### 3.3 `src/fe_tensor_sh.f90` — lower cost than it looks
+### 3.3 `src/vilma_tensor_sh.f90` — lower cost than it looks
 
 - **SHTns already has both toroidal transforms and the code already calls one.**
-  `spat_to_SHsphtor` at `fe_sht.f90:237` computes `tlm` into a local and
+  `spat_to_SHsphtor` at `vilma_sht.f90:237` computes `tlm` into a local and
   discards it; `SHtor_to_spat` exists in `shtns.f03:262` unwrapped. Z³ costs two
   thin wrappers (~35 lines) and no new mathematics.
 - **Z⁴ is nearly free.** `spin2_synth` (`:160-181`) already computes both
@@ -330,7 +330,7 @@ and two new `idx_w` scatter targets); `advance_memory` (`:383-488`, needs
   second spin-2 channel on the same grid is the natural place for silent λ4↔λ6
   aliasing — test the off-diagonal explicitly.
 
-### 3.4 `src/fe_response.f90` — largest diff, shallow
+### 3.4 `src/vilma_response.f90` — largest diff, shallow
 
 - **`advance_shape_tensor` (`:1730-1752`) needs zero change** — it operates on
   the 6 dyadic planes and is λ-agnostic. Same for the TRAP twin (`:1858-1881`).
@@ -350,16 +350,16 @@ and two new `idx_w` scatter targets); `advance_memory` (`:383-488`, needs
 
 *Superseded: the modal solver was removed from the code instead (§0).*
 
-**Leave `fe_modal` spheroidal-only with an explicit `error stop`.** Its lateral
-model is a per-mode scalar rate modulation (`fe_response.f90:1476-1566`,
+**Leave `vilma_modal` spheroidal-only with an explicit `error stop`.** Its lateral
+model is a per-mode scalar rate modulation (`vilma_response.f90:1476-1566`,
 `design-modal.md` §4) and is structurally incapable of poloidal→toroidal
 coupling; extending it is a research project. Pin its packing
-(`npk = 3·NLAM·nmax`, `fe_modal.f90:57, :134, :163-189`) to the spheroidal λ
+(`npk = 3·NLAM·nmax`, `vilma_modal.f90:57, :134, :163-189`) to the spheroidal λ
 subset so its cost and results are literally unchanged.
 
 ### 3.6 Restart format
 
-`src/fe_io.f90:471` hard-errors if the file's `nlam` ≠ `NLAM`. Bumping to 6
+`src/vilma_io.f90:471` hard-errors if the file's `nlam` ≠ `NLAM`. Bumping to 6
 **breaks every existing restart**; needs a migration read (old `nlam=4` → the
 spheroidal channels, zero the rest). `get3d_pad` (`:601-617`) is the template.
 
@@ -452,14 +452,14 @@ that changes any result, and only for non-mirror-symmetric viscosity.
 
 | # | commit | changes results? | verified by |
 |---|---|---|---|
-| **C1** | `fe_sht`: expose the toroidal vector transforms — return the `tlm` discarded at `fe_sht.f90:237`, wrap `SHtor_to_spat` | no (pure addition) | `test_sht`: toroidal round trip, sph/tor orthogonality |
-| **C2** | `fe_tensor_sh`: `TLAM 4→6`, add Z³ and Z⁴ by recombining existing `spin2_synth`/`spin2_adjoint` outputs; calibrate `n3`, `n4` | no (callers still pass zeros) | **V2** |
-| **C3** | `fe_radial_fe`: `idx_w`, stride 4→5, eq-80 W block, and the μ=0 / degree-1 gauge decision (§3.1) | no — eq 84 never forces W | **V1**; `test_love`, `test_relax`, `test_benchmark_love`, `test_benchmark_disc` bit-identical |
-| **C4** | `fe_viscoelastic`: `NLAM 4→6`, eq-87 toroidal rows, B13 norms, 6 test dofs, `dissipative_rhs` W scatter; update `fe_rotation`/`fe_modal` call sites; extend the `Jr <= 2` guard to λ=4 (§3.7) | no — all W inputs zero | full `make check` bit-identical vs a `dump_reference` baseline |
-| **C5** | `fe_response`: carry W (`dWn_*`, `edWn_*` from `solve_drift`; `gather_tensor_coeffs` ×2) | no while η is radial | **V3** zero-assertions |
+| **C1** | `vilma_sht`: expose the toroidal vector transforms — return the `tlm` discarded at `vilma_sht.f90:237`, wrap `SHtor_to_spat` | no (pure addition) | `test_sht`: toroidal round trip, sph/tor orthogonality |
+| **C2** | `vilma_tensor_sh`: `TLAM 4→6`, add Z³ and Z⁴ by recombining existing `spin2_synth`/`spin2_adjoint` outputs; calibrate `n3`, `n4` | no (callers still pass zeros) | **V2** |
+| **C3** | `vilma_radial_fe`: `idx_w`, stride 4→5, eq-80 W block, and the μ=0 / degree-1 gauge decision (§3.1) | no — eq 84 never forces W | **V1**; `test_love`, `test_relax`, `test_benchmark_love`, `test_benchmark_disc` bit-identical |
+| **C4** | `vilma_viscoelastic`: `NLAM 4→6`, eq-87 toroidal rows, B13 norms, 6 test dofs, `dissipative_rhs` W scatter; update `vilma_rotation`/`vilma_modal` call sites; extend the `Jr <= 2` guard to λ=4 (§3.7) | no — all W inputs zero | full `make check` bit-identical vs a `dump_reference` baseline |
+| **C5** | `vilma_response`: carry W (`dWn_*`, `edWn_*` from `solve_drift`; `gather_tensor_coeffs` ×2) | no while η is radial | **V3** zero-assertions |
 | **C6** | **the switch**: activate λ=3,4 in `advance_memory_3d` / `_trap` | **yes**, for non-mirror-symmetric lateral viscosity only | **V4**, **V5**; LVZ and rotinv still reproduce −0.7306 / −1.2180 m |
-| **C7** | `fe_io`: restart `nlam` 4→6 with a migration read instead of the hard error at `:471` | no | `test_restart` + a vendored legacy (nlam=4) restart |
-| **C8** | `fe_modal`: explicit `error stop` when toroidal is active; pin modal packing to the spheroidal subset | no | `test_modal`, `test_modal_resp`, `test_modal_visc3d` bit-identical |
+| **C7** | `vilma_io`: restart `nlam` 4→6 with a migration read instead of the hard error at `:471` | no | `test_restart` + a vendored legacy (nlam=4) restart |
+| **C8** | `vilma_modal`: explicit `error stop` when toroidal is active; pin modal packing to the spheroidal subset | no | `test_modal`, `test_modal_resp`, `test_modal_visc3d` bit-identical |
 | **C9** | docs: `formulation.md:35, 127-131`, `docs/discretization/spectral.qmd:29-35`, `docs/physics/rheology.qmd:70-80`, `design.md` §12, and this file | — | prose |
 | **C10** | VILMA-v1 cross-check (**V6**) + the measurement (**V7**) — a results commit | — | side-by-side run |
 

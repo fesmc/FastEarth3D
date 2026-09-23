@@ -45,12 +45,12 @@ program test_marine_reference
    !! column from the melt source at the moment it floods while still charging
    !! the ocean for the water that fills it: 38.9 m instead of 138.3 m here, and
    !! 52.2 m instead of 99.3 m on the LGM-referenced last deglaciation.
-   use fe_precision, only: wp
-   use fe_constants, only: pi, rho_ice, rho_water
-   use fe_response,  only: response, response_init_null, response_destroy
-   use fe_sht,       only: sht_grid, sht_grid_init, sht_grid_destroy, &
+   use vilma_precision, only: wp
+   use vilma_constants, only: pi, rho_ice, rho_water
+   use vilma_response,  only: response, response_init_null, response_destroy
+   use vilma_sht,       only: sht_grid, sht_grid_init, sht_grid_destroy, &
                            sht_grid_surface_integral
-   use fe_sle,       only: sle_solve, sle_solver, sle_result, ocean_function
+   use vilma_sle,       only: sle_solve, sle_solver, sle_result, ocean_function
    implicit none
 
    integer, parameter :: LMAX = 32

@@ -1,4 +1,4 @@
-module fe_remap
+module vilma_remap
    !! Bidirectional conservative/bilinear remapping between a host lon-lat grid and
    !! the model's SHTns Gauss-Legendre grid, built on the fesm-utils `coords` library
    !! (in-package SCRIP-style weights, gen="coords", no CDO).
@@ -8,9 +8,9 @@ module fe_remap
    !!   Gauss --(bilinear)--> host lon-lat        [remap_to_ll]      smooth fields (rsl)
    !!
    !! Build the map pair once with remap_init, then apply per field / time slice. The
-   !! coupling layer (fe_coupling) holds one of these when the host grid differs from
+   !! coupling layer (vilma_coupling) holds one of these when the host grid differs from
    !! the model Gauss grid, and drives h_ice in / rsl out through it; the standalone
-   !! driver (fe_drive) uses it to remap lon-lat forcing onto the Gauss grid.
+   !! driver (vilma_drive) uses it to remap lon-lat forcing onto the Gauss grid.
    !!
    !! Caching: map_init writes each weight set to a SCRIP(-superset) NetCDF cache under
    !! `fldr` (default "maps") and reloads it on the next run, keyed by the grid names —
@@ -27,8 +27,8 @@ module fe_remap
    !! so its SHTns surface integral equals the source area-integral exactly (the whole
    !! sphere is 4*pi sr, used to convert the conserved coords-area total to steradians
    !! without needing the planet radius). Geometry fields (bed) are remapped as-is.
-   use fe_precision, only: wp
-   use fe_sht,       only: sht_grid, sht_grid_surface_integral
+   use vilma_precision, only: wp
+   use vilma_sht,       only: sht_grid, sht_grid_surface_integral
    use coords,       only: grid_class, grid_init, map_class, map_init, map_field
    implicit none
    private
@@ -115,9 +115,9 @@ contains
       logical  :: do_mass
 
       if (size(f_ll,1) /= self%nlon .or. size(f_ll,2) /= self%nlat_ll) &
-         error stop 'fe_remap: source field shape /= map source grid'
+         error stop 'vilma_remap: source field shape /= map source grid'
       if (size(f_gauss,1) /= self%nphi .or. size(f_gauss,2) /= self%nlat) &
-         error stop 'fe_remap: target field shape /= SHTns grid'
+         error stop 'vilma_remap: target field shape /= SHTns grid'
 
       allocate(vt(self%nphi, self%nlat), m2(self%nphi, self%nlat))
       call map_field(self%to_gauss, "f", f_ll, vt, stat="mean", mask2=m2)
@@ -150,9 +150,9 @@ contains
       integer :: j
 
       if (size(f_gauss,1) /= self%nphi .or. size(f_gauss,2) /= self%nlat) &
-         error stop 'fe_remap: source field shape /= SHTns grid'
+         error stop 'vilma_remap: source field shape /= SHTns grid'
       if (size(f_ll,1) /= self%nlon .or. size(f_ll,2) /= self%nlat_ll) &
-         error stop 'fe_remap: target field shape /= map target grid'
+         error stop 'vilma_remap: target field shape /= map target grid'
 
       allocate(g_asc(self%nphi, self%nlat), m2(self%nlon, self%nlat_ll))
       do j = 1, self%nlat                                 ! SHTns north-first -> ascending-lat
@@ -163,4 +163,4 @@ contains
       where (.not. m2) f_ll = 0.0_wp                      ! uncovered host cells (full-sphere Gauss src: none)
    end subroutine remap_to_ll
 
-end module fe_remap
+end module vilma_remap

@@ -36,14 +36,14 @@ program test_benchmark_sle
    !! gradient eval); col5 = -N*g (geoid); col6 sea-surface = N+esl; col7 SLE =
    !! rsl = N - u + esl. Profiles (figs 10-13): circles of constant lon (col1=colat)
    !! or constant lat (col1=180+lon), sampled with sht_grid_eval_point[_horiz].
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, kyr, rho_ice, rho_water
-   use fe_earth_structure, only: earth_model, build_M3L70V01
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_response,        only: response_destroy, response_horizontal, response, response_init_elastic, response_init_ve, response_init_null
-   use fe_sht,             only: sht_grid_destroy, sht_grid_eval_point_horiz, sht_grid_eval_point, sht_grid_analysis, sht_grid_surface_integral, sht_grid_init, sht_grid
-   use fe_sle,             only: sle_solve, sle_solver, sle_result
-   use fe_field,           only: spherical_cap, exp_basin
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, kyr, rho_ice, rho_water
+   use vilma_earth_structure, only: earth_model, build_M3L70V01
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_response,        only: response_destroy, response_horizontal, response, response_init_elastic, response_init_ve, response_init_null
+   use vilma_sht,             only: sht_grid_destroy, sht_grid_eval_point_horiz, sht_grid_eval_point, sht_grid_analysis, sht_grid_surface_integral, sht_grid_init, sht_grid
+   use vilma_sle,             only: sle_solve, sle_solver, sle_result
+   use vilma_field,           only: spherical_cap, exp_basin
    implicit none
 
    character(*), parameter :: DIR = 'data/benchmarks/sle_martinec2018/'
@@ -91,7 +91,7 @@ program test_benchmark_sle
    real(wp) :: dt, esl, bary, shift, rho_ratio, spinerr
    integer  :: spin
    logical  :: ok
-   ! warm-start instrumentation: per-history SLE iteration tallies (see FE_SLE_WARM)
+   ! warm-start instrumentation: per-history SLE iteration tallies (see VILMA_SLE_WARM)
    integer  :: tot_inner = 0, tot_outer = 0
    character(len=8) :: warmenv
    integer  :: envstat
@@ -110,9 +110,9 @@ program test_benchmark_sle
    ! converged rsl seeds the SLE fixed point. rsl persists across steps here, so
    ! this just sets the flag. The benchmark answer is byte-identical to cold start
    ! (the fixed point is unique); warming exercises the production path and keeps it
-   ! in view for real, strongly-migrating domains. Set FE_SLE_WARM=0 to force the
+   ! in view for real, strongly-migrating domains. Set VILMA_SLE_WARM=0 to force the
    ! legacy cold start (for the cold-vs-warm A/B comparison).
-   call get_environment_variable("FE_SLE_WARM", warmenv, status=envstat)
+   call get_environment_variable("VILMA_SLE_WARM", warmenv, status=envstat)
    sle%warm_start = .not. (envstat == 0 .and. trim(warmenv) == "0")
    if (sle%warm_start) then
       write(*,'(a)') '   SLE start mode: WARM (reuse previous step rsl)'
@@ -146,7 +146,7 @@ program test_benchmark_sle
    end if
    esl = res%esl
 
-   ! converged horizontal: rebuild the converged surface load exactly as fe_sle's
+   ! converged horizontal: rebuild the converged surface load exactly as vilma_sle's
    ! commit_step does (grounded ice + ocean water) and read the spheroidal V field.
    ! resp%horizontal reuses the last begin_step's frozen drift, so v_lm is
    ! consistent with res%u/res%N.
@@ -393,9 +393,9 @@ contains
 
 
    subroutine dump_cols(name, header, a)
-      !! Write a column table to $FE_BENCH_DUMP/<name> for the analysis scripts.
+      !! Write a column table to $VILMA_BENCH_DUMP/<name> for the analysis scripts.
       !!
-      !! No-op unless FE_BENCH_DUMP names a directory, so `make check` and any
+      !! No-op unless VILMA_BENCH_DUMP names a directory, so `make check` and any
       !! plain run behave exactly as before — the dump is opt-in and costs
       !! nothing when off. `header` names the columns and is written as a leading
       !! `#` comment line, so the file is self-describing and readable with any
@@ -404,7 +404,7 @@ contains
       real(wp),     intent(in) :: a(:,:)          ! (nrow, ncol)
       character(512) :: dir, path
       integer :: u, i, st
-      call get_environment_variable('FE_BENCH_DUMP', dir, status=st)
+      call get_environment_variable('VILMA_BENCH_DUMP', dir, status=st)
       if (st /= 0 .or. len_trim(dir) == 0) return
       path = trim(dir)//'/'//name
       open(newunit=u, file=trim(path), status='replace', action='write', iostat=st)

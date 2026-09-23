@@ -7,7 +7,7 @@
 # name        value            unit            note
 sec_per_year  3.15576e7        s               seconds in one year
 G             6.6732e-11       m3 kg-1 s-2      Newton constant (Spada's value; cf.
-#                                               fe_constants grav_G = 6.67430e-11)
+#                                               vilma_constants grav_G = 6.67430e-11)
 a             6.371e6          m               Earth radius
 rho_water     1000.0           kg m-3
 rho_ice       931.0            kg m-3

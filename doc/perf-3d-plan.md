@@ -19,12 +19,12 @@ premise turned out to be **wrong**. This is the corrected record.
 
 ## Cost structure (measured)
 
-A coupling step is `solid_earth_update`, which is `stepper_advance` (fe_timestep). For the explicit
+A coupling step is `solid_earth_update`, which is `stepper_advance` (vilma_timestep). For the explicit
 `scheme=fe`, the interval `span` is split into `n_sub = ceil(span / (cfl/max_rate))` equal
 sub-steps; each does one SLE solve + one Maxwell memory advance. `max_rate` is set by the
 **stiffest (lowest-η) Maxwell cell**, so the viscosity floor controls `n_sub`.
 
-Full-step profile (`fe_drive` PROFILE timers, 8 threads, Bagge floor 19.5, `SHT_QUICK_INIT`):
+Full-step profile (`vilma_drive` PROFILE timers, 8 threads, Bagge floor 19.5, `SHT_QUICK_INIT`):
 
 | | lmax 64 | lmax 128 |
 |---|---|---|
@@ -33,7 +33,7 @@ Full-step profile (`fe_drive` PROFILE timers, 8 threads, Bagge floor 19.5, `SHT_
 | **`solid_earth_update` / 100-yr step** | ~0.81 s | ~4.41 s |
 | sub-steps (`n_solve`) | 8 | 8 |
 | laterally-3-D elements | 51 / 217 | 66 / 217 |
-| `read_ice` / `fe_write_step` | 9 / 11 ms | 9 / 36 ms |
+| `read_ice` / `vilma_write_step` | 9 / 11 ms | 9 / 36 ms |
 
 ≈ 8 ms/simulated-yr (lmax 64), ≈ 44 ms/yr (lmax 128). VILMA-v1's CLIMBER-X cadence is
 `n_year_geo = 10`, so ~1 sub-step per VILMA-v1 update (~0.5 s/update at lmax 128).
@@ -43,15 +43,15 @@ For contrast, Pan 2022 at the same floor: `solid_earth_update` ≈ 3.9 s/step at
 
 ## What was changed
 
-- `fe_sht`: `SHT_QUICK_INIT` instead of `SHT_GAUSS` — skips SHTns's ~17 s/config algorithm
+- `vilma_sht`: `SHT_QUICK_INIT` instead of `SHT_GAUSS` — skips SHTns's ~17 s/config algorithm
   benchmark (prohibitive for the 8-config per-thread tensor-SH pool). Transforms run ~20 %
   slower than the tuned optimum; for long production runs, add `SHT_LOAD_SAVE_CFG` to
   `SHT_GAUSS` to recover tuned transforms with a cached, one-time init.
 - `fastearth.nml`: default 3-D field → Bagge 2021 (floored 19.5 via `visc_log10_min`).
-- `fe_drive`: coarse PROFILE timers (per-step read/update/write + `n_accept`/`n_solve`,
+- `vilma_drive`: coarse PROFILE timers (per-step read/update/write + `n_accept`/`n_solve`,
   one-time `build_remap` / `solid_earth_init`).
 
-The batched primitives (`fe_sht`/`fe_tensor_sh` `clone_cfg_batched` / `synth_batch` /
+The batched primitives (`vilma_sht`/`vilma_tensor_sh` `clone_cfg_batched` / `synth_batch` /
 `analysis_batch`) were fully reverted — do not re-attempt batching for CPU at these lmax.
 
 ## Remaining levers (if more speed is needed)

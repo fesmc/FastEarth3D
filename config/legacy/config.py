@@ -13,7 +13,7 @@ This mirrors the "configme" approach used by CLIMBER-X and Yelmo: the template
 (config/Makefile) carries the build logic and a single <COMPILER_CONFIGURATION>
 placeholder; the machine fragment carries everything machine-specific (compiler,
 flags, netCDF paths). The shared dependency wiring lives in config/common.mk and
-the source/rule lists in config/Makefile_fastearth.mk, both included by the
+the source/rule lists in config/Makefile_vilma.mk, both included by the
 template.
 """
 
@@ -49,6 +49,6 @@ open(target_dir + "Makefile", "w").write(makefile)
 
 print(f"\nMakefile configuration complete for: {config_path}\n")
 print("Next:")
-print("    make fastearth-static   # build the libfastearth.a static library")
+print("    make vilma-static   # build the libvilma.a static library")
 print("    make check              # build and run the test suite")
 print("    make clean              # remove objects and binaries\n")

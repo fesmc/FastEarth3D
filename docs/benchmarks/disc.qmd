@@ -32,7 +32,7 @@ $n$, and uplift rate $\mathrm{d}u/\mathrm{d}t$.
 The reference uses a **mixed reference frame**: displacement in a CE-like
 gauge ($h_1\approx 0$, geocenter), geoid in the CM frame ($N_1 = 0$).
 FastEarth3D reproduces both by referencing the degree-1 geoid to CM
-(`fe_response`).
+(`vilma_response`).
 
 All three reference files in this repository (`u_*`, `n_*`, `dudt_*`) are
 stored in ascending $\theta$ order and match the ordering used by the

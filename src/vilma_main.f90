@@ -1,13 +1,13 @@
-program fastearth
+program vilma_main
    !! Standalone FastEarth3D driver.
    !!
-   !!   ./bin/fastearth.x [run-config.nml]      (default: fastearth.nml)
+   !!   ./bin/vilma.x [run-config.nml]      (default: fastearth.nml)
    !!
    !! The run config supplies the &ctl run-control group and any &fe3d physics
    !! overrides; its &fe3d is overlaid on the complete physics defaults in
    !! input/fastearth3d_defaults.nml (loaded automatically — see DEFAULTS_FILE).
-   use fe_drive,   only: fastearth_run
-   use fe_control, only: DEFAULTS_FILE
+   use vilma_drive,   only: vilma_run
+   use vilma_control, only: DEFAULTS_FILE
    implicit none
    character(len=512) :: cfg
 
@@ -17,5 +17,5 @@ program fastearth
       cfg = "fastearth.nml"
    end if
 
-   call fastearth_run(trim(cfg), DEFAULTS_FILE)
-end program fastearth
+   call vilma_run(trim(cfg), DEFAULTS_FILE)
+end program vilma_main

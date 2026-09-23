@@ -1,7 +1,7 @@
-# fastearth restart / output variables
+# vilma restart / output variables
 
 Variable-io table (yelmo convention) for FastEarth3D netCDF I/O, used by
-`fe_io` for both restart files and diagnostic `write_step` output. Each row gives
+`vilma_io` for both restart files and diagnostic `write_step` output. Each row gives
 the netCDF variable name, its dimensions, units, and a long_name. The time axis
 (unlimited) lets several snapshots live in one file.
 

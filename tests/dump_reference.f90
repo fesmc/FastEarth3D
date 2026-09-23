@@ -10,37 +10,37 @@ program dump_reference
    !!
    !! All values SI (m, s, kg m^-2, Pa) except explicit time axes in years. The
    !! variable documentation lives in <outdir>/README.md.
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, grav_G, sec_per_year, kyr, rho_ice, rho_water, rad2deg
-   use fe_earth_structure, only: earth_model, earth_layer, build_M3L70V01, earth_gravity_at, &
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, grav_G, sec_per_year, kyr, rho_ice, rho_water, rad2deg
+   use vilma_earth_structure, only: earth_model, earth_layer, build_M3L70V01, earth_gravity_at, &
                                  earth_n_layers, RHEOL_ELASTIC, RHEOL_MAXWELL, RHEOL_FLUID
-   use fe_radial_fe,       only: radial_mesh, radial_mesh_build, radial_operator, &
+   use vilma_radial_fe,       only: radial_mesh, radial_mesh_build, radial_operator, &
                                  radial_operator_assemble, radial_operator_solve_vec, &
                                  radial_operator_load_rhs, radial_operator_tidal_rhs, &
                                  radial_operator_destroy, build_dense_operator, uniq_weight, &
                                  shell_Rk, loading_love, tidal_love, idx_u, idx_v, idx_f, ndof_of, &
                                  radial_fe_finalize
-   use fe_viscoelastic,    only: ve_degree, ve_init, ve_step, ve_destroy, NLAM, SCHEME_FE, SCHEME_TRAP
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_lmidx, &
+   use vilma_viscoelastic,    only: ve_degree, ve_init, ve_step, ve_destroy, NLAM, SCHEME_FE, SCHEME_TRAP
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_lmidx, &
                                  sht_grid_synthesis, sht_grid_analysis, sht_grid_sph_synthesis, &
                                  sht_grid_surface_integral, sht_grid_eval_point, &
                                  sht_grid_eval_point_horiz
-   use fe_field,           only: spherical_cap, exp_basin
-   use fe_tensor_sh,       only: tensor_sh, TLAM_SPH, tensor_sh_init, tensor_sh_synth, tensor_sh_analysis, &
+   use vilma_field,           only: spherical_cap, exp_basin
+   use vilma_tensor_sh,       only: tensor_sh, TLAM_SPH, tensor_sh_init, tensor_sh_synth, tensor_sh_analysis, &
                                  tensor_sh_destroy
-   use fe_response,        only: response, response_init_elastic, response_init_ve, &
+   use vilma_response,        only: response, response_init_elastic, response_init_ve, &
                                  response_begin_step, response_apply, response_horizontal, &
                                  response_commit_step, response_set_dt, response_destroy, &
                                  response_enable_lateral_visc
-   use fe_sle,             only: sle_solver, sle_result, sle_solve
-   use fe_rotation,        only: rotation_state, rotation_init, rotation_update, rotation_destroy
-   use fe_params,          only: fe_param_class
-   use fe_coupling,        only: solid_earth, solid_earth_init, solid_earth_update, solid_earth_finalize
-   use fe_io,              only: fe_restart_write, fe_io_set_table
+   use vilma_sle,             only: sle_solver, sle_result, sle_solve
+   use vilma_rotation,        only: rotation_state, rotation_init, rotation_update, rotation_destroy
+   use vilma_params,          only: vilma_param_class
+   use vilma_coupling,        only: solid_earth, solid_earth_init, solid_earth_update, solid_earth_finalize
+   use vilma_io,              only: vilma_restart_write, vilma_io_set_table
    use ncio
    implicit none
 
-   character(len=*), parameter :: FE_ROOT = "./"   ! run from the FastEarth3D root
+   character(len=*), parameter :: VILMA_ROOT = "./"   ! run from the FastEarth3D root
    character(len=*), parameter :: EARTH_NAME = "M3-L70-V01"
    integer,  parameter :: LMAX32 = 32
    real(wp), parameter :: DT100 = 100.0_wp*sec_per_year     ! 100 yr in s
@@ -83,7 +83,7 @@ program dump_reference
    end do
    if (all_items) want = .true.
    call execute_command_line("mkdir -p '"//trim(outdir)//"'")
-   call fe_io_set_table(FE_ROOT//"input/fastearth-variables.md")
+   call vilma_io_set_table(VILMA_ROOT//"input/fastearth-variables.md")
 
    if (want(1))  call dump_sht(trim(outdir)//"/sht.nc")
    if (want(2))  call dump_radial(trim(outdir)//"/radial.nc")
@@ -473,7 +473,7 @@ contains
       ! benchmark normal-mode Love table (giapy mod_M3-L70-V01), degrees 1..64
       allocate(rhe(256), rle(256), rke(256), rhf(256), rlf(256), rkf(256))
       rhe = 0;  rle = 0;  rke = 0;  rhf = 0;  rlf = 0;  rkf = 0
-      call read_love_ref(FE_ROOT//"data/benchmarks/love_M3-L70-V01/mod_M3-L70-V01", &
+      call read_love_ref(VILMA_ROOT//"data/benchmarks/love_M3-L70-V01/mod_M3-L70-V01", &
                          rhe, rle, rke, rhf, rlf, rkf, okread)
       if (okread) then
          call nc_write(f, "h_el_ref", rhe(1:JMAX), dim1="degree", units="1", long_name="benchmark table elastic h (TABOO/ALMA normal modes)")
@@ -820,9 +820,9 @@ contains
       logical  :: okr
 
       write(*,'(a)') ' [disc] Spada 2011 disc: elastic profile (NMAX=256) + VE profiles (NMAX=128, dt=20 yr)'
-      call read_mat(FE_ROOT//'data/benchmarks/disc_spada2011/u_disc.txt', uref, okr)
+      call read_mat(VILMA_ROOT//'data/benchmarks/disc_spada2011/u_disc.txt', uref, okr)
       if (.not. okr) error stop 'dump_disc: cannot read u_disc.txt'
-      call read_mat(FE_ROOT//'data/benchmarks/disc_spada2011/n_disc.txt', nref, okr)
+      call read_mat(VILMA_ROOT//'data/benchmarks/disc_spada2011/n_disc.txt', nref, okr)
       if (.not. okr) error stop 'dump_disc: cannot read n_disc.txt'
 
       em = build_M3L70V01();  g = earth_gravity_at(em, em%r_earth)
@@ -1022,7 +1022,7 @@ contains
       integer,  parameter :: NINT = 5
       real(wp), parameter :: DT_YR = 100.0_wp
       type(sht_grid), target :: g
-      type(fe_param_class)   :: p
+      type(vilma_param_class)   :: p
       type(solid_earth)      :: se
       real(wp), allocatable  :: z_bed_eq(:,:), h_ice_eq(:,:), h_ice(:,:)
       real(wp), allocatable  :: rsl(:,:,:), zb(:,:,:), Cs(:,:,:), bsl(:), tyr(:), wm(:)
@@ -1049,7 +1049,7 @@ contains
       allocate(tyr(NINT), bsl(NINT), wm(NINT))
       do is = 1, NINT;  tyr(is) = real(is, wp)*DT_YR;  end do
       call nc_write_dim(f, "time", x=tyr, units="years", long_name="model time after each solid_earth_update interval")
-      call nc_write_attr(f, "params", "fe_param_class defaults except lmax=32 nlat=64 nphi=128 rotation=.false. scheme=fe|trap; earth_response=ve; sle defaults; cfl=1; rtol=1e-4")
+      call nc_write_attr(f, "params", "vilma_param_class defaults except lmax=32 nlat=64 nphi=128 rotation=.false. scheme=fe|trap; earth_response=ve; sle defaults; cfl=1; rtol=1e-4")
       call nc_write_attr(f, "fields", "z_bed_eq: +500 m colat<50 deg else -4000 m; h_ice_eq=0; h_ice: 2000 m colat<30 deg held (test_coupling)")
       call nc_write(f, "z_bed_eq", z_bed_eq, dim1="lon", dim2="colat", units="m", long_name="reference (relaxed) bedrock")
       call nc_write(f, "h_ice_eq", h_ice_eq, dim1="lon", dim2="colat", units="m", long_name="reference grounded ice")
@@ -1078,7 +1078,7 @@ contains
          call nc_write(f, "worst_mass_resid_"//trim(sn(isch)), wm, dim1="time", units="1", &
               long_name="worst SLE mass residual over the interval")
          if (isch == 1) then
-            call fe_restart_write(se, se%time, filename="coupling_restart.nc", folder=outdir, init=.true.)
+            call vilma_restart_write(se, se%time, filename="coupling_restart.nc", folder=outdir, init=.true.)
          end if
          call solid_earth_finalize(se)
       end do
@@ -1103,7 +1103,7 @@ contains
       integer  :: n, istep, i, iq, u, ios
 
       write(*,'(a)') ' [martinec] Martinec 2018 case A: cap load, 10 kyr (NMAX=128, dt=20 yr)'
-      open(newunit=u, file=FE_ROOT//'data/benchmarks/sle_martinec2018/A_fig10_SBK.dat', status='old', action='read', iostat=ios)
+      open(newunit=u, file=VILMA_ROOT//'data/benchmarks/sle_martinec2018/A_fig10_SBK.dat', status='old', action='read', iostat=ios)
       if (ios /= 0) error stop 'dump_martinec: cannot read A_fig10_SBK.dat'
       read(u,*)
       do i = 1, NROW
@@ -1413,7 +1413,7 @@ contains
       character(256) :: line
       real(wp) :: v(7)
       integer  :: u, ios, n
-      open(newunit=u, file=FE_ROOT//'data/benchmarks/sle_martinec2018/'//cname//'_'//fname// &
+      open(newunit=u, file=VILMA_ROOT//'data/benchmarks/sle_martinec2018/'//cname//'_'//fname// &
            '_SBK.dat', status='old', action='read', iostat=ios)
       if (ios /= 0) error stop 'dump_martinec_sle: cannot read SBK profile'
       n = 0

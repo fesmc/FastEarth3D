@@ -1,13 +1,13 @@
-module fe_field
+module vilma_field
    !! Analytic field generators on the Gauss-Legendre grid: spherical ice caps and
    !! exponential basins, plus the angular-distance helper. Shared by the
-   !! Martinec-2018 SLE benchmark driver and (later) fe_coupling, which both need
+   !! Martinec-2018 SLE benchmark driver and (later) vilma_coupling, which both need
    !! to place idealized loads/topography on the model grid.
    !!
    !! All fields are returned in the model's spatial layout (nphi, nlat), indexed
    !! by the grid's cached longitudes sht%lon and colatitudes sht%colat [rad].
-   use fe_precision, only: wp
-   use fe_sht,       only: sht_grid
+   use vilma_precision, only: wp
+   use vilma_sht,       only: sht_grid
    implicit none
    private
 
@@ -69,4 +69,4 @@ contains
       end do
    end subroutine exp_basin
 
-end module fe_field
+end module vilma_field

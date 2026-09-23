@@ -88,7 +88,7 @@ this file and their upstream provenance is not recorded here — it should be
 filled in by whoever staged them.
 
 `bagge2021.nc` stores latitude NORTH-first (descending). That is legitimate —
-`fe_read_visc_3d` normalises either orientation to ascending on read — but note
+`vilma_read_visc_3d` normalises either orientation to ascending on read — but note
 it when comparing against a backend that reads the file itself.
 
 `pan2022.nc` has been edited since staging: longitude index 360 duplicated

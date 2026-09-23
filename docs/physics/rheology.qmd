@@ -108,9 +108,9 @@ $\Delta t \approx 2.5$ yr; the benchmark cases here use 20 yr). Elastic layers
 either.
 
 ::: {.callout-tip title="Where this lives in the code"}
-`fe_viscoelastic` holds both the 1D per-degree stepper (`ve_degree`) and the
+`vilma_viscoelastic` holds both the 1D per-degree stepper (`ve_degree`) and the
 shared per-element kernel. The memory state is the only prognostic field carried
-across a restart (`fe_io`). Time integration is validated by `test_relax`
+across a restart (`vilma_io`). Time integration is validated by `test_relax`
 (a held load relaxes elastic $\to$ fluid, $t_{\text{relax}}\propto\eta$,
 step-converged) and is benchmarked in
 [Sea-level equation](../benchmarks/sea-level.qmd).

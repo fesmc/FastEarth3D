@@ -1,7 +1,7 @@
 program test_tidal
    !! Rung-5a validation: the TIDAL forcing path (response to an EXTERNAL degree-j
-   !! potential, fe_radial_fe%tidal_rhs / tidal_love) — the mechanism the rotational
-   !! feedback (centrifugal potential, fe_rotation) drives the solid Earth with.
+   !! potential, vilma_radial_fe%tidal_rhs / tidal_love) — the mechanism the rotational
+   !! feedback (centrifugal potential, vilma_rotation) drives the solid Earth with.
    !!
    !! Pinned by the homogeneous incompressible self-gravitating sphere, which has
    !! closed-form tidal Love numbers (Munk & MacDonald 1960; Kelvin):
@@ -13,10 +13,10 @@ program test_tidal
    !! and the elastic benchmark model M3-L70-V01 tidal Love numbers are printed
    !! (the secular k^T_f = k_s of the Liouville rotational-feedback term, Spada
    !! et al. 2011 eq 11, comes from the fluid limit of this same path).
-   use fe_precision,       only: wp
-   use fe_earth_structure, only: earth_gravity_at, earth_model, earth_layer, build_M3L70V01, &
+   use vilma_precision,       only: wp
+   use vilma_earth_structure, only: earth_gravity_at, earth_model, earth_layer, build_M3L70V01, &
                                  RHEOL_ELASTIC
-   use fe_radial_fe,       only: radial_operator_tidal_rhs, radial_operator_destroy, radial_operator_solve_vec, radial_operator_assemble, radial_mesh_build, radial_mesh, radial_operator, tidal_love, &
+   use vilma_radial_fe,       only: radial_operator_tidal_rhs, radial_operator_destroy, radial_operator_solve_vec, radial_operator_assemble, radial_mesh_build, radial_mesh, radial_operator, tidal_love, &
                                  radial_fe_finalize, idx_u, idx_v, idx_f
    implicit none
 

@@ -99,7 +99,7 @@ COMMON=(
 
 # the single canonical reference; remapped to each run's resolution online (cached).
 REF=${REF:-data/reference/rtopo_gauss_l128.nc}
-[ -f "$REF" ] || { echo "ERROR: reference file not found: $REF (make fastearth_mkref)" >&2; exit 1; }
+[ -f "$REF" ] || { echo "ERROR: reference file not found: $REF (make vilma_mkref)" >&2; exit 1; }
 
 # launch <outdir> <lmax> <extra -p args...> — one VE run at the given resolution.
 launch() {

@@ -48,7 +48,7 @@ per_step  ≈  begin_step  +  SLE_fixed_point
 SLE_fixed_point  ≈  n_outer × n_inner × (~3 SHTs per inner iteration)
 ```
 
-- `begin_step` (`fe_response`) does ~2 real banded solves per active `(l,m)`; the
+- `begin_step` (`vilma_response`) does ~2 real banded solves per active `(l,m)`; the
   band LU + OpenMP-over-degree work already made this cheap (~58 ms at lmax 128).
 - The **SLE fixed point's spherical-harmonic transforms dominate the *serial*
   fraction.** SHTns is linked serial and the per-step SLE cost is roughly linear in
@@ -95,7 +95,7 @@ Ranked by return on effort for transient runs. ✅ = implemented now; ⏭ = defe
 | 2 | **Warm-start the SLE fixed point** from the previous step's `rsl` | **~1.5% on E2**; up to ~2× only on strongly-migrating coastlines (unverified) | low | ✅ |
 | 3 | ~~**ETD0** exponential memory update → larger `dt`~~ | **rejected — fails benchmarks** | — | ✗ |
 | 3b | ~~**ETD1** (linear-strain φ-weights) → larger `dt`~~ | **rejected — the memory *rule*, not the strain coupling, sets the order** | — | ✗ |
-| 3c | **Trapezoidal memory rule solved by coupling iteration** → 2nd-order, with an adaptive-`dt` controller (1-D + field driver 3a + step-doubling + SLE-coupled 3b + `fe_timestep` controller — all DONE) | **order 1→2; ~1300× accuracy (1-D) / ~270× (SLE, fast load) at fixed `dt`; adaptive: ~1.6× wall on dynamic-range loads (no gain on smooth loads)** | med | ✅ |
+| 3c | **Trapezoidal memory rule solved by coupling iteration** → 2nd-order, with an adaptive-`dt` controller (1-D + field driver 3a + step-doubling + SLE-coupled 3b + `vilma_timestep` controller — all DONE) | **order 1→2; ~1300× accuracy (1-D) / ~270× (SLE, fast load) at fixed `dt`; adaptive: ~1.6× wall on dynamic-range loads (no gain on smooth loads)** | med | ✅ |
 | 4 | **OpenMP SHTns as the default** (offline *and* coupled) | several× at lmax ≥ 256 | low | ⏭ |
 | 5 | **Fuse the two syntheses** to one synthesis of `N_lm − u_lm` | ~33% of inner-loop SHTs | low | ⏭ |
 | 6 | **Batched multi-RHS band solve** over all `m`/re-im at fixed `l`; kill the dense degree-1 LU via nullspace projection | high at production lmax | med | ⏭ |
@@ -135,7 +135,7 @@ DFLAGS_NODEBUG = -O3 -mcpu=native -funroll-loops -ffast-math
 SLE mass residuals unchanged at ~1e-16 under `-ffast-math`. E2 wall time
 58.8 s → 45.6 s = **1.29× (1.36× CPU)** — real, but the low end of the estimate.
 
-### 2. Warm-start the SLE fixed point — `fe_sle.f90`, `fe_coupling.f90`
+### 2. Warm-start the SLE fixed point — `vilma_sle.f90`, `vilma_coupling.f90`
 
 `sle_solve` previously did `rsl = 0.0` at the top of *every* call, discarding the
 previous step's converged solution. For a transient run the coastline and RSL
@@ -165,13 +165,13 @@ outer coastline passes + `begin_step` dominate). **The "~2×" upside is therefor
 *unverified*** and will only appear on a strongly-migrating *real* coastline
 (ICE-6G-style), which no benchmark exercises — consistent with caveat #1 below.
 Warm-start is kept on regardless: free, correct, and the right default for real
-domains. `FE_SLE_WARM=0` forces cold start for the A/B.
+domains. `VILMA_SLE_WARM=0` forces cold start for the A/B.
 
 ## Deferred — roadmap (next sessions)
 
 **3. ETD0 — REJECTED (reproduced failure, this session).** ETD0 is the exact
 held-strain exponential update: a one-line substitution in `advance_memory`
-(`fe_viscoelastic.f90:216-235`), `(1−M) → exp(−M)` and `2μM → 2μ(1−exp(−M))`. It is
+(`vilma_viscoelastic.f90:216-235`), `(1−M) → exp(−M)` and `2μM → 2μ(1−exp(−M))`. It is
 unconditionally stable and was proposed here as the highest-value `dt` lever.
 **It does not work.** Applied to the current code, it worsens benchmark agreement
 and fails a test:
@@ -287,7 +287,7 @@ re-converges the water load against the current τ_{n+1} estimate and calls
 τ_{n+1}** so the next σ-convergence (and coastline migration) sees the advanced memory
 — until the surface drift settles; `finalize_step` advances time. `commit_step` and
 3a's frozen endpoint are kept intact (and DRY-shared via `trapezoid_advance_all` /
-`fe_advance`) for the held-load path that `test_ve_response` pins. FE / elastic / null
+`vilma_advance`) for the held-load path that `test_ve_response` pins. FE / elastic / null
 report converged after one pass, so the loop is inert for them and the FE default is
 byte-identical (`make check` 21/21).
 
@@ -301,7 +301,7 @@ ramp through the full SLE under fixed ocean to isolate the integrator): a single
 combined pass is **order 0.98**, co-convergence is **order 2.08** and ~270× more
 accurate at the finest `dt` — the trapezoidal 2nd order carried through the driver.
 
-**Adaptive-`dt` controller — DONE (`fe_timestep`).** The accept/reject + step-size
+**Adaptive-`dt` controller — DONE (`vilma_timestep`).** The accept/reject + step-size
 loop on top of the step-doubling estimate, isolated in its own module (room for more
 than one stepping strategy). `adaptive_stepper%advance(t0,t1)` crosses a coupling
 interval with the ice load **linearly interpolated** between its endpoints, choosing
@@ -355,7 +355,7 @@ trapezoidal result.
 CLIMBER-X. **Decision (this review): make the OpenMP SHTns variant the default for
 both the standalone/offline driver and the coupled build.** The transforms are the
 serial bottleneck and the per-SHT cost is O(lmax³), so threading them is the clean
-lever that moves lmax 256 into comfortable range. The `fe_sht` wrapper needs no
+lever that moves lmax 256 into comfortable range. The `vilma_sht` wrapper needs no
 source change — only the build wiring (link the `shtns-omp` variant; it must be
 built in `fesm-utils`). The model's own degree-loop OpenMP and the SHT calls run in
 *different phases* of the step (never nested concurrently), so they can share one
@@ -366,16 +366,16 @@ hence deferred to a build/dependency pass.)
 synthesize the combined spectrum `N_lm − u_lm` once instead of `u` and `N`
 separately, cutting inner-loop SHTs from 3 to 2 (~33%). Synthesize `u`/`N`
 individually only on the converged iterate, for diagnostics. Pure reordering.
-(`fe_sle.f90:177-178`.)
+(`vilma_sle.f90:177-178`.)
 
 **6. Batched multi-RHS band solve + degree-1 nullspace projection.** `begin_step`
 calls the band solver one RHS at a time, twice per coefficient (re/im), but for a
 fixed degree `l` the factored LU is identical across all `m` and both re/im.
-Batching them into one multi-RHS triangular solve (`fe_band.f90:114`) turns
+Batching them into one multi-RHS triangular solve (`vilma_band.f90:114`) turns
 memory-bound work into cache-friendly BLAS-3-style reuse — biggest at lmax ≥ 256.
 Separately, degree 1's dense KKT border makes its solve O(nr³) and serializes one
 thread; replace with a Sherman–Morrison / nullspace projection on the narrow band
-(`fe_radial_fe.f90`, bordered path). Validate against the degree-1 benchmark.
+(`vilma_radial_fe.f90`, bordered path). Validate against the degree-1 benchmark.
 
 **7. Multi-rate cadence.** The viscous memory evolves on millennial timescales; the
 expensive migrating-coastline SLE need not be re-converged at the same fine cadence
@@ -395,7 +395,7 @@ warm-starting (#2).
 - **Restart I/O.** The coupling `update` does no per-step I/O (good). But a full
   snapshot writes the entire `tau_*` memory state (multi-GB at high resolution).
   Enforce that heavy `tau_*` restart writes happen only at checkpoints; per-step
-  diagnostics should use the small lon×lat field subset (`fe_io` already supports a
+  diagnostics should use the small lon×lat field subset (`vilma_io` already supports a
   variable subset via its `nms` argument).
 
 ## Validation status of this change set
@@ -432,7 +432,7 @@ All validated on Mac.fritz.box (gfortran 15.2, `OMP_NUM_THREADS=8`):
   varying load needs. `test_sle_couple_order` (fast ice ramp, fixed ocean): a single
   combined pass is order 0.98, co-convergence is order 2.08 and ~270× more accurate at
   the finest `dt` — trapezoidal 2nd order carried through the full driver.
-- **Adaptive-`dt` controller (§3c):** `fe_timestep%adaptive_stepper` — step-doubling
+- **Adaptive-`dt` controller (§3c):** `vilma_timestep%adaptive_stepper` — step-doubling
   accept/reject + step selection with linear load interpolation; `ve_response`
   save/restore/set_dt + `prime_sigma` primitives, `sle_solve` `report_only`/`sigma_lm`
   (`make check` 21/21 byte-identical, FE default untouched). `test_timestep`: estimate

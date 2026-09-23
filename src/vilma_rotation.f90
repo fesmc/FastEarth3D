@@ -1,4 +1,4 @@
-module fe_rotation
+module vilma_rotation
    !! Rotational feedback / true polar wander (Spada et al. 2011 §2.1.1; the
    !! time-domain rotational theory of Martinec & Hagedoorn 2014, as in VILMA-v1).
    !!
@@ -20,7 +20,7 @@ module fe_rotation
    !! Method (composes with the time-domain Maxwell machinery, no normal modes,
    !! no convolution quadrature). Two compact degree-2 viscoelastic channels carry
    !! the convolutions as Maxwell memory (reusing the per-element kernel of
-   !! fe_viscoelastic):
+   !! vilma_viscoelastic):
    !!   - a LOADING channel: forced by the rigid inertia I_rigid, returns
    !!     I(t) = [1+k^L]∗I_rigid  ⇒  Ψ_L = I/(C−A);
    !!   - a TIDAL channel: forced by the centrifugal potential ∝ m, returns the
@@ -39,14 +39,14 @@ module fe_rotation
    !! 3-D ready: I_rigid is a direct Gauss-grid quadrature of the actual load
    !! (any field), so no axisymmetric assumption enters; only the (1+k^L)/k^T
    !! channels use the 1-D radial relaxation (laterally-varying η is rung 6).
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, grav_G
-   use fe_earth_structure, only: earth_n_layers, earth_gravity_at, earth_model, RHEOL_FLUID
-   use fe_radial_fe,       only: radial_operator_load_rhs, radial_operator_tidal_rhs, radial_operator_destroy, radial_operator_solve_vec, radial_operator_assemble, radial_mesh_build, radial_mesh, radial_operator, tidal_love, &
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, grav_G
+   use vilma_earth_structure, only: earth_n_layers, earth_gravity_at, earth_model, RHEOL_FLUID
+   use vilma_radial_fe,       only: radial_operator_load_rhs, radial_operator_tidal_rhs, radial_operator_destroy, radial_operator_solve_vec, radial_operator_assemble, radial_mesh_build, radial_mesh, radial_operator, tidal_love, &
                                  idx_u, idx_v, idx_f, ndof_of
-   use fe_viscoelastic,    only: NLAM, ve_strain_constants, dissipative_rhs, &
+   use vilma_viscoelastic,    only: NLAM, ve_strain_constants, dissipative_rhs, &
                                  advance_memory, SCHEME_FE
-   use fe_sht,             only: sht_grid, sht_grid_surface_integral
+   use vilma_sht,             only: sht_grid, sht_grid_surface_integral
    implicit none
    private
 
@@ -262,7 +262,7 @@ contains
    ! elastic Love numbers, secular constants) is rebuilt deterministically by
    ! rotation_init. The drift fields are intra-step (frozen by begin_step from the
    ! memory each step), so they are not persisted. These accessors keep the channel
-   ! internals private to this module — fe_io moves only opaque packed arrays.
+   ! internals private to this module — vilma_io moves only opaque packed arrays.
 
    pure integer function rotation_ne(self) result(ne)
       !! Maxwell elements per degree-2 channel (both channels share the mesh); 0 if
@@ -348,7 +348,7 @@ contains
       !! rotational secular slope is pathologically sensitive to it (the lithosphere-
       !! thickness paradox, Mitrovica et al. 2005): fluidizing the lithosphere by
       !! mistake inflates k^T_f and badly under-drives the late-time polar motion.
-      use fe_earth_structure, only: RHEOL_MAXWELL
+      use vilma_earth_structure, only: RHEOL_MAXWELL
       type(earth_model), intent(in) :: earth
       type(radial_mesh), intent(in) :: mesh
       type(earth_model)     :: ef
@@ -501,4 +501,4 @@ contains
       self%nr = 0;  self%ne = 0;  self%ndof = 0
    end subroutine channel_destroy
 
-end module fe_rotation
+end module vilma_rotation

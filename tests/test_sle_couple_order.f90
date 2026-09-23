@@ -26,14 +26,14 @@ program test_sle_couple_order
    !!     coupling caps the order, exactly as FE does in test_couple_order;
    !!   * co-converging the coupling (max_mem_iter=MAXIT) restores the trapezoidal
    !!     2nd order through the full SLE driver, for a fast-evolving load.
-   use fe_precision,       only: wp
-   use fe_constants,       only: kyr, pi, grav_G, rho_ice, rho_water, sec_per_year
-   use fe_earth_structure, only: earth_model, earth_layer, RHEOL_MAXWELL
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_response,        only: response_destroy, response, response_init_elastic, response_init_ve, response_init_null
-   use fe_viscoelastic,    only: SCHEME_TRAP
-   use fe_sht,             only: sht_grid_destroy, sht_grid_init, sht_grid
-   use fe_sle,             only: sle_solve, sle_solver, sle_result
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: kyr, pi, grav_G, rho_ice, rho_water, sec_per_year
+   use vilma_earth_structure, only: earth_model, earth_layer, RHEOL_MAXWELL
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_response,        only: response_destroy, response, response_init_elastic, response_init_ve, response_init_null
+   use vilma_viscoelastic,    only: SCHEME_TRAP
+   use vilma_sht,             only: sht_grid_destroy, sht_grid_init, sht_grid
+   use vilma_sle,             only: sle_solve, sle_solver, sle_result
    implicit none
 
    real(wp), parameter :: km = 1.0e3_wp, yr = sec_per_year

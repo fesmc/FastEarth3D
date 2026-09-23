@@ -8,7 +8,7 @@
 #
 #     ln -s ../fesm-utils fesm-utils
 #
-# fe_remap (conservative lon-lat -> Gauss remapping for the standalone driver) uses
+# vilma_remap (conservative lon-lat -> Gauss remapping for the standalone driver) uses
 # the `coords` module, which lives on the fesm-utils `coords-dev` branch. Point the
 # symlink at a checkout on that branch and build its utils library:
 #     (in the fesm-utils checkout)  configme config && make fesmutils-static
@@ -40,7 +40,7 @@ INC_SHTNS = -I$(SHTNSROOT)/include
 LIB_SHTNS = -L$(SHTNSROOT)/lib -lshtns
 
 # --- (LIS removed) -----------------------------------------------------------
-# The per-degree solve is now a dependency-free pivoted banded LU (fe_band); LIS
+# The per-degree solve is now a dependency-free pivoted banded LU (vilma_band); LIS
 # is no longer linked. Keeping INC_LIS / LIB_LIS empty so the flag lists below
 # (and any external references) stay valid.
 INC_LIS =
@@ -53,8 +53,8 @@ LIB_LIS =
 #      and shtns-omp (libshtns_omp.a, i.e. -lshtns_omp).
 #   2. The compiler's OpenMP flag (-fopenmp / FFLAGS_OPENMP) is appended to
 #      FFLAGS by config/Makefile, which also threads the per-degree loop in
-#      fe_response (begin_step / commit_step) over independent per-degree systems,
-#      each solved by the re-entrant banded LU (fe_band).
+#      vilma_response (begin_step / commit_step) over independent per-degree systems,
+#      each solved by the re-entrant banded LU (vilma_band).
 # (There is no LIS variant to reconcile: the iterative solver was removed in
 # favour of the direct banded LU.)
 ifeq ($(openmp),1)
@@ -98,11 +98,11 @@ endif
 
 # --- Final flag sets ---------------------------------------------------------
 # MODFLAGS (-I/-J objdir) and FFLAGS_BASE come from the compiler fragment.
-# INC_SHTNS is what lets `include 'shtns.f03'` in src/fe_sht.f90 be found.
-CPPFLAGS_FE = $(CPPFLAGS_PP) $(CPPFLAGS_VILMA_V1)
-FFLAGS_FE   = $(FFLAGS_BASE) $(MODFLAGS) $(INC_NC) $(INC_FESMUTILS) $(INC_FFTW) $(INC_SHTNS) $(INC_LIS) $(INC_VILMA_V1)
+# INC_SHTNS is what lets `include 'shtns.f03'` in src/vilma_sht.f90 be found.
+CPPFLAGS_VILMA = $(CPPFLAGS_PP) $(CPPFLAGS_VILMA_V1)
+FFLAGS_VILMA   = $(FFLAGS_BASE) $(MODFLAGS) $(INC_NC) $(INC_FESMUTILS) $(INC_FFTW) $(INC_SHTNS) $(INC_LIS) $(INC_VILMA_V1)
 
 # Static archives resolve left-to-right, so a library must precede the libraries
 # it depends on: SHTns before FFTW (SHTns calls FFTW), fesm-utils before netCDF.
 # LIB_VILMA_V1 is empty unless vilma_v1=1; VILMA-v1 calls netCDF, so it precedes LIB_NC.
-LFLAGS_FE   = $(LIB_FESMUTILS) $(LIB_SHTNS) $(LIB_FFTW) $(LIB_LIS) $(LIB_VILMA_V1) $(LIB_NC) $(LFLAGS_EXTRA)
+LFLAGS_VILMA   = $(LIB_FESMUTILS) $(LIB_SHTNS) $(LIB_FFTW) $(LIB_LIS) $(LIB_VILMA_V1) $(LIB_NC) $(LFLAGS_EXTRA)

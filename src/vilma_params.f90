@@ -1,4 +1,4 @@
-module fe_params
+module vilma_params
    !! Physics + numerics configuration record for the solid-Earth model, loaded from
    !! one namelist group `&fe3d` (yelmo convention: a flat parameter type filled by
    !! nml_read, see fesm-utils/utils/src/nml.f90). This is the host API contract:
@@ -11,26 +11,26 @@ module fe_params
    !! solid_earth_update). The standalone driver reads it from a file. Run-management
    !! settings the *executables* need — forcing/reference/output paths, the time
    !! window, online-remap and i_eq selectors, restart-in path — live in the separate
-   !! `&ctl` group (fe_control), which a host never reads.
-   use fe_precision, only: wp
-   use fe_constants, only: sec_per_year
+   !! `&ctl` group (vilma_control), which a host never reads.
+   use vilma_precision, only: wp
+   use vilma_constants, only: sec_per_year
    use nml
    implicit none
    private
 
-   public :: fe_param_class, fe_par_load, fe_par_print, expand_path
+   public :: vilma_param_class, vilma_par_load, vilma_par_print, expand_path
    public :: MAX_LAYER
 
    integer, parameter :: MAX_LAYER = 16   !! cap on custom earth-structure layers
 
-   type :: fe_param_class
+   type :: vilma_param_class
       ! --- solid-earth solver backend --------------------------------------------
       character(len=16) :: solver = "v2"
-         !! which solid-earth solver sits behind the fe_coupling API:
+         !! which solid-earth solver sits behind the vilma_coupling API:
          !!   "v2"    (default) — this model's native Gauss-grid FE/SLE solver.
          !!   "v1"    — the VILMA-v1 library (Martinec/Klemann), driven through the
          !!             SAME driver, namelist, forcing, remap and output. Available
-         !!             ONLY in a build made with `make fastearth vilma_v1=1
+         !!             ONLY in a build made with `make vilma vilma_v1=1
          !!             VILMA_V1_ROOT=<install>`; the default build compiles a stub that
          !!             aborts with an actionable message. See doc/vilma-v1-backend.md.
          !! Everything below in the &fe3d record that describes the FastEarth3D
@@ -41,7 +41,7 @@ module fe_params
          !! Only lmax/nlat/nphi (the Gauss grid the coupling and the output live on)
          !! and l_visc_3d are shared.
 
-      ! --- spectral grid (fe_sht) ------------------------------------------------
+      ! --- spectral grid (vilma_sht) ------------------------------------------------
       integer  :: lmax  = 0       !! maximum spherical-harmonic degree (required)
       integer  :: nlat  = 0       !! Gauss latitudes  (0 => de-aliased default 2*lmax+2)
       integer  :: nphi  = 0       !! longitudes       (0 => de-aliased default 4*lmax)
@@ -49,7 +49,7 @@ module fe_params
       integer  :: mres  = 1       !! order stride
       real(wp) :: eps_polar = -1.0_wp   !! polar-optimization threshold (<0 => library default)
 
-      ! --- earth structure (fe_earth_structure) ---------------------------------
+      ! --- earth structure (vilma_earth_structure) ---------------------------------
       character(len=64) :: earth = "M3-L70-V01"
          !! named built-in model, or "custom" to build from the layer arrays below
       integer  :: n_layer = 0                  !! # custom layers (surface-first)
@@ -62,14 +62,14 @@ module fe_params
       real(wp) :: eta(MAX_LAYER)   = 0.0_wp    !! custom: layer viscosities [Pa s]
       integer  :: rheology(MAX_LAYER) = 1      !! custom: 0=elastic 1=Maxwell 2=fluid
 
-      ! --- viscoelastic memory scheme (fe_response / fe_viscoelastic) ------------
+      ! --- viscoelastic memory scheme (vilma_response / vilma_viscoelastic) ------------
       character(len=8) :: scheme = "fe"        !! fe | etd1 | trap | be
       integer  :: max_couple_iter = 20         !! SLE<->memory co-convergence cap (implicit schemes)
 
-      ! --- response kind selector (fe_response) ----------------------------------
+      ! --- response kind selector (vilma_response) ----------------------------------
       character(len=8)  :: earth_response = "ve"  !! ve | elastic | null
 
-      ! --- sea-level equation (fe_sle) ------------------------------------------
+      ! --- sea-level equation (vilma_sle) ------------------------------------------
       integer  :: sle_n_outer      = 3
       integer  :: sle_n_inner      = 20
       real(wp) :: sle_tol          = 1.0e-7_wp
@@ -77,9 +77,9 @@ module fe_params
       logical  :: sle_fixed_ocean  = .false.
       logical  :: sle_subgrid      = .true.
 
-      ! --- adaptive time stepping (fe_timestep) ----------------------------------
+      ! --- adaptive time stepping (vilma_timestep) ----------------------------------
       ! The Δt fields are SI [s] in the record; the nml supplies them in YEARS and
-      ! fe_par_load converts on read (so the in-memory record is uniformly SI). The
+      ! vilma_par_load converts on read (so the in-memory record is uniformly SI). The
       ! coupling cadence is NOT a parameter: the host (or the standalone driver's
       ! forcing axis) passes each interval to solid_earth_update.
       real(wp) :: dt_init   = 0.0_wp         !! first trial Δt [s] (0 => try the whole interval)
@@ -92,10 +92,10 @@ module fe_params
       real(wp) :: shrink_min = 0.2_wp        !! min Δt shrink per step
       real(wp) :: cfl       = 1.0_wp         !! explicit (fe) sub-step Maxwell-number ceiling M=μΔt/η
 
-      ! --- rotational feedback (fe_rotation) ------------------------------------
+      ! --- rotational feedback (vilma_rotation) ------------------------------------
       logical  :: rotation = .true.          !! TPW feedback (on for real runs; off for non-rotating benchmarks)
 
-      ! --- LGM-memory spin-up (fe_coupling solid_earth_spinup) -------------------
+      ! --- LGM-memory spin-up (vilma_coupling solid_earth_spinup) -------------------
       ! A model capability the host opts into. Relax under the start-slice ice while
       ! HOLDING the reference (z_bed_eq, h_ice_eq) as the datum, so the transient
       ! enters with viscous memory. The standalone driver triggers it; a host
@@ -116,7 +116,7 @@ module fe_params
          !! geometric mean of the 3-D field), then switch to the full model carrying the
          !! spun-up memory. Independent of equil_time_max.
 
-      ! --- 3D viscosity field + uncertainty sampling (fe_earth_structure) --------
+      ! --- 3D viscosity field + uncertainty sampling (vilma_earth_structure) --------
       ! Mirrors the CLIMBER-X VILMA-v1 scheme (src/geo/vilma.F90) but with a RELATIVE
       ! 1-sigma instead of a constant floor: perturb log10(eta) by f_visc_sd*sigma,
       ! sigma read from the file if name_visc_sd is set, else f_visc_rel*log10(eta).
@@ -197,18 +197,18 @@ module fe_params
       character(len=128) :: vilma_v1_visc_3d_file = "visc3d_Bagge2021.nc"
          !! 3-D viscosity NetCDF, relative to vilma_v1_input_dir (io_nc3in). Read only
          !! when l_visc_3d = .true. (which sets VILMA-v1's vg%l_mod=1).
-   end type fe_param_class
+   end type vilma_param_class
 
 contains
 
-   subroutine fe_par_load(p, filename, defaults_file, group)
+   subroutine vilma_par_load(p, filename, defaults_file, group)
       !! Fill the whole parameter record from the `&fe3d` group of `filename`,
       !! overlaid on a complete `defaults_file` (yelmo convention): every parameter
       !! must exist in the defaults file, but the user `filename` may set only the
       !! subset it wants to override. If `defaults_file` is omitted, `filename` IS
       !! its own defaults — so it must then be complete. Override `group` to read a
       !! differently-named namelist.
-      type(fe_param_class), intent(inout) :: p
+      type(vilma_param_class), intent(inout) :: p
       character(len=*),     intent(in)    :: filename
       character(len=*),     intent(in), optional :: defaults_file
       character(len=*),     intent(in), optional :: group
@@ -219,7 +219,7 @@ contains
 
       g  = "fe3d";      if (present(group))         g  = group
       df = filename;    if (present(defaults_file)) df = defaults_file
-      call nml_set_verbose(.false.)             ! fe_par_print echoes a concise summary instead
+      call nml_set_verbose(.false.)             ! vilma_par_print echoes a concise summary instead
 
       ! solver backend ("v2" | "v1"); validated in solid_earth_init
       call nml_read(filename, g, "solver",    p%solver,    defaults_file=df)
@@ -290,7 +290,7 @@ contains
       ! 3D viscosity + uncertainty
       call nml_read(filename, g, "deg1_frame",     p%deg1_frame,     defaults_file=df)
       if (trim(p%deg1_frame) /= "cf" .and. trim(p%deg1_frame) /= "cm") &
-         error stop 'fe_params: deg1_frame must be "cf" or "cm"'
+         error stop 'vilma_params: deg1_frame must be "cf" or "cm"'
       call nml_read(filename, g, "l_visc_3d",      p%l_visc_3d,      defaults_file=df)
       call nml_read(filename, g, "visc_3d_file",   p%visc_3d_file,   defaults_file=df)
       p%visc_3d_file = expand_path(p%visc_3d_file)
@@ -318,10 +318,10 @@ contains
       call nml_read(filename, g, "vilma_v1_visc_3d_file", p%vilma_v1_visc_3d_file, defaults_file=df)
       call nml_read(filename, g, "vilma_v1_l_prem",       p%vilma_v1_l_prem,       defaults_file=df)
       if (p%vilma_v1_l_prem /= 0 .and. p%vilma_v1_l_prem /= 1) &
-         error stop 'fe_params: vilma_v1_l_prem must be 0 or 1'
+         error stop 'vilma_params: vilma_v1_l_prem must be 0 or 1'
       call nml_read(filename, g, "vilma_v1_nsub",         p%vilma_v1_nsub,         defaults_file=df)
-      if (p%vilma_v1_nsub < 1) error stop 'fe_params: vilma_v1_nsub must be >= 1'
-   end subroutine fe_par_load
+      if (p%vilma_v1_nsub < 1) error stop 'vilma_params: vilma_v1_nsub must be >= 1'
+   end subroutine vilma_par_load
 
    function expand_path(path) result(out)
       !! Expand a leading `~/` or `$HOME/` in a file path using the HOME
@@ -351,9 +351,9 @@ contains
       out = trim(home)//path(n+1:len_trim(path))
    end function expand_path
 
-   subroutine fe_par_print(p, unit)
+   subroutine vilma_par_print(p, unit)
       !! Echo the active configuration (to stdout, or `unit` if given).
-      type(fe_param_class), intent(in) :: p
+      type(vilma_param_class), intent(in) :: p
       integer, intent(in), optional :: unit
       integer :: u, k
       u = 6;  if (present(unit)) u = unit
@@ -400,6 +400,6 @@ contains
             write(u,'(a,a)') '             visc (1d) = ', trim(p%vilma_v1_visc_1d_file)
          end if
       end if
-   end subroutine fe_par_print
+   end subroutine vilma_par_print
 
-end module fe_params
+end module vilma_params

@@ -30,18 +30,18 @@ program diag_visc3d_paths
    !! max over the four lambda channels, unweighted by the Martinec norms
    !! nrmc = [1, Jr/2, 2Jr^2, 2Jr(Jr-2)] that dissipative_rhs actually applies. Pass
    !! 0 to disable skipping entirely.
-   use fe_precision,       only: wp
-   use fe_constants,       only: kyr
-   use fe_params,          only: fe_param_class
-   use fe_earth_structure, only: earth_model, build_earth, load_visc_3d
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_response,        only: response, response_init_ve, response_destroy, &
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: kyr
+   use vilma_params,          only: vilma_param_class
+   use vilma_earth_structure, only: earth_model, build_earth, load_visc_3d
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_response,        only: response, response_init_ve, response_destroy, &
                                  response_enable_lateral_visc_from_nodes, &
                                  response_begin_step, response_apply, response_commit_step
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_destroy
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_destroy
    implicit none
 
-   type(fe_param_class) :: p
+   type(vilma_param_class) :: p
    type(sht_grid)       :: sht
    type(earth_model)    :: em
    type(response)       :: v1, v3
@@ -81,7 +81,7 @@ program diag_visc3d_paths
    em = build_earth(p)
    dt = 0.05_wp*kyr                              ! 50 yr, the production sub-step
    ! deg1_cm must be set BEFORE init: the elastic and viscoelastic gains are computed
-   ! there and the frame is part of them (fe_coupling does the same).
+   ! there and the frame is part of them (vilma_coupling does the same).
    v1%deg1_cm = (trim(frame) == 'cm');  v3%deg1_cm = v1%deg1_cm
    call response_init_ve(v1, em, sht, dt)
    call response_init_ve(v3, em, sht, dt)

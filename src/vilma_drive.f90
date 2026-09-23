@@ -1,6 +1,6 @@
-module fe_drive
-   !! Standalone forced-run driver. Given a &fe3d physics configuration (fe_params)
-   !! and a &ctl run-control configuration (fe_control), build the transform grid and
+module vilma_drive
+   !! Standalone forced-run driver. Given a &fe3d physics configuration (vilma_params)
+   !! and a &ctl run-control configuration (vilma_control), build the transform grid and
    !! the solid-Earth model, read an ice-thickness forcing time series (and a bedrock
    !! reference) from netCDF, optionally remap it onto the Gauss grid on the fly, set
    !! up the reference / equilibration state, and march the model across the forcing,
@@ -12,9 +12,9 @@ module fe_drive
    !! experiments can mix and match. Two input modes:
    !!   remap_input=.true.  (default): the forcing is on a regular lon-lat grid and is
    !!                       conservatively remapped onto the model Gauss grid per slice
-   !!                       (fe_remap); raw datasets stay on disk, no preprocessing.
+   !!                       (vilma_remap); raw datasets stay on disk, no preprocessing.
    !!   remap_input=.false.: the forcing is already on the Gauss grid (host remapped,
-   !!                       or produced by the offline fastearth_remap tool).
+   !!                       or produced by the offline vilma_remap tool).
    !!
    !! Reference state (i_eq), mirroring CLIMBER-X i_equilibrium. RSL is measured
    !! against the relaxed reference z_bed_eq, so i_eq=1 yields rsl ~0 at present day.
@@ -26,24 +26,24 @@ module fe_drive
    !! Optional (non-default) LGM-memory spin-up when pre_spinup_1d or equil_time_max>0:
    !! relax under the start-slice ice while HOLDING the i_eq reference as the datum, so
    !! the model enters the transient spun up (viscous memory) — see solid_earth_spinup.
-   use fe_precision, only: wp
-   use fe_constants, only: sec_per_year
-   use fe_params,    only: fe_param_class, fe_par_load, fe_par_print
-   use fe_control,   only: fe_ctl_class, fe_ctl_load, fe_ctl_print
-   use fe_sht,       only: sht_grid, sht_grid_destroy, sht_grid_init
-   use fe_coupling,  only: solid_earth_finalize, solid_earth_update, solid_earth_init, solid_earth, &
-                           solid_earth_spinup, solid_earth_check_solver, FE_UNSET
-   use fe_remap,     only: remap_ll_gauss, remap_init, remap_to_gauss
-   use fe_io,        only: fe_write_step, fe_restart_write, fe_restart_read, fe_write_horizontal
+   use vilma_precision, only: wp
+   use vilma_constants, only: sec_per_year
+   use vilma_params,    only: vilma_param_class, vilma_par_load, vilma_par_print
+   use vilma_control,   only: vilma_ctl_class, vilma_ctl_load, vilma_ctl_print
+   use vilma_sht,       only: sht_grid, sht_grid_destroy, sht_grid_init
+   use vilma_coupling,  only: solid_earth_finalize, solid_earth_update, solid_earth_init, solid_earth, &
+                           solid_earth_spinup, solid_earth_check_solver, VILMA_UNSET
+   use vilma_remap,     only: remap_ll_gauss, remap_init, remap_to_gauss
+   use vilma_io,        only: vilma_write_step, vilma_restart_write, vilma_restart_read, vilma_write_horizontal
    use ncio,         only: nc_read, nc_size, nc_exists_var
    use iso_fortran_env, only: error_unit
    implicit none
    private
 
-   public :: fastearth_run
+   public :: vilma_run
 
    ! diagnostic surface fields written each output step (the prognostic memory is
-   ! written separately via fe_restart_write when a restart is wanted)
+   ! written separately via vilma_restart_write when a restart is wanted)
    character(len=8), parameter :: OUT_VARS(5) = &
         [character(len=8) :: "h_ice", "rsl", "z_bed", "C_ocean", "bsl"]
    ! ... plus the polar motion when the rotation solver is active. Appended at
@@ -56,17 +56,17 @@ module fe_drive
 
 contains
 
-   subroutine fastearth_run(cfg_file, defaults_file)
+   subroutine vilma_run(cfg_file, defaults_file)
       !! Run a forced simulation defined by cfg_file. Its &fe3d (physics) group is
       !! overlaid on the complete physics defaults in defaults_file (the program
-      !! passes fe_control's DEFAULTS_FILE = input/fastearth3d_defaults.nml); its &ctl
-      !! (run control) group is read from cfg_file alone, with the fe_ctl_class in-code
+      !! passes vilma_control's DEFAULTS_FILE = input/fastearth3d_defaults.nml); its &ctl
+      !! (run control) group is read from cfg_file alone, with the vilma_ctl_class in-code
       !! defaults filling any gaps.
       character(len=*), intent(in) :: cfg_file
       character(len=*), intent(in) :: defaults_file
 
-      type(fe_param_class)   :: p
-      type(fe_ctl_class)     :: c
+      type(vilma_param_class)   :: p
+      type(vilma_ctl_class)     :: c
       type(sht_grid), target :: sht
       type(solid_earth)      :: se
       type(remap_ll_gauss)     :: rmap
@@ -86,10 +86,10 @@ contains
       ! --- configuration --------------------------------------------------------
       ! &fe3d: cfg_file overlaid on the physics defaults. &ctl: from cfg_file alone
       ! (the defaults file carries no &ctl group — it is the host API contract).
-      call fe_par_load(p, cfg_file, defaults_file=defaults_file)
-      call fe_ctl_load(c, cfg_file)
-      call fe_par_print(p)
-      call fe_ctl_print(c)
+      call vilma_par_load(p, cfg_file, defaults_file=defaults_file)
+      call vilma_ctl_load(c, cfg_file)
+      call vilma_par_print(p)
+      call vilma_ctl_print(c)
 
       ! Solver backend check, before any work: an unknown &fe3d solver, or
       ! solver="v1" in a binary built without the optional VILMA-v1 backend (the
@@ -124,8 +124,8 @@ contains
       nt = nc_size(c%file_forcing, trim(c%name_time))
       allocate(tyr(nt));  call nc_read(c%file_forcing, trim(c%name_time), tyr)
       call select_window(tyr*sec_per_year, c%time_init, c%time_end, k0, k1)
-      if (k1 <= k0) error stop 'fastearth_run: forcing window contains < 2 time slices'
-      write(*,'(a,i0,a,f0.1,a,f0.1,a)') ' fastearth: ', k1-k0+1, ' slices, t = ', &
+      if (k1 <= k0) error stop 'vilma_run: forcing window contains < 2 time slices'
+      write(*,'(a,i0,a,f0.1,a,f0.1,a)') ' vilma: ', k1-k0+1, ' slices, t = ', &
            tyr(k0), ' -> ', tyr(k1), ' yr'
 
       ! --- start-slice ice + reference state (z_bed_eq, h_ice_eq) per i_eq ------
@@ -143,15 +143,15 @@ contains
          ! prognostic memory, which has no VILMA-v1 counterpart. VILMA-v1 restarts through
          ! its own files (r_restart / w_restart), which this driver does not wire up.
          if (se%use_vilma_v1) &
-            error stop 'fastearth_run: restart_in_file is not supported with solver="v1" (see doc/vilma-v1-backend.md)'
-         call fe_restart_read(se, trim(c%restart_in_file))
+            error stop 'vilma_run: restart_in_file is not supported with solver="v1" (see doc/vilma-v1-backend.md)'
+         call vilma_restart_read(se, trim(c%restart_in_file))
       end if
       if (p%pre_spinup_1d .or. p%equil_time_max > 0.0_wp) then
          ! LGM-memory spin-up: relax under the start-slice ice while HOLDING the
          ! reference (z_bed_eq, h_ice_eq) as the datum, so the transient measures
          ! rsl/bsl against the reference (-> 0 as ice -> h_ice_eq).
          call solid_earth_spinup(se, ice_lgm)
-         call fe_restart_write(se, se%time, folder=trim(rundir)//"/spinup")
+         call vilma_restart_write(se, se%time, folder=trim(rundir)//"/spinup")
       else
          ! seed the entering (LGM) ice and re-solve the diagnostics (also fills
          ! rsl/z_bed/C after a cross-resolution restart); no integration.
@@ -178,11 +178,11 @@ contains
       ! --- march the transient --------------------------------------------------
       t0 = tyr(k0)*sec_per_year
       se%time = tyr(k0);  se%resp%time = t0          ! coupling clock in years; response clock in SI
-      call fe_write_step(se, c%file_out, se%time, nms=out_names, init=.true.)
+      call vilma_write_step(se, c%file_out, se%time, nms=out_names, init=.true.)
       if (len_trim(c%file_hor) > 0) then
-         if (se%use_vilma_v1) error stop 'fastearth_run: file_hor is not available with solver="v1" '// &
+         if (se%use_vilma_v1) error stop 'vilma_run: file_hor is not available with solver="v1" '// &
                                       '(VILMA-v1 returns no horizontal field)'
-         call fe_write_horizontal(se, c%file_hor, se%time, init=.true.)
+         call vilma_write_horizontal(se, c%file_hor, se%time, init=.true.)
       end if
 
       se%resp%t_drift = 0.0_wp;  se%resp%t_mem = 0.0_wp   ! PROFILE: time the transient only
@@ -200,14 +200,14 @@ contains
          call solid_earth_update(se, h_ice, dt)
          call system_clock(pc1);  t_upd = t_upd + real(pc1-pc0,wp)/prate
          call system_clock(pc0)
-         call fe_write_step(se, c%file_out, se%time, nms=out_names, init=.false.)
-         if (len_trim(c%file_hor) > 0) call fe_write_horizontal(se, c%file_hor, se%time, init=.false.)
+         call vilma_write_step(se, c%file_out, se%time, nms=out_names, init=.false.)
+         if (len_trim(c%file_hor) > 0) call vilma_write_horizontal(se, c%file_hor, se%time, init=.false.)
          call system_clock(pc1);  t_wrt = t_wrt + real(pc1-pc0,wp)/prate
          nstep = nstep + 1
          ! mass_resid is the native SLE's own residual; the VILMA-v1 backend leaves it
-         ! at FE_UNSET (no analogue), so it is omitted rather than printed as a
+         ! at VILMA_UNSET (no analogue), so it is omitted rather than printed as a
          ! meaningless number.
-         if (se%worst_mass_resid == FE_UNSET) then
+         if (se%worst_mass_resid == VILMA_UNSET) then
             write(*,'(a,f12.2,a,es10.2)') '   t=', se%time, &
                  ' yr   max|rsl|=', maxval(abs(se%rsl))
          else
@@ -222,7 +222,7 @@ contains
             100.0_wp*t_read/(t_read+t_upd+t_wrt), ' %)', &
          '   solid_earth_update  =', 1.0e3_wp*t_upd /nstep, ' ms (', &
             100.0_wp*t_upd /(t_read+t_upd+t_wrt), ' %)', &
-         '   fe_write_step (out) =', 1.0e3_wp*t_wrt /nstep, ' ms (', &
+         '   vilma_write_step (out) =', 1.0e3_wp*t_wrt /nstep, ' ms (', &
             100.0_wp*t_wrt /(t_read+t_upd+t_wrt), ' %)'
       ! solid_earth_update internal split (wall-clock, accumulated in the response).
       ! drift = per-degree band LU; memory advance = the Maxwell update (3-D dyadic SHT
@@ -256,7 +256,7 @@ contains
             '   SLE + coupling (rest) =', 1.0e3_wp*(t_upd-t_dr-t_mm)/nstep, ' ms (', &
                100.0_wp*(t_upd-t_dr-t_mm)/max(t_upd,tiny(1.0_wp)), ' % of update)'
       end if
-      ! The residual bucket above, opened up: fe_sle's own accumulators plus the two
+      ! The residual bucket above, opened up: vilma_sle's own accumulators plus the two
       ! coupling timers. sle%t_resp is the response lifecycle invoked from INSIDE
       ! sle_solve, so it is already inside drift + memory; subtracting it keeps the
       ! two breakdowns additive. "unattributed" is the adaptive stepper's own
@@ -303,19 +303,19 @@ contains
       if (nstep > 0 .and. .not. se%use_vilma_v1) write(*,'(a,f7.1,a,f7.1,a)') &
          '   sub-steps/interval: n_accept=', real(se%stepper%n_accept,wp)/nstep, &
          '  n_solve=', real(se%stepper%n_solve,wp)/nstep, '  (per coupling step)'
-      write(*,'(a,a)') ' fastearth: wrote ', trim(c%file_out)
+      write(*,'(a,a)') ' vilma: wrote ', trim(c%file_out)
       ! A FastEarth3D restart snapshot is the NATIVE solver's prognostic memory; it
       ! has no VILMA-v1 counterpart (VILMA-v1 persists its state through its own restart
       ! files), so with solver="v1" none is written rather than an empty one.
       if (se%use_vilma_v1) then
-         write(*,'(a)') ' fastearth: no FastEarth3D restart written (solver="v1" keeps its'
+         write(*,'(a)') ' vilma: no FastEarth3D restart written (solver="v1" keeps its'
          write(*,'(a,a)') '            own state under ', trim(p%vilma_v1_out_dir)
       else
-         call fe_restart_write(se, se%time, folder=trim(rundir)//"/final")
-         write(*,'(a,a)') ' fastearth: wrote restart ', trim(rundir)//'/final/fe_restart.nc'
+         call vilma_restart_write(se, se%time, folder=trim(rundir)//"/final")
+         write(*,'(a,a)') ' vilma: wrote restart ', trim(rundir)//'/final/vilma_restart.nc'
       end if
       call solid_earth_finalize(se);  call sht_grid_destroy(sht)
-   end subroutine fastearth_run
+   end subroutine vilma_run
 
    pure function dir_of(path) result(d)
       !! Directory part of a path (everything before the last "/"); "." if none.
@@ -334,7 +334,7 @@ contains
       !! mistyped name_* / file_* config fails loudly with nonzero status instead of
       !! aborting silently mid-run (ncio's nc_read stop's with exit status 0 on a
       !! missing variable). 'what' names the offending config key in the message.
-      type(fe_ctl_class), intent(in) :: c
+      type(vilma_ctl_class), intent(in) :: c
       logical :: remap
       remap = c%remap_input
 
@@ -366,7 +366,7 @@ contains
          call require_var(c%rsl_restart_file, c%name_rsl,       'rsl_restart_file/name_rsl')
          call require_var(c%h_ice_ref_file,   c%name_h_ice_ref, 'h_ice_ref_file/name_h_ice_ref')
       case default
-         error stop 'fastearth_run: i_eq must be 0, 1, 2, or 3'
+         error stop 'vilma_run: i_eq must be 0, 1, 2, or 3'
       end select
    end subroutine validate_inputs
 
@@ -376,32 +376,32 @@ contains
       character(len=*), intent(in) :: file, var, what
       logical :: ok
       if (len_trim(file) == 0) then
-         write(error_unit,'(a)') ' fastearth: input validation FAILED'
+         write(error_unit,'(a)') ' vilma: input validation FAILED'
          write(error_unit,'(a)') '   config "'//trim(what)//'": file not set for the chosen i_eq'
          flush(error_unit)
-         error stop 'fastearth_run: required input file not set (see message above)'
+         error stop 'vilma_run: required input file not set (see message above)'
       end if
       inquire(file=trim(file), exist=ok)
       if (.not. ok) then
-         write(error_unit,'(a)') ' fastearth: input validation FAILED'
+         write(error_unit,'(a)') ' vilma: input validation FAILED'
          write(error_unit,'(a)') '   config "'//trim(what)//'": file not found'
          write(error_unit,'(a)') '   file: '//trim(file)
          flush(error_unit)
-         error stop 'fastearth_run: input file not found (see message above)'
+         error stop 'vilma_run: input file not found (see message above)'
       end if
       if (.not. nc_exists_var(trim(file), trim(var))) then
-         write(error_unit,'(a)') ' fastearth: input validation FAILED'
+         write(error_unit,'(a)') ' vilma: input validation FAILED'
          write(error_unit,'(a)') '   config "'//trim(what)//'": variable "'//trim(var)//'" not found'
          write(error_unit,'(a)') '   file: '//trim(file)
          flush(error_unit)
-         error stop 'fastearth_run: required netCDF variable not found (see message above)'
+         error stop 'vilma_run: required netCDF variable not found (see message above)'
       end if
    end subroutine require_var
 
    subroutine build_remap(c, sht, rmap, nlon, nls)
       !! Read the source lon/lat axes from the forcing file and build the conservative
       !! lon-lat -> Gauss map. Returns the source dimensions for the work buffer.
-      type(fe_ctl_class),   intent(in)    :: c
+      type(vilma_ctl_class),   intent(in)    :: c
       type(sht_grid),       intent(in)    :: sht
       type(remap_ll_gauss),   intent(out)   :: rmap
       integer,              intent(out)   :: nlon, nls
@@ -417,7 +417,7 @@ contains
    subroutine read_ice(c, rmap, sht, remap, k, src, h_ice)
       !! Read ice slice k onto the Gauss grid. remap: read lon-lat then conservatively
       !! remap (mass-conserving); else read the Gauss-grid slice directly.
-      type(fe_ctl_class),   intent(in)    :: c
+      type(vilma_ctl_class),   intent(in)    :: c
       type(remap_ll_gauss),   intent(in)    :: rmap
       type(sht_grid),       intent(in)    :: sht
       logical,              intent(in)    :: remap
@@ -438,7 +438,7 @@ contains
       !! Read the reference bedrock. remap: slice k of name_zbed_eq from the forcing
       !! file (lon-lat-time), remapped (no mass rescale -- bed is geometry, not mass).
       !! else: the 2D name_zbed_eq from file_ref (legacy Gauss-grid reference file).
-      type(fe_ctl_class),   intent(in)    :: c
+      type(vilma_ctl_class),   intent(in)    :: c
       type(remap_ll_gauss),   intent(in)    :: rmap
       type(sht_grid),       intent(in)    :: sht
       logical,              intent(in)    :: remap
@@ -450,7 +450,7 @@ contains
                       start=[1,1,k], count=[size(src,1), size(src,2), 1])
          call remap_to_gauss(rmap, sht, src, z_bed, conserve_mass=.false.)
       else
-         if (len_trim(c%file_ref) == 0) error stop 'fastearth_run: file_ref not set (remap_input=.false.)'
+         if (len_trim(c%file_ref) == 0) error stop 'vilma_run: file_ref not set (remap_input=.false.)'
          call nc_read(c%file_ref, trim(c%name_zbed_eq), z_bed)
       end if
    end subroutine read_bed
@@ -459,7 +459,7 @@ contains
       !! Fill the relaxed reference (z_bed_eq = SLE topo0, h_ice_eq) per c%i_eq,
       !! mirroring CLIMBER-X i_equilibrium. Reference files are lon-lat and remapped
       !! online with a per-file conservative map (their grid differs from the forcing).
-      type(fe_ctl_class),   intent(in)    :: c
+      type(vilma_ctl_class),   intent(in)    :: c
       type(remap_ll_gauss),   intent(in)    :: rmap
       type(sht_grid),       intent(in)    :: sht
       logical,              intent(in)    :: remap
@@ -485,7 +485,7 @@ contains
          call read_ref2d(c, sht, remap, c%h_ice_ref_file,   c%name_h_ice_ref, .true.,  h_ice_eq)
          z_bed_eq = z_bed_eq + rsl_r
       case default
-         error stop 'fastearth_run: i_eq must be 0, 1, 2, or 3'
+         error stop 'vilma_run: i_eq must be 0, 1, 2, or 3'
       end select
    end subroutine setup_reference
 
@@ -494,9 +494,9 @@ contains
       !! already on the Gauss grid (its lon/lat dims match nphi/nlat — e.g. the
       !! canonical reference at this run's resolution) it is read directly. Otherwise
       !! a per-file conservative map is built from the file's own axes and applied
-      !! (conserve=.true. for ice) — the weights are cached (fe_remap), so the build
+      !! (conserve=.true. for ice) — the weights are cached (vilma_remap), so the build
       !! cost is paid once. In legacy (remap=.false.) mode the field is read directly.
-      type(fe_ctl_class),   intent(in)  :: c
+      type(vilma_ctl_class),   intent(in)  :: c
       type(sht_grid),       intent(in)  :: sht
       logical,              intent(in)  :: remap, conserve
       character(len=*),     intent(in)  :: file, varname
@@ -505,7 +505,7 @@ contains
       real(wp), allocatable :: lon_s(:), lat_s(:), buf(:,:)
       integer :: nlon, nls
       if (len_trim(file) == 0) &
-         error stop 'fastearth_run: reference file not set for the chosen i_eq'
+         error stop 'vilma_run: reference file not set for the chosen i_eq'
       if (remap) then
          nlon = nc_size(file, trim(c%name_lon));  nls = nc_size(file, trim(c%name_lat))
          if (nlon == sht%nphi .and. nls == sht%nlat) then
@@ -529,7 +529,7 @@ contains
       !! Build the Gauss-Legendre transform grid from p. When nlat/nphi are unset
       !! (<=0) default to a de-aliased grid (nlat=2 lmax+2, nphi=4 lmax) sized for
       !! the SLE's quadratic ocean-function product.
-      type(fe_param_class), intent(in)            :: p
+      type(vilma_param_class), intent(in)            :: p
       type(sht_grid),       intent(inout), target :: sht
       integer :: nlat, nphi
       nlat = p%nlat;  if (nlat <= 0) nlat = 2*p%lmax + 2
@@ -557,7 +557,7 @@ contains
             k1 = k
          end if
       end do
-      if (k0 == 0) error stop 'fastearth_run: no forcing times within [time_init, time_end]'
+      if (k0 == 0) error stop 'vilma_run: no forcing times within [time_init, time_end]'
    end subroutine select_window
 
-end module fe_drive
+end module vilma_drive

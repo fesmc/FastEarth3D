@@ -1,28 +1,28 @@
-program fastearth_mkref
+program vilma_mkref
    !! Offline reference generation: write the 2D reference state (bedrock + ice) onto
    !! a chosen Gauss grid. Reads a &fe3d config (grid knobs lmax/nlat/nphi, the
    !! reference source z_bed_ref_file / h_ice_ref_file + name_z_bed_ref /
    !! name_h_ice_ref / name_lon / name_lat, and file_out), conservatively remaps bed
    !! (as-is) and ice (mass-conserving) once, and writes a Gauss-grid reference file.
    !!
-   !!   ./bin/fastearth_mkref.x mkref_l128.nml [defaults.nml]
+   !!   ./bin/vilma_mkref.x mkref_l128.nml [defaults.nml]
    !!
    !! Used to generate the canonical reference data/reference/rtopo_gauss_l128.nc from
    !! the 0.5-deg source. Runs at other resolutions remap that canonical reference
    !! online (cached), so regenerating per-resolution files is no longer needed. Both
    !! reference vars are assumed on a common source grid (RTopo).
-   use fe_precision, only: wp
-   use fe_params,    only: fe_param_class, fe_par_load
-   use fe_control,   only: fe_ctl_class, fe_ctl_load, DEFAULTS_FILE
-   use fe_sht,       only: sht_grid, sht_grid_init, sht_grid_destroy
-   use fe_remap,     only: remap_ll_gauss, remap_init, remap_to_gauss
+   use vilma_precision, only: wp
+   use vilma_params,    only: vilma_param_class, vilma_par_load
+   use vilma_control,   only: vilma_ctl_class, vilma_ctl_load, DEFAULTS_FILE
+   use vilma_sht,       only: sht_grid, sht_grid_init, sht_grid_destroy
+   use vilma_remap,     only: remap_ll_gauss, remap_init, remap_to_gauss
    use ncio,         only: nc_read, nc_size, nc_create, nc_write_dim, nc_write
    implicit none
 
    real(wp), parameter :: RAD2DEG = 57.295779513082323_wp
    character(len=512)  :: cfg
-   type(fe_param_class) :: p
-   type(fe_ctl_class)   :: c
+   type(vilma_param_class) :: p
+   type(vilma_ctl_class)   :: c
    type(sht_grid)       :: sht
    type(remap_ll_gauss)   :: rmap
    real(wp), allocatable :: lon_s(:), lat_s(:), buf(:,:), bed(:,:), ice(:,:)
@@ -35,10 +35,10 @@ program fastearth_mkref
    else
       cfg = "fastearth.nml"
    end if
-   call fe_par_load(p, cfg, defaults_file=DEFAULTS_FILE)
-   call fe_ctl_load(c, cfg)
-   if (len_trim(c%z_bed_ref_file) == 0) error stop 'fastearth_mkref: z_bed_ref_file not set'
-   if (len_trim(c%h_ice_ref_file) == 0) error stop 'fastearth_mkref: h_ice_ref_file not set'
+   call vilma_par_load(p, cfg, defaults_file=DEFAULTS_FILE)
+   call vilma_ctl_load(c, cfg)
+   if (len_trim(c%z_bed_ref_file) == 0) error stop 'vilma_mkref: z_bed_ref_file not set'
+   if (len_trim(c%h_ice_ref_file) == 0) error stop 'vilma_mkref: h_ice_ref_file not set'
 
    ! --- Gauss grid (same defaulting as the driver) ---------------------------
    nlat = p%nlat;  if (nlat <= 0) nlat = 2*p%lmax + 2
@@ -52,7 +52,7 @@ program fastearth_mkref
    allocate(lon_s(nlon), lat_s(nls), buf(nlon,nls), bed(np,nl), ice(np,nl))
    call nc_read(c%z_bed_ref_file, trim(c%name_lon), lon_s)
    call nc_read(c%z_bed_ref_file, trim(c%name_lat), lat_s)
-   write(*,'(a,i0,a,i0,a,i0,a,i0,a)') ' fastearth_mkref: ', nlon, 'x', nls, &
+   write(*,'(a,i0,a,i0,a,i0,a,i0,a)') ' vilma_mkref: ', nlon, 'x', nls, &
         ' lon-lat -> ', np, 'x', nl, ' Gauss (building conservative map)'
    call remap_init(rmap, sht, lon_s, lat_s)
 
@@ -75,5 +75,5 @@ program fastearth_mkref
                  units="m", long_name="reference ice thickness (Gauss grid)")
 
    call sht_grid_destroy(sht)
-   write(*,'(a,a)') ' fastearth_mkref: wrote ', trim(c%file_out)
-end program fastearth_mkref
+   write(*,'(a,a)') ' vilma_mkref: wrote ', trim(c%file_out)
+end program vilma_mkref

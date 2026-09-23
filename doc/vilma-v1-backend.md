@@ -12,7 +12,7 @@ This is a **core-developer facility**, not a user feature.
 
 ## 1. VILMA-v1 is NOT a dependency
 
-The default build (`make fastearth`) does not reference a single VILMA-v1 symbol,
+The default build (`make vilma`) does not reference a single VILMA-v1 symbol,
 needs no `vilma/include`, and does not link `vega_pism.a`. VILMA-v1 is a
 hand-installed, precompiled library that is absent on most machines, and it must
 stay that way.
@@ -31,7 +31,7 @@ runtime aborts at init with an actionable message:
   To use it, rebuild with the backend switched on:
 
       make clean
-      make fastearth vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma
+      make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma
   ...
 ```
 
@@ -70,7 +70,7 @@ FFT), but it *is* OpenMP-parallel, so build with `openmp=1` (the default).
 
 ```sh
 make clean
-make fastearth vilma_v1=1 VILMA_V1_ROOT=/work/ba1442/robinson/models/vilma
+make vilma vilma_v1=1 VILMA_V1_ROOT=/work/ba1442/robinson/models/vilma
 ```
 
 Then, in the run config's `&fe3d` group:
@@ -107,12 +107,12 @@ Three grids, and the boundaries matter:
 
 | grid | size (example) | who owns it |
 |---|---|---|
-| host lon-lat | GLAC-1D's native grid | the forcing file; `fe_drive`/`fe_remap` map it away |
-| **model Gauss** | `lmax=32` → 128 × 66 | FastEarth3D's Gauss-Legendre grid (`fe_sht`) |
+| host lon-lat | GLAC-1D's native grid | the forcing file; `vilma_drive`/`vilma_remap` map it away |
+| **model Gauss** | `lmax=32` → 128 × 66 | FastEarth3D's Gauss-Legendre grid (`vilma_sht`) |
 | VILMA-v1 grid | `jmax=170` → 512 × 256 | VILMA-v1's own Gauss grid |
 
 * The driver remaps the forcing onto the **model Gauss grid**, exactly as for the
-  native solver (`fe_remap`, conservative).
+  native solver (`vilma_remap`, conservative).
 * `vilma_v1` owns the second leg and nothing else:
   * model Gauss → VILMA-v1: **conservative** (`coords` `"con"`), for ice thickness
     and the reference fields;
@@ -142,7 +142,7 @@ fairer comparison:
 
 ## 5. What is populated, and what is not
 
-`solid_earth` and `fe_io` expose more than VILMA-v1 produces. Nothing here is faked.
+`solid_earth` and `vilma_io` expose more than VILMA-v1 produces. Nothing here is faked.
 
 ### Populated (derived honestly from VILMA-v1 output)
 
@@ -151,7 +151,7 @@ fairer comparison:
 | `rsl` | VILMA-v1's `mod_sle::rsl`, remapped to the model Gauss grid |
 | `z_bed` | `z_bed_eq - rsl`, the same reconstruction the native solver uses |
 | `h_ice` | the forcing, as remapped |
-| `C_ocean` | `fe_sle`'s `ocean_function` (flotation) applied to VILMA-v1's updated bed and the current ice. This is **FastEarth3D's diagnostic of VILMA-v1's state**, not VILMA-v1's internal ocean function — the library keeps `ocfunc` private and does not expose it on this grid. The two can differ by a cell where the flotation rules disagree. |
+| `C_ocean` | `vilma_sle`'s `ocean_function` (flotation) applied to VILMA-v1's updated bed and the current ice. This is **FastEarth3D's diagnostic of VILMA-v1's state**, not VILMA-v1's internal ocean function — the library keeps `ocfunc` private and does not expose it on this grid. The two can differ by a cell where the flotation rules disagree. |
 | `bsl` | `update_bsl`'s barystatic integral over that `C_ocean` and the ice anomaly — again a FastEarth3D diagnostic of VILMA-v1's state, computed by the *same* formula for both backends. VILMA-v1's own water-layer scalar is written to `<vilma_v1_out_dir>/vega_oce.dat`, column 4 (columns 5–6 are its degree-0 load and ocean-area fraction) if you want VILMA-v1's internal number instead. |
 | `t_solver` | wall-clock inside `time_evolution` |
 | `t_remap` | wall-clock in the Gauss ↔ VILMA-v1 remap |
@@ -160,9 +160,9 @@ fairer comparison:
 
 | field | why | value |
 |---|---|---|
-| `worst_mass_resid` | VILMA-v1 reports no sea-level-equation mass residual. | `FE_UNSET = -9999` (`fe_coupling`). The driver omits it from the per-step line instead of printing it; it is not written to NetCDF by either backend. |
-| `resp%t_drift`, `resp%t_mem`, `sle%t_*`, `stepper%t_guard`, `stepper%n_*` | those phases do not exist — there is no drift solve, no Maxwell memory advance, no FastEarth3D SLE iteration and no adaptive sub-stepping. | left at 0; `fe_drive` **skips** the two native breakdown blocks and the sub-step line entirely and prints a VILMA-v1-specific breakdown (`time_evolution` / remap / other) instead. |
-| `dt_try` and the `tau_*` / `phi_*` memory fields | no FastEarth3D memory state exists. | the response is initialised NULL, so `fe_io` writes only the common diagnostic set and no memory dimensions. |
+| `worst_mass_resid` | VILMA-v1 reports no sea-level-equation mass residual. | `VILMA_UNSET = -9999` (`vilma_coupling`). The driver omits it from the per-step line instead of printing it; it is not written to NetCDF by either backend. |
+| `resp%t_drift`, `resp%t_mem`, `sle%t_*`, `stepper%t_guard`, `stepper%n_*` | those phases do not exist — there is no drift solve, no Maxwell memory advance, no FastEarth3D SLE iteration and no adaptive sub-stepping. | left at 0; `vilma_drive` **skips** the two native breakdown blocks and the sub-step line entirely and prints a VILMA-v1-specific breakdown (`time_evolution` / remap / other) instead. |
+| `dt_try` and the `tau_*` / `phi_*` memory fields | no FastEarth3D memory state exists. | the response is initialised NULL, so `vilma_io` writes only the common diagnostic set and no memory dimensions. |
 
 ### Refused rather than approximated
 
@@ -231,7 +231,7 @@ ln -s <fesm-utils>/{fftw,SHTns,lis} $FU/          # no netCDF in these
 A=/sw/spack-levante/netcdf-fortran-4.6.2-5t6lbs
 C=/sw/spack-levante/netcdf-c-4.9.2-x7g75q
 make clean
-make fastearth vilma_v1=1 VILMA_V1_ROOT=/work/ba1442/robinson/models/vilma \
+make vilma vilma_v1=1 VILMA_V1_ROOT=/work/ba1442/robinson/models/vilma \
      FESMUTILSROOT=$FU \
      INC_NC="-I$A/include -I$C/include" \
      LIB_NC="-L$A/lib -lnetcdff -L$C/lib -lnetcdf -Wl,-rpath,$A/lib -Wl,-rpath,$C/lib"
@@ -302,7 +302,7 @@ coupling step; expect first-order-in-Δt differences from this alone.
   `vilma_v1_init` checks `vilma_v1_out_dir` and fails loudly rather than letting a
   long path be truncated. Prefer a short relative `vilma_v1_out_dir`.
 * **`setup` is deferred.** It needs the time step and the start epoch, neither of
-  which the `fe_coupling` API supplies at init, so `vilma_v1` calls it on the
+  which the `vilma_coupling` API supplies at init, so `vilma_v1` calls it on the
   first *advancing* update and takes `vg%dt` from that interval. A forcing axis
   with a non-uniform cadence would therefore hand VILMA-v1 a step it was not
   configured for.
@@ -327,13 +327,13 @@ threads:
  [PROFILE] per coupling step (mean over 10 steps):
    read_ice (remap+IO) =    10.5 ms (  1.5 %)
    solid_earth_update  =   680.1 ms ( 97.4 %)
-   fe_write_step (out) =     7.8 ms (  1.1 %)
+   vilma_write_step (out) =     7.8 ms (  1.1 %)
 
  [PROFILE] solid_earth_update breakdown (per step, wall-clock):
    VILMA-v1 time_evolution  =   675.8 ms ( 99.4 % of update)
    Gauss<->VILMA-v1 remap   =     4.1 ms (  0.6 % of update)
    other (diagnostics)   =     0.1 ms (  0.0 % of update)
- fastearth: wrote out.nc
+ vilma: wrote out.nc
 ```
 
 `out.nc` carries the usual `h_ice`, `rsl`, `z_bed`, `C_ocean`, `bsl` on the

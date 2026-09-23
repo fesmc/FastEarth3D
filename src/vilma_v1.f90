@@ -1,10 +1,10 @@
 module vilma_v1
-   !! OPTIONAL VILMA-v1 backend for the fe_coupling API (&fe3d solver = "v1").
+   !! OPTIONAL VILMA-v1 backend for the vilma_coupling API (&fe3d solver = "v1").
    !!
    !! VILMA-v1 (Martinec/Klemann; the CLIMBER-X i_geo=2 solid-earth backend) is swapped
    !! in behind the SAME driver, namelist, forcing, remap and output as the native
    !! FastEarth3D solver, so an F-vs-V comparison differs only in the solver. The
-   !! contract is the one fe_coupling already states: ice thickness in, relative sea
+   !! contract is the one vilma_coupling already states: ice thickness in, relative sea
    !! level out. This module is the direct analogue of CLIMBER-X's src/geo/vilma.F90,
    !! ported to drive from the FastEarth3D Gauss grid instead of the CLIMBER-X geo
    !! grid; read the two side by side.
@@ -18,7 +18,7 @@ module vilma_v1
    !! preprocessor (-cpp for gfortran, -fpp for Intel), which reads the slash-star
    !! as the start of a C comment and swallows the rest of the file.
    !! Every reference to VILMA-v1 in this file sits
-   !! inside `#ifdef VILMA_V1`, which only `make fastearth vilma_v1=1 VILMA_V1_ROOT=<install>`
+   !! inside `#ifdef VILMA_V1`, which only `make vilma vilma_v1=1 VILMA_V1_ROOT=<install>`
    !! defines. In the DEFAULT build this file compiles to a pure-Fortran stub that
    !! names no VILMA-v1 symbol and needs no VILMA-v1 include path; selecting
    !! solver="v1" then aborts at init, from vilma_v1_require, with an actionable
@@ -26,7 +26,7 @@ module vilma_v1
    !!
    !! --- Grids -----------------------------------------------------------------
    !! There are THREE grids in play, and the boundaries matter:
-   !!   host lon-lat     — the driver's forcing grid. fe_coupling/fe_drive remap it
+   !!   host lon-lat     — the driver's forcing grid. vilma_coupling/vilma_drive remap it
    !!                      to the model Gauss grid; this module never sees it.
    !!   model Gauss      — the FastEarth3D Gauss-Legendre grid (sht, nphi x nlat, rows
    !!                      NORTH-first). Everything this module is handed and returns
@@ -39,28 +39,28 @@ module vilma_v1
    !! This module owns the second remap leg and nothing else:
    !!   model Gauss --(conservative, coords "con")--> VILMA-v1   for ice thickness
    !!   VILMA-v1 --(bilinear, coords "bilinear")--> model Gauss   for relative sea level
-   !! mirroring the conservative-in / bilinear-out pairing fe_remap uses for the
+   !! mirroring the conservative-in / bilinear-out pairing vilma_remap uses for the
    !! host leg and CLIMBER-X uses for its own VILMA-v1 coupling.
    !!
    !! --- Clock ------------------------------------------------------------------
    !! VILMA-v1's time axis is in kyr. CLIMBER-X feeds it calendar ka BP; this wrapper
-   !! feeds it the MODEL time (fe_coupling's se%time) divided by 1000, which for the
+   !! feeds it the MODEL time (vilma_coupling's se%time) divided by 1000, which for the
    !! standalone driver is the forcing file's own time axis (e.g. -26.0 -> 0.0 kyr
    !! for a deglaciation). VILMA-v1's viscoelastic response depends only on time
    !! DIFFERENCES, so the labelling affects only VILMA-v1's own diagnostic output files.
    !!
    !! --- Deferred setup ---------------------------------------------------------
    !! VILMA-v1's `setup` needs both the integration time step and the start time, and
-   !! the fe_coupling API supplies neither at init (the driver's coupling interval
+   !! the vilma_coupling API supplies neither at init (the driver's coupling interval
    !! comes from the forcing axis, and the clock is set after init). So init does
    !! everything that does not need them — grids, maps, the reference NetCDFs — and
    !! `setup` is called on the FIRST advancing update, from that update's own dt and
    !! start time. A zero-length update (the driver's seed call) only records the
    !! entering ice, exactly as it does for the native solver.
-   use fe_precision, only: wp
-   use fe_constants, only: rad2deg, rho_ice, rho_water, sec_per_year
-   use fe_params,    only: fe_param_class
-   use fe_sht,       only: sht_grid, sht_grid_surface_integral
+   use vilma_precision, only: wp
+   use vilma_constants, only: rad2deg, rho_ice, rho_water, sec_per_year
+   use vilma_params,    only: vilma_param_class
+   use vilma_sht,       only: sht_grid, sht_grid_surface_integral
    use coords,       only: grid_class, grid_init, map_class, map_init, map_field
    use ncio
    use iso_fortran_env, only: error_unit
@@ -120,7 +120,7 @@ contains
    ! --- availability -----------------------------------------------------------
 
    pure logical function vilma_v1_available() result(ok)
-      !! .true. only in a binary built with `make fastearth vilma_v1=1`.
+      !! .true. only in a binary built with `make vilma vilma_v1=1`.
 #ifdef VILMA_V1
       ok = .true.
 #else
@@ -143,7 +143,7 @@ contains
       write(error_unit,'(a)') '  To use it, rebuild with the backend switched on:'
       write(error_unit,'(a)') ''
       write(error_unit,'(a)') '      make clean'
-      write(error_unit,'(a)') '      make fastearth vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma'
+      write(error_unit,'(a)') '      make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma'
       write(error_unit,'(a)') ''
       write(error_unit,'(a)') '  where VILMA_V1_ROOT holds  include/*.mod  and  lib/vega_pism.a .'
       write(error_unit,'(a)') ''
@@ -151,7 +151,7 @@ contains
       write(error_unit,'(a)') '  the native FastEarth3D solver.  See doc/vilma-v1-backend.md.'
       write(error_unit,'(a)') ' ======================================================================'
       flush(error_unit)
-      error stop 'solver="v1" requires building with `make fastearth vilma_v1=1` and a VILMA-v1 install at VILMA_V1_ROOT'
+      error stop 'solver="v1" requires building with `make vilma vilma_v1=1` and a VILMA-v1 install at VILMA_V1_ROOT'
    end subroutine vilma_v1_require
 
    ! --- lifecycle --------------------------------------------------------------
@@ -163,7 +163,7 @@ contains
       !! file-based environment VILMA-v1 reads. VILMA-v1's own `setup` is deferred to the
       !! first advancing update (see the module header).
       type(vilma_v1_backend),  intent(inout) :: self
-      type(fe_param_class), intent(in)    :: par
+      type(vilma_param_class), intent(in)    :: par
       type(sht_grid),       intent(in)    :: sht
       real(wp),             intent(in)    :: z_bed_eq(:,:)  !! relaxed bedrock [m]
       real(wp),             intent(in)    :: h_ice_eq(:,:)  !! reference grounded ice [m]
@@ -389,9 +389,9 @@ contains
       !! Read VILMA-v1's lon/lat axes and build the two remap legs between the model
       !! Gauss grid and VILMA-v1's grid. Weights are cached by coords under "maps" and
       !! keyed by the grid names, which carry their dimensions so a resolution change
-      !! invalidates the cache — the same scheme fe_remap uses.
+      !! invalidates the cache — the same scheme vilma_remap uses.
       type(vilma_v1_backend),  intent(inout) :: self
-      type(fe_param_class), intent(in)    :: par
+      type(vilma_param_class), intent(in)    :: par
       type(sht_grid),       intent(in)    :: sht
       real(wp), allocatable :: lon_g(:), lat_g(:)
       character(len=64) :: gname, vname
@@ -483,7 +483,7 @@ contains
 
    subroutine vilma_v1_to_gauss(self, f_vilma_v1, f_gauss)
       !! VILMA-v1 grid -> model Gauss grid, bilinearly (a smooth field: relative sea
-      !! level). No mass rescale: fe_coupling reconstructs the bed from it as
+      !! level). No mass rescale: vilma_coupling reconstructs the bed from it as
       !! z_bed_eq - rsl, exactly as it does for the native solver.
       type(vilma_v1_backend), intent(in)  :: self
       real(wp),            intent(in)  :: f_vilma_v1(:,:)   !! (nlon,nlat_v)
@@ -508,7 +508,7 @@ contains
       !! the restart-matrix scratch lives under <out_dir>/restart rather than a
       !! separate restart-input tree (FastEarth3D does not wire VILMA-v1 restarts).
       type(vilma_v1_backend),  intent(in) :: self
-      type(fe_param_class), intent(in) :: par
+      type(vilma_param_class), intent(in) :: par
       character(len=:), allocatable :: id, od, rd
       id = trim(par%vilma_v1_input_dir)
       od = trim(self%out_dir)
@@ -737,7 +737,7 @@ contains
       !! if the two differ. create_load_history therefore pins history slice 1 to the
       !! reference ice, which means VILMA-v1 starts with ZERO load anomaly and zero
       !! viscous memory at t0 — it has no way to be handed a pre-existing memory
-      !! state, and solid_earth_spinup has no VILMA-v1 analogue (fe_coupling refuses it).
+      !! state, and solid_earth_spinup has no VILMA-v1 analogue (vilma_coupling refuses it).
       !!
       !! So if the run's start-slice ice is NOT the reference ice (the usual case for
       !! i_eq=1, a present-day reference with an LGM start), VILMA-v1 will absorb the

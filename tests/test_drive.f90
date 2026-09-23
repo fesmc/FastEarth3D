@@ -1,15 +1,15 @@
 program test_drive
-   !! Standalone driver (fe_drive): generate a synthetic reference state and an
+   !! Standalone driver (vilma_drive): generate a synthetic reference state and an
    !! ice-thickness forcing on the model Gauss grid, write a sparse &fe3d config
-   !! overlaid on the shipped defaults, run fastearth_run, and check the output:
+   !! overlaid on the shipped defaults, run vilma_run, and check the output:
    !!   (1) one output slice per forcing slice,
    !!   (2) the bed subsides under the growing ice cap (z_bed < z_bed_eq),
    !!   (3) the ocean draws down (rsl < 0 in the far field).
-   use fe_precision,       only: wp
-   use fe_constants,       only: rad2deg, pi
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy
-   use fe_drive,           only: fastearth_run
-   use fe_radial_fe,       only: radial_fe_finalize
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: rad2deg, pi
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy
+   use vilma_drive,           only: vilma_run
+   use vilma_radial_fe,       only: radial_fe_finalize
    use ncio,               only: nc_create, nc_write_dim, nc_write, nc_read, nc_size
    implicit none
 
@@ -105,7 +105,7 @@ program test_drive
    write(u,'(a)')    "/"
    close(u)
 
-   call fastearth_run(CFG, defaults_file=DEFS)
+   call vilma_run(CFG, defaults_file=DEFS)
 
    ! --- checks -----------------------------------------------------------------
    jice   = nearest_row(15.0_wp)
@@ -159,7 +159,7 @@ program test_drive
 
    write(*,'(a)') ''
    if (ok) then
-      write(*,'(a)') ' PASS: fastearth_run reads ref+forcing, marches the model,'
+      write(*,'(a)') ' PASS: vilma_run reads ref+forcing, marches the model,'
       write(*,'(a)') '       and writes a sensible subsiding/draw-down output'
    else
       write(*,'(a)') ' FAIL: standalone driver did not all pass'

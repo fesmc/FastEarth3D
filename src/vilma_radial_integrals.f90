@@ -1,8 +1,8 @@
-module fe_radial_integrals
+module vilma_radial_integrals
    !! Closed-form definite integrals of the piecewise-linear (P1) radial base
    !! functions over a single finite element [r_k, r_{k+1}], from Martinec (2000)
    !! Appendix C (eqs C1-C10). These are the building blocks of the per-degree
-   !! stiffness/coupling matrices assembled in fe_radial_fe.
+   !! stiffness/coupling matrices assembled in vilma_radial_fe.
    !!
    !! On the element, with h = r_{k+1} - r_k,
    !!     ψ_k(r)   = (r_{k+1} - r)/h        (local node 1)
@@ -17,7 +17,7 @@ module fe_radial_integrals
    !!   K1: ∫ ψ'_a r² dr          K2: ∫ ψ_a r dr           K3: ∫ ψ_a r² dr
    !!   K4: ∫ ψ_a r³ dr  (not in Martinec App. C: the net-rotation weight of the
    !!                     degree-1 toroidal constraint, ∫ x × u dV ∝ ∫ W r³ dr)
-   use fe_precision, only: wp
+   use vilma_precision, only: wp
    implicit none
    private
    public :: elem_i1, elem_i2, elem_i3, elem_i4, elem_i5, elem_i6, elem_i7
@@ -125,4 +125,4 @@ contains
       v(2) = h/20.0_wp*(4.0_wp*rk1**3 + 3.0_wp*rk1**2*rk + 2.0_wp*rk1*rk**2 + rk**3)
    end function elem_k4
 
-end module fe_radial_integrals
+end module vilma_radial_integrals

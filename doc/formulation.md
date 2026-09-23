@@ -2,7 +2,7 @@
 
 Implementation reference for the radial solver, extracted from Martinec (2000),
 *GJI* 142:117 (full PDF held locally, gitignored). Equation numbers below are the
-paper's. This is the spec for `fe_radial_fe` assembly and Love-number extraction.
+paper's. This is the spec for `vilma_radial_fe` assembly and Love-number extraction.
 
 ## Problem
 
@@ -46,12 +46,12 @@ Each degree `j` decouples (radially symmetric μ); solve a 1D radial problem per
 - P0 basis ξ_k(r) (74); `Π = Σ_k Π_k ξ_k` (73) — **per-element**, P values.
 - Per element, μ_k, ρ_k constant (75); gravity `g₀(r) = (4πG/3)(ρ_k r + R_k/r²)`
   (76), with `R_k = Σ_{i≤k}(ρ_{i−1}−ρ_i)r_i³` (77), `R₁=0`.
-- Mesh = whole sphere ⟨0,a⟩; fluid core has μ=0. Done in `fe_radial_fe` (218 nodes).
+- Mesh = whole sphere ⟨0,a⟩; fluid core has μ=0. Done in `vilma_radial_fe` (218 nodes).
 
 ### Assembled bilinear forms (the element matrices to build)
 
 Use the Appendix C element integrals (implemented + tested in
-`fe_radial_integrals`): `I1..I7`, `K1..K3`.
+`vilma_radial_integrals`): `I1..I7`, `K1..K3`.
 
 - `δE_press` (82): pressure ↔ `(U' + 2U/r − JV/r)` coupling. Uses K1,K2 (per the
   P0×P1 products `∫ξ ψ' r²`, `∫ξ ψ r`, `∫ξ ψ r`-type → K-integrals).
@@ -90,11 +90,11 @@ continuous → eq 81) is a **transpose pair** — the potential-gradient body fo
 δF. (Earlier this doc claimed the operator was non-symmetric "because the I² U↔F
 coupling is not symmetric"; that was the elastic low-degree bug — the U-F term was
 discretised with `I²_αβ` instead of `I²_βα`. See below. `test_assembly` now
-asserts `‖A−Aᵀ‖/‖A‖ = 0`.) Implemented in `fe_radial_fe%build_dense_operator`,
+asserts `‖A−Aᵀ‖/‖A‖ = 0`.) Implemented in `vilma_radial_fe%build_dense_operator`,
 transcribed term-by-term from the PDF and verified against the table and analytic
 limits below.
 
-**Solve: dependency-free pivoted banded LU** (`fe_band`). The physical entries span
+**Solve: dependency-free pivoted banded LU** (`vilma_band`). The physical entries span
 ~20 orders of magnitude (`μr²/h` vs the pressure couplings vs `1/4πG`), so the
 operator is geometric-mean **row/column equilibrated** first. It is band-diagonal
 (half-bandwidth ~6, node-interleaved P1/P0) and indefinite (zero pressure block),
@@ -122,7 +122,7 @@ Explicit ω=1 Maxwell scheme (eqs 23-25): the total stress splits into the
 instantaneous elastic stress (the SAME operator above) plus a memory stress
 `τ^{V,i} = (1−M)τ^{V,i-1} − 2μ M ε^i`, `M = μΔt/η` (eq 17). The memory enters the
 RHS as the dissipative forcing `−∫ τ^{V,i}:δε dV` (eq 35); the LHS never changes,
-so it is assembled, equilibrated and LU-factored **once** (`fe_band`) and reused
+so it is assembled, equilibrated and LU-factored **once** (`vilma_band`) and reused
 every step.
 
 1-D (radially symmetric η): the memory stress evolves directly on the tensor-SH
@@ -132,7 +132,7 @@ viscosity the toroidal λ ∈ {3,4} are appended as channels 5–6); the strain
 coefficients `a,b,c` come from nodal `U,V` (eq 87, `ε = a/h + bψ_k/r + cψ_{k+1}/r`,
 eq 88). The dissipative RHS is a 2-point radial Gauss quadrature (eqs 94-95) of
 the spectral double-dot `Σ_λ ‖Z^λ‖² τ^{V,λ} δε^λ` with norms `{1, J/2, 2J², 2J(J−2)}`
-(eqs 110/B13). Implemented in `fe_viscoelastic%ve_degree`. Elastic layers (η→∞)
+(eqs 110/B13). Implemented in `vilma_viscoelastic%ve_degree`. Elastic layers (η→∞)
 freeze (M→0); fluid layers (μ=0) carry no memory. Stability `Δt ≲ 2η_min/μ`.
 
 **Validated** (`test_relax`): a held degree-2 load on a homogeneous Maxwell
@@ -163,7 +163,7 @@ point
 
 (`with_uniq=.false.` builds the band; `uniq_weight` is the border). The solve runs
 at `ndof+1` internally but `load_rhs`/`solve_vec` keep their physical `ndof`
-interface, so `fe_viscoelastic` needs no j=1 special case. Converges in 2 GMRES
+interface, so `vilma_viscoelastic` needs no j=1 special case. Converges in 2 GMRES
 iterations; `build_dense_operator` still adds the dense penalty as the reference
 operator. Validated in `test_love` (4) and `test_relax` (5); see the validation
 list below. (The disc synthesis no longer needs to skip j=1 — it is the physical
@@ -173,7 +173,7 @@ geocenter signal.)
 
 For a degree-j surface load of coefficient `σ`, the load's own potential at the
 surface is `φ^L = 4πG a σ/(2j+1)`. From the surface coefficients (Farrell 1972
-normalization), implemented in `fe_radial_fe%loading_love`:
+normalization), implemented in `vilma_radial_fe%loading_love`:
 
 `h_j = g₀(a) U(a)/φ^L`,  `l_j = g₀(a) V(a)/φ^L`,  `k_j = −F(a)/φ^L − 1`.
 
@@ -207,7 +207,7 @@ degree-dependent — the spectrum *shape* was wrong). Then:
 
 1. The **shear block is correct** — its 4×4 element matrix is identical (machine
    precision, all degrees) to the stiffness rebuilt independently from the strain
-   representation (eqs 85–88) used by `fe_viscoelastic`, i.e. `2∫μ Σ_λ ‖Z^λ‖²
+   representation (eqs 85–88) used by `vilma_viscoelastic`, i.e. `2∫μ Σ_λ ‖Z^λ‖²
    B^λ_i B^λ_j r² dr`. So the energy `∫μ ε:ε` is encoded consistently two ways.
 2. That left the **self-gravity block** (eq 65 → 81), μ-independent but corrupting
    the *interior* solution in a way the fluid surface values don't expose but the

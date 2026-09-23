@@ -905,7 +905,7 @@
       <ul>
         <li><code>re_class</code> — loads and stores the radial <em>(ρ, μ, η, r)</em> profile.</li>
         <li><code>ve_response</code> — turns the profile into per-<em>l</em> Love-number time series (§ 3).</li>
-        <li><code>fastearth3d</code> module — the top-level type <code>se%par</code> holds the configuration; <code>build_earth(p)</code> assembles the earth model at startup.</li>
+        <li><code>vilma</code> module — the top-level type <code>se%par</code> holds the configuration; <code>build_earth(p)</code> assembles the earth model at startup.</li>
       </ul>
       <div class="aside">
         <span class="aside-label">Bagge, PREM, M3-L70-V01</span>
@@ -987,7 +987,7 @@
       <h3>Where in the code</h3>
       <ul>
         <li><code>sht_class</code> — thin wrapper around SHTns, providing forward and inverse transforms.</li>
-        <li><code>fe_field</code> — physical fields carry both grid and spectral views, kept in sync on demand.</li>
+        <li><code>vilma_field</code> — physical fields carry both grid and spectral views, kept in sync on demand.</li>
       </ul>
     </div>
   </div>
@@ -1064,7 +1064,7 @@
       <p>Our default configuration combines <code>fe</code> with a three-dimensional layer split. On standard deglaciation runs it is roughly 111× faster than trapezoidal-<code>ve</code> at comparable accuracy.</p>
       <h3>Where in the code</h3>
       <ul>
-        <li><code>fe_response</code> — the finite-element radial solver.</li>
+        <li><code>vilma_response</code> — the finite-element radial solver.</li>
         <li><code>ve_response</code> — normal-mode reference implementation.</li>
       </ul>
     </div>
@@ -1140,8 +1140,8 @@
       <p>All four Martinec cases (C2, D3, E2, F1) pass to benchmark tolerance in our implementation.</p>
       <h3>Where in the code</h3>
       <ul>
-        <li><code>fe_sle</code> — the coupled solve; the <code>advance</code> routine wraps the fixed-point loop.</li>
-        <li><code>fe_ocean_function</code> — sub-grid coast mask and ocean-function update.</li>
+        <li><code>vilma_sle</code> — the coupled solve; the <code>advance</code> routine wraps the fixed-point loop.</li>
+        <li><code>vilma_ocean_function</code> — sub-grid coast mask and ocean-function update.</li>
       </ul>
     </div>
   </div>
@@ -1212,7 +1212,7 @@
       <p>The implementation matches Spada (2011) benchmark tests 2 and 3 in our validation runs.</p>
       <h3>Where in the code</h3>
       <ul>
-        <li><code>fe_rotation</code> — Liouville integrator and computation of the excitation from load moments.</li>
+        <li><code>vilma_rotation</code> — Liouville integrator and computation of the excitation from load moments.</li>
       </ul>
     </div>
   </div>
@@ -1283,7 +1283,7 @@
 
   <div class="tab-content" data-tab="fe3d" hidden>
     <div class="prose">
-      <p>The <code>fe_timestep</code> module implements the adaptive trapezoidal rule with step doubling for error estimation:</p>
+      <p>The <code>vilma_timestep</code> module implements the adaptive trapezoidal rule with step doubling for error estimation:</p>
       <ul>
         <li>Advance one full step of size <em>Δt</em>. Advance two half-steps of size <em>Δt</em>/2. The difference between the two solutions estimates the local truncation error.</li>
         <li>If the estimated error exceeds the tolerance, <em>Δt</em> is reduced and the step is retried. If the error is well under tolerance, <em>Δt</em> is grown.</li>
@@ -1297,7 +1297,7 @@
       </div>
       <h3>Where in the code</h3>
       <ul>
-        <li><code>fe_timestep</code> — the adaptive-<em>Δt</em> controller with step doubling.</li>
+        <li><code>vilma_timestep</code> — the adaptive-<em>Δt</em> controller with step doubling.</li>
         <li><code>solid_earth%update(h_ice, dt)</code> — the top-level advance, with the coupling iteration nested inside.</li>
       </ul>
     </div>
@@ -1306,7 +1306,7 @@
 
 <footer class="foot">
   <h3>Further reading</h3>
-  <p>The full implementation lives in the FastEarth3D Fortran codebase — see the modules <code>fastearth3d</code>, <code>fe_response</code>, <code>fe_sle</code>, <code>fe_rotation</code>, and <code>fe_timestep</code>. Reference material is maintained in the Quarto documentation on branch <code>docs-quarto</code>.</p>
+  <p>The full implementation lives in the FastEarth3D Fortran codebase — see the modules <code>vilma</code>, <code>vilma_response</code>, <code>vilma_sle</code>, <code>vilma_rotation</code>, and <code>vilma_timestep</code>. Reference material is maintained in the Quarto documentation on branch <code>docs-quarto</code>.</p>
   <p>Key references: Farrell and Clark (1976) for the sea-level equation; Peltier (1974) for the load Love numbers; Martinec et al. (Cases C2, D3, E2, F1) for the SLE benchmarks; Spada (2011) for the rotational-feedback benchmarks.</p>
 </footer>
 

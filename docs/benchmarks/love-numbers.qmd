@@ -23,7 +23,7 @@ unit surface load at degree $j$, do the elastic (instantaneous) and fluid
 
 The layer table (radius, density, shear modulus, viscosity) is the
 incompressible model of the Spada et al. (2011) benchmark. FastEarth3D's
-`fe_earth_structure` reproduces the benchmark's interface gravities, total mass,
+`vilma_earth_structure` reproduces the benchmark's interface gravities, total mass,
 and moment of inertia as an independent check before any Love number is computed.
 
 ## Definitions

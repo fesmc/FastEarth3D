@@ -16,8 +16,8 @@ skip-negligible, OpenMP over the degree loop) see §Performance of
 
 The driver reports `solid_earth_update` as **drift solve + memory advance + a
 residual bucket** historically labelled `SLE + coupling`. That residual is now
-decomposed by explicit `system_clock` regions (`fe_sle`'s `t_sht`/`t_apply`/
-`t_total`, `fe_coupling`'s `t_remap`/`t_rot`, `fe_timestep`'s `t_guard`), with an
+decomposed by explicit `system_clock` regions (`vilma_sle`'s `t_sht`/`t_apply`/
+`t_total`, `vilma_coupling`'s `t_remap`/`t_rot`, `vilma_timestep`'s `t_guard`), with an
 `unattributed` remainder printed so a missed phase shows up as a number rather
 than as someone else's cost. Set nothing: it is always on and costs one
 `system_clock` pair per region (~25 ns).
@@ -107,15 +107,15 @@ A full glacial cycle at this resolution is therefore minutes (1-D) to a few hour
 2. **These are `ifx -Ofast -march=znver3` numbers on Levante.** Absolute times on
    other machines will differ; the scaling exponents and the phase attribution
    should not.
-3. **I/O.** The timing runs write every coupling step, so their `fe_write_step`
+3. **I/O.** The timing runs write every coupling step, so their `vilma_write_step`
    share is an upper bound on a production run writing every fifth.
 
 ## Reproducing
 
 ```sh
-make fastearth                                 # ifx, OpenMP, -Ofast
+make vilma                                 # ifx, OpenMP, -Ofast
 OMP_NUM_THREADS=64 OMP_PROC_BIND=spread OMP_PLACES=cores \
-    bin/fastearth.x <your deglaciation namelist>
+    bin/vilma.x <your deglaciation namelist>
 ```
 
 The `[PROFILE]` blocks in stdout give the setup/transient split, the

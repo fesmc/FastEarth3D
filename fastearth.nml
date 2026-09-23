@@ -1,6 +1,6 @@
 ! ====================================================================
 ! FastEarth3D run configuration — the file you edit / pass on the command line:
-!     bin/fastearth.x [this-file.nml]      (default: fastearth.nml)
+!     bin/vilma.x [this-file.nml]      (default: fastearth.nml)
 ! It is overlaid on the physics defaults in input/fastearth3d_defaults.nml
 ! (loaded automatically). Only the parameters here override the defaults, so
 ! anything present in this file is an ensemble knob you can sweep with `-p`.
@@ -23,7 +23,7 @@
     name_hice_ref = "h_ice_ref"
 
     ! --- step output --------------------------------------------------
-    file_out      = "fastearth_out.nc"
+    file_out      = "vilma_out.nc"
     file_hor      = ""     ! horizontal displacement (total + toroidal) to its own file; "" = off
     time_init     = -1.0e30            ! [years] (<= forcing start => full range)
     time_end      =  1.0e30            ! [years] (>= forcing end   => full range)

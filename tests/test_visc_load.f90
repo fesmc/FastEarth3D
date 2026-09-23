@@ -1,6 +1,6 @@
 program test_visc_load
    !! Rung 6c — load a real lon-lat-r viscosity field from netCDF onto the Gauss
-   !! grid × FE radial nodes (fe_read_visc_3d), and bridge node→element into the
+   !! grid × FE radial nodes (vilma_read_visc_3d), and bridge node→element into the
    !! lateral-viscosity advance (ve%enable_lateral_visc_from_nodes).
    !!
    !! Part 1 (always): write a synthetic field whose value is LINEAR in each of
@@ -13,12 +13,12 @@ program test_visc_load
    !! input/pan2022.nc (vendored from isostasy_data), enable it via the
    !! node→element bridge, and check the resulting Maxwell rate field is finite and
    !! that a few forced steps produce a finite, non-trivial uplift.
-   use fe_precision,       only: wp
-   use fe_constants,       only: rad2deg
-   use fe_earth_structure, only: earth_model, build_M3L70V01, fe_read_visc_3d
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_response,        only: response_enable_lateral_visc_from_nodes, response_destroy, response, response_init_elastic, response_init_ve, response_init_null
-   use fe_sht,             only: sht_grid, sht_grid_init
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: rad2deg
+   use vilma_earth_structure, only: earth_model, build_M3L70V01, vilma_read_visc_3d
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_response,        only: response_enable_lateral_visc_from_nodes, response_destroy, response, response_init_elastic, response_init_ve, response_init_null
+   use vilma_sht,             only: sht_grid, sht_grid_init
    use ncio
    implicit none
 
@@ -80,7 +80,7 @@ contains
       call nc_write_dim(SYNTH, "r",   x=r_s,   units="m")
       call nc_write(SYNTH, "eta", eta_s, dim1="lon", dim2="lat", dim3="r")
 
-      call fe_read_visc_3d(SYNTH, sht, ve%r, vn)
+      call vilma_read_visc_3d(SYNTH, sht, ve%r, vn)
       maxerr = 0.0_wp
       do k = 1, nr
          do j = 1, nlat
@@ -129,7 +129,7 @@ contains
       call nc_write_dim(FLIP, "r",   x=r_s,   units="m")
       call nc_write(FLIP, "eta", eta_s, dim1="lon", dim2="lat", dim3="r")
 
-      call fe_read_visc_3d(FLIP, sht, ve%r, vn)
+      call vilma_read_visc_3d(FLIP, sht, ve%r, vn)
       maxerr = 0.0_wp
       do k = 1, nr
          do j = 1, nlat
@@ -154,7 +154,7 @@ contains
    subroutine test_pan2022()
       real(wp), allocatable :: vn(:,:)
       real(wp) :: vmin, vmax
-      call fe_read_visc_3d(PAN, sht, ve%r, vn)
+      call vilma_read_visc_3d(PAN, sht, ve%r, vn)
       vmin = minval(vn);  vmax = maxval(vn)
       write(*,'(a,f6.2,a,f6.2)') ' pan2022 log10(eta) on grid: min=', vmin, ' max=', vmax
       ! Mantle log10(η) lives in ~[18,24]; lithosphere/core endpoints push the

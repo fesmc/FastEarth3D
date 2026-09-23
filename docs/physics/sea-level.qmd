@@ -111,9 +111,9 @@ frame ($N_1 = 0$) — which FastEarth3D reproduces by referencing the degree-1
 geoid to CM. See the [disc benchmark](../benchmarks/disc.qmd).
 
 ::: {.callout-tip title="Where this lives in the code"}
-`fe_response` defines the response-operator interface and its three
-implementations; `fe_sle` is the fixed-point SLE solver (ocean function,
+`vilma_response` defines the response-operator interface and its three
+implementations; `vilma_sle` is the fixed-point SLE solver (ocean function,
 flotation, migration, sub-grid load, mass-conserving $\Delta\phi$);
-`fe_field` builds analytic ice caps and basin topographies for the benchmarks.
+`vilma_field` builds analytic ice caps and basin topographies for the benchmarks.
 Validation is in [Sea-level equation](../benchmarks/sea-level.qmd).
 :::

@@ -1,10 +1,10 @@
 program test_remap
-   !! Conservative lon-lat -> Gauss remap (fe_remap): constant preservation, latitude
+   !! Conservative lon-lat -> Gauss remap (vilma_remap): constant preservation, latitude
    !! orientation (the ascending<->SHTns-row flip), zonal-field accuracy, and the
    !! optional global mass-rescale (SHTns surface integral == source area integral).
-   use fe_precision, only: wp
-   use fe_sht,       only: sht_grid, sht_grid_init, sht_grid_surface_integral, sht_grid_destroy
-   use fe_remap,     only: remap_ll_gauss, remap_init, remap_to_gauss, remap_to_ll
+   use vilma_precision, only: wp
+   use vilma_sht,       only: sht_grid, sht_grid_init, sht_grid_surface_integral, sht_grid_destroy
+   use vilma_remap,     only: remap_ll_gauss, remap_init, remap_to_gauss, remap_to_ll
    implicit none
 
    integer,  parameter :: LMAX = 32
@@ -93,9 +93,9 @@ program test_remap
 
    call sht_grid_destroy(sht)
    if (ok) then
-      write(*,'(a)') ' PASS: fe_remap conservative lon-lat -> Gauss + bilinear Gauss -> lon-lat'
+      write(*,'(a)') ' PASS: vilma_remap conservative lon-lat -> Gauss + bilinear Gauss -> lon-lat'
    else
-      write(*,'(a)') ' FAIL: fe_remap'
+      write(*,'(a)') ' FAIL: vilma_remap'
       error stop 1
    end if
 end program test_remap

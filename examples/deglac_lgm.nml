@@ -2,7 +2,7 @@
     ! ====================================================================
     ! LGM -> present-day deglaciation. A run config (overlaid automatically on the
     ! physics defaults input/fastearth3d_defaults.nml):
-    !     bin/fastearth.x examples/deglac_lgm.nml
+    !     bin/vilma.x examples/deglac_lgm.nml
     ! &fe3d below carries physics overrides; run I/O is in the &ctl group.
     ! ====================================================================
     lmax         = 64

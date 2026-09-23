@@ -16,7 +16,7 @@ openmp ?= 1
 # VILMA-v1 symbol is referenced, no VILMA-v1 include path is needed, and a namelist
 # asking for solver="v1" aborts with an actionable message from the
 # compiled-in stub (src/vilma_v1.f90, gated on -DVILMA_V1). See doc/vilma-v1-backend.md.
-#   make fastearth vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma
+#   make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma
 vilma_v1  ?= 0
 
 defaulttarget: usage
@@ -31,13 +31,13 @@ defaulttarget: usage
 
 # === Shared dependency wiring ================================================
 # Pulled in after the compiler fragment so it can reference the variables above.
-# Defines the fesm-utils / FFTW / SHTns paths and the final FFLAGS_FE / LFLAGS_FE
-# / CPPFLAGS_FE flag sets, honouring the openmp= switch.
+# Defines the fesm-utils / FFTW / SHTns paths and the final FFLAGS_VILMA / LFLAGS_VILMA
+# / CPPFLAGS_VILMA flag sets, honouring the openmp= switch.
 include config/common.mk
 
 # === Git version string ======================================================
 GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags 2>/dev/null || echo "unknown")
-CPPFLAGS_FE := $(CPPFLAGS_FE) -DVERSION=\"$(GIT_VERSION)\"
+CPPFLAGS_VILMA := $(CPPFLAGS_VILMA) -DVERSION=\"$(GIT_VERSION)\"
 
 # === Debug / profile selection ===============================================
 DFLAGS = $(DFLAGS_NODEBUG)
@@ -49,12 +49,12 @@ ifeq ($(debug),2)
 endif
 
 # === Assemble the flags actually used by the rules ===========================
-FFLAGS   = $(FFLAGS_FE)
-LFLAGS   = $(LFLAGS_FE)
-CPPFLAGS = $(CPPFLAGS_FE)
+FFLAGS   = $(FFLAGS_VILMA)
+LFLAGS   = $(LFLAGS_VILMA)
+CPPFLAGS = $(CPPFLAGS_VILMA)
 ifeq ($(openmp),1)
 	FFLAGS := $(FFLAGS) $(FFLAGS_OPENMP)
 endif
 
 # === Source/rule lists and build targets =====================================
-include config/Makefile_fastearth.mk
+include config/Makefile_vilma.mk

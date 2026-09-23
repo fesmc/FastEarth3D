@@ -1,5 +1,5 @@
 program test_tensor_sh
-   !! Rung 6 — tensor-SH dyadic transforms (fe_tensor_sh), GENERAL order (mmax>0).
+   !! Rung 6 — tensor-SH dyadic transforms (vilma_tensor_sh), GENERAL order (mmax>0).
    !! No external data. Spheroidal (TLAM_SPH = 4 channels) and full (TLAM = 6):
    !!   (1) round trip — analysis∘synth = identity on random complex coefficients
    !!       (synthesis and its adjoint-analysis must invert, including the spin-2
@@ -18,10 +18,10 @@ program test_tensor_sh
    !!       each channel alone through synth→analysis, the leak into every other
    !!       channel reported. Z⁴⊥Z⁶ and Z²⊥Z³ are exact only as far as the grid
    !!       quadrature is (B12), which is where silent aliasing would live.
-   use fe_precision, only: wp
-   use fe_constants, only: pi
-   use fe_sht,       only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_destroy
-   use fe_tensor_sh, only: tensor_sh, TLAM, TLAM_SPH, DY_RR, DY_RT, DY_RP, DY_TT, DY_TP, DY_PP, &
+   use vilma_precision, only: wp
+   use vilma_constants, only: pi
+   use vilma_sht,       only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_destroy
+   use vilma_tensor_sh, only: tensor_sh, TLAM, TLAM_SPH, DY_RR, DY_RT, DY_RP, DY_TT, DY_TP, DY_PP, &
                            tensor_sh_init, tensor_sh_synth, tensor_sh_analysis, tensor_sh_destroy
    implicit none
 

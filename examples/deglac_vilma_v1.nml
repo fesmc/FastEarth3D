@@ -5,10 +5,10 @@
     ! behind one driver, one forcing, one reference, one output layout.
     !
     !   make clean
-    !   make fastearth vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma
-    !   bin/fastearth.x examples/deglac_vilma_v1.nml
+    !   make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma
+    !   bin/vilma.x examples/deglac_vilma_v1.nml
     !
-    ! The default build (make fastearth) aborts at init with an actionable
+    ! The default build (make vilma) aborts at init with an actionable
     ! message when it sees solver="v1" — VILMA-v1 is NOT a dependency.
     ! Read doc/vilma-v1-backend.md before running this: there are real constraints
     ! (netCDF-Fortran ABI, i_eq, no spin-up, no restart) and documented gaps.

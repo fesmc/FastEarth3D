@@ -1,4 +1,4 @@
-module fe_coupling
+module vilma_coupling
    !! Top-level coupling API — the contract a host climate/ice model (CLIMBER-X)
    !! drives the solid-Earth model through. Mirrors the VILMA-v1 wrapper in CLIMBER-X
    !! (src/geo/vilma.F90): ice thickness goes in, relative sea level and bedrock
@@ -6,7 +6,7 @@ module fe_coupling
    !! from se%par at init) and OWNS the remap between the host grid and that Gauss
    !! grid — the host never sees the Gauss grid.
    !!
-   !!   call fe_par_load(se%par, cfg, defaults)        ! configuration -> se%par
+   !!   call vilma_par_load(se%par, cfg, defaults)        ! configuration -> se%par
    !!   call solid_earth_init(se, z_bed_eq, h_ice_eq, grid=host_grid)   ! reference state
    !!   ...
    !!   call solid_earth_update(se, h_ice, dt_yr)      ! advance dt_yr [years]; fills se%rsl, se%z_bed
@@ -15,7 +15,7 @@ module fe_coupling
    !!
    !! Grids. If `grid` (a coords lon-lat grid) is passed at init and differs from the
    !! model's Gauss grid, the model builds a conservative (host->Gauss) + bilinear
-   !! (Gauss->host) map pair (fe_remap) and drives h_ice in / rsl out through it.
+   !! (Gauss->host) map pair (vilma_remap) and drives h_ice in / rsl out through it.
    !! If `grid` is absent (or already the Gauss grid) the fields are taken as-is
    !! (passthrough). Either way the host reads se%rsl / se%z_bed / se%bsl on the SAME
    !! grid it supplied; the Gauss-grid working state lives in se%gg (se%gg%rsl, ...).
@@ -28,19 +28,19 @@ module fe_coupling
    !! d_ice = 0, rsl = 0, z_bed = z_bed_eq. Departures from the reference ice load
    !! drive the deformation and sea-level change incrementally. The reference
    !! topography z_bed_eq doubles as the SLE's reference topo0.
-   use fe_precision,       only: wp
-   use fe_constants,       only: rho_ice, rho_water, sec_per_year, pi, kyr
-   use fe_params,          only: fe_param_class
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, &
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: rho_ice, rho_water, sec_per_year, pi, kyr
+   use vilma_params,          only: vilma_param_class
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, &
                                  sht_grid_synthesis, sht_grid_surface_integral
-   use fe_earth_structure, only: earth_model, build_earth, load_visc_3d
-   use fe_viscoelastic,    only: scheme_from_name
-   use fe_response,        only: response_destroy, response_enable_lateral_visc_from_nodes, response, &
+   use vilma_earth_structure, only: earth_model, build_earth, load_visc_3d
+   use vilma_viscoelastic,    only: scheme_from_name
+   use vilma_response,        only: response_destroy, response_enable_lateral_visc_from_nodes, response, &
                                  response_init_elastic, response_init_ve, response_init_null, RESP_VE
-   use fe_sle,             only: sle_solver, ocean_function
-   use fe_timestep,        only: stepper_advance, adaptive_stepper
-   use fe_rotation,        only: rotation_destroy, rotation_update, rotation_s_rot, rotation_begin_step, rotation_init, rotation_state
-   use fe_remap,           only: remap_ll_gauss, remap_init, remap_to_gauss, remap_to_ll
+   use vilma_sle,             only: sle_solver, ocean_function
+   use vilma_timestep,        only: stepper_advance, adaptive_stepper
+   use vilma_rotation,        only: rotation_destroy, rotation_update, rotation_s_rot, rotation_begin_step, rotation_init, rotation_state
+   use vilma_remap,           only: remap_ll_gauss, remap_init, remap_to_gauss, remap_to_ll
    use vilma_v1,           only: vilma_v1_backend, vilma_v1_init, vilma_v1_update, vilma_v1_finalize, &
                                  vilma_v1_require
    use coords,             only: grid_class
@@ -51,7 +51,7 @@ module fe_coupling
    public :: solid_earth_init, solid_earth_update, solid_earth_finalize
    public :: solid_earth_enable_visc_3d, solid_earth_sync_host, solid_earth_spinup
    public :: solid_earth_check_solver
-   public :: FE_UNSET
+   public :: VILMA_UNSET
 
    !! Fill value for a diagnostic the ACTIVE backend does not produce. Only the
    !! VILMA-v1 backend leaves anything unset (see the "known gaps" note on the
@@ -59,7 +59,7 @@ module fe_coupling
    !! wildly unphysical number on purpose, so an unset value cannot be mistaken for
    !! a computed zero, and it matches the missing-value convention used by the
    !! CLIMBER-X remapping layer. Writers/printers are expected to skip it.
-   real(wp), parameter :: FE_UNSET = -9999.0_wp
+   real(wp), parameter :: VILMA_UNSET = -9999.0_wp
 
    ! LGM-memory spin-up controls (the relaxation interval is internal — no user dt).
    real(wp), parameter :: SPINUP_DT0   = 200.0_wp   !! first relaxation interval [years]
@@ -86,12 +86,12 @@ module fe_coupling
    end type gauss_state
 
    type :: solid_earth
-      type(fe_param_class)     :: par       !! configuration record (one &fe3d group); set by the host before init
+      type(vilma_param_class)     :: par       !! configuration record (one &fe3d group); set by the host before init
       type(sht_grid), pointer  :: sht => null()  !! model-OWNED transform grid (built at init, freed at finalize)
       type(earth_model)        :: earth     !! radial (+ optional 3D) structure
       type(response)           :: resp      !! viscoelastic field driver (load → u, N)
       type(sle_solver)         :: sle       !! sea-level equation
-      type(adaptive_stepper)   :: stepper   !! adaptive-Δt controller (fe_timestep)
+      type(adaptive_stepper)   :: stepper   !! adaptive-Δt controller (vilma_timestep)
       type(rotation_state)     :: rotation  !! TPW feedback (ON by default; par%rotation)
 
       type(gauss_state)        :: gg        !! Gauss-grid working state (the physics)
@@ -103,9 +103,9 @@ module fe_coupling
       !! Optional VILMA-v1 backend (par%solver = "v1"), for a like-for-like
       !! comparison behind this same API. When active, `resp`/`sle`/`stepper`/
       !! `rotation`/`earth` above are NOT built — VILMA-v1 owns the physics — and the
-      !! diagnostics they would otherwise fill are left at FE_UNSET. Specifically:
-      !!   worst_mass_resid : no analogue (VILMA-v1 reports no SLE mass residual)   -> FE_UNSET
-      !!   stepper%*        : VILMA-v1 does its own internal time stepping          -> FE_UNSET
+      !! diagnostics they would otherwise fill are left at VILMA_UNSET. Specifically:
+      !!   worst_mass_resid : no analogue (VILMA-v1 reports no SLE mass residual)   -> VILMA_UNSET
+      !!   stepper%*        : VILMA-v1 does its own internal time stepping          -> VILMA_UNSET
       !!   resp%t_* / sle%t_* / stepper%t_guard : those phases do not exist      -> stay 0
       !! while `rsl`, `z_bed`, `C` and `bsl` ARE populated (see solid_earth_update).
       !! `t_solver` below is the one timer that is meaningful for both backends.
@@ -227,7 +227,7 @@ contains
       if (self%use_vilma_v1) then
          call vilma_v1_init(self%vilma_v1, self%par, self%sht, &
                             self%gg%z_bed_eq, self%gg%h_ice_eq, self%gg%h_ice)
-         self%worst_mass_resid = FE_UNSET      ! no analogue in VILMA-v1; see the type
+         self%worst_mass_resid = VILMA_UNSET      ! no analogue in VILMA-v1; see the type
       end if
    end subroutine solid_earth_init
 
@@ -238,7 +238,7 @@ contains
       !! typo, or asking for VILMA-v1 in a default build, should cost nothing.
       !! vilma_v1_require aborts with an actionable rebuild message — never a link
       !! error and never a crash.
-      type(fe_param_class), intent(in) :: par
+      type(vilma_param_class), intent(in) :: par
       select case (trim(par%solver))
       case ("v2")   ! native solver: nothing to check
       case ("v1"); call vilma_v1_require()
@@ -296,7 +296,7 @@ contains
       self%sle%subgrid      = self%par%sle_subgrid
       self%sle%warm_start   = .true.
 
-      ! adaptive-Δt controller (fe_timestep)
+      ! adaptive-Δt controller (vilma_timestep)
       self%stepper%rtol       = self%par%rtol
       self%stepper%atol       = self%par%atol
       self%stepper%safety     = self%par%safety
@@ -308,7 +308,7 @@ contains
       self%stepper%dt_try     = self%par%dt_init       ! 0 => first guess = whole interval
 
       ! rotational feedback (degree-2 Liouville polar motion → centrifugal potential
-      ! fed back into the SLE; fe_rotation).
+      ! fed back into the SLE; vilma_rotation).
       self%rotation%enabled = self%par%rotation
       if (self%par%rotation) then
          call rotation_init(self%rotation, self%earth, self%sht, dt0)
@@ -336,7 +336,7 @@ contains
       !! h_ice (host grid) and store the results in the derived type: se%rsl, se%z_bed
       !! (host grid) and se%gg%* (Gauss grid). The ice load is ramped linearly from the
       !! previous h_ice to the new one across the interval; the adaptive stepper
-      !! (fe_timestep) chooses the internal Δt, solving the SLE against the current
+      !! (vilma_timestep) chooses the internal Δt, solving the SLE against the current
       !! relaxation state and advancing the Maxwell memory at each sub-step.
       type(solid_earth), intent(inout) :: self
       real(wp),           intent(in)    :: h_ice(:,:)   !! grounded-ice thickness [m] (host grid)
@@ -372,7 +372,7 @@ contains
          ! Diagnostics VILMA-v1 does not hand back. DERIVED HONESTLY from VILMA-v1's own
          ! output, using the SAME formulas the native solver uses, so the two
          ! backends' diagnostics are like-for-like:
-         !   C   — flotation (fe_sle ocean_function) applied to VILMA-v1's updated bed
+         !   C   — flotation (vilma_sle ocean_function) applied to VILMA-v1's updated bed
          !         and the current ice. This is FastEarth3D's diagnostic of VILMA-v1's
          !         state, NOT VILMA-v1's internal ocean function (which the library does
          !         not expose on this grid); it can differ from VILMA-v1's own coastline
@@ -384,8 +384,8 @@ contains
          call update_bsl(self)
          ! NOT derivable: VILMA-v1 reports no sea-level-equation mass residual, so this
          ! stays at the documented fill value rather than a made-up number. The
-         ! driver skips printing it (see fe_drive).
-         self%worst_mass_resid = FE_UNSET
+         ! driver skips printing it (see vilma_drive).
+         self%worst_mass_resid = VILMA_UNSET
 
          self%h_ice = h_ice
          call system_clock(pc0)
@@ -438,7 +438,7 @@ contains
       !! Refresh the host-grid output fields from the Gauss-grid state: map the smooth
       !! rsl perturbation back (bilinear, or copy when passthrough) and reconstruct
       !! z_bed on the host's own (high-resolution) bed so its detail survives. update()
-      !! calls this each step; fe_restart_read calls it after restoring the gg state.
+      !! calls this each step; vilma_restart_read calls it after restoring the gg state.
       type(solid_earth), intent(inout) :: self
       if (self%remap) then
          call remap_to_ll(self%map, self%gg%rsl, self%rsl)
@@ -568,14 +568,14 @@ contains
    subroutine update_bsl(self)
       !! Diagnose the barystatic sea level from the current (Gauss-grid) state.
       !!
-      !! The grounded-ice increment is masked exactly as fe_sle masks it: the
+      !! The grounded-ice increment is masked exactly as vilma_sle masks it: the
       !! current column by the current ocean function, the REFERENCE column by
       !! the reference one. Masking the raw difference by the current C alone
       !! drops the whole column of any cell that carried grounded marine
-      !! reference ice and has since flooded -- see the ΔI_g note in fe_sle.
+      !! reference ice and has since flooded -- see the ΔI_g note in vilma_sle.
       !!
-      !! This is the WHOLE grounded-column change, NOT the sea level fe_sle
-      !! delivers: there is no subgrid term here, while fe_sle's mass-conservation
+      !! This is the WHOLE grounded-column change, NOT the sea level vilma_sle
+      !! delivers: there is no subgrid term here, while vilma_sle's mass-conservation
       !! offset carries one. Over cells that flooded since the reference, bsl
       !! therefore reads high by their below-flotation volume -- about 10 m on the
       !! LGM-datum deglaciation. It is an ice-volume-equivalent diagnostic, not the
@@ -641,7 +641,7 @@ contains
       !! Build the Gauss-Legendre transform grid from the parameter record. When
       !! nlat/nphi are unset (<=0) default to a de-aliased grid (nlat=2 lmax+2,
       !! nphi=4 lmax) sized for the SLE's quadratic ocean-function product.
-      type(fe_param_class), intent(in)    :: p
+      type(vilma_param_class), intent(in)    :: p
       type(sht_grid),       intent(inout) :: sht
       integer :: nlat, nphi
       nlat = p%nlat;  if (nlat <= 0) nlat = 2*p%lmax + 2
@@ -679,4 +679,4 @@ contains
       same = .true.
    end function grid_is_gauss
 
-end module fe_coupling
+end module vilma_coupling

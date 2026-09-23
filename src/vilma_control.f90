@@ -1,24 +1,24 @@
-module fe_control
+module vilma_control
    !! Standalone-program control record: the run-management settings the FastEarth3D
    !! *executables* need but the solid-Earth model itself does not. Loaded from one
    !! namelist group `&ctl`, separate from the physics/numerics record `&fe3d`
-   !! (fe_params). These are the forcing/reference/output file paths, variable names,
+   !! (vilma_params). These are the forcing/reference/output file paths, variable names,
    !! the time window, the online-remap toggle, the reference-equilibration selector
    !! (i_eq), and the restart-in path — everything a host model (CLIMBER-X) supplies
    !! through the API and its own time loop instead, and so never reads here.
    !!
-   !! Split rationale: `fe_param_class` is the model's configuration contract (what a
-   !! host fills in memory); `fe_ctl_class` is the standalone driver's I/O glue. The
-   !! driver (fe_drive) and the offline tools (fastearth_remap, fastearth_mkref) load
+   !! Split rationale: `vilma_param_class` is the model's configuration contract (what a
+   !! host fills in memory); `vilma_ctl_class` is the standalone driver's I/O glue. The
+   !! driver (vilma_drive) and the offline tools (vilma_remap, vilma_mkref) load
    !! BOTH groups — `&fe3d` for the grid/physics, `&ctl` for what to read and write.
-   use fe_precision, only: wp
-   use fe_constants, only: sec_per_year
-   use fe_params,    only: expand_path
+   use vilma_precision, only: wp
+   use vilma_constants, only: sec_per_year
+   use vilma_params,    only: expand_path
    use nml
    implicit none
    private
 
-   public :: fe_ctl_class, fe_ctl_load, fe_ctl_print
+   public :: vilma_ctl_class, vilma_ctl_load, vilma_ctl_print
    public :: DEFAULTS_FILE
 
    !! Canonical physics defaults the executables load automatically. A run config
@@ -26,7 +26,7 @@ module fe_control
    !! Relative to the run directory; input/ is linked into each rundir (see .runme).
    character(len=*), parameter :: DEFAULTS_FILE = "input/fastearth3d_defaults.nml"
 
-   type :: fe_ctl_class
+   type :: vilma_ctl_class
       ! --- ice-thickness forcing (lon,lat,time) ---------------------------------
       character(len=512) :: file_forcing = ""            !! ice-thickness forcing
       character(len=64)  :: name_ice     = "h_ice"       !! ice variable in file_forcing
@@ -38,7 +38,7 @@ module fe_control
       character(len=64)  :: name_hice_ref = "h_ice_ref"  !! ice var (legacy 2D ref)
 
       ! --- step output ----------------------------------------------------------
-      character(len=512) :: file_out     = "fastearth_out.nc"  !! step output
+      character(len=512) :: file_out     = "vilma_out.nc"  !! step output
       ! Surface horizontal displacement, spheroidal + toroidal, written to its own
       ! file on the same grid and time axis as file_out; empty = not written. Its
       ! own file because each field is as large as rsl, and most runs need none.
@@ -46,7 +46,7 @@ module fe_control
 
       ! --- forcing time window --------------------------------------------------
       ! Time fields are SI [s] in the record; the nml supplies them in YEARS and
-      ! fe_ctl_load converts on read (so the in-memory record is uniformly SI).
+      ! vilma_ctl_load converts on read (so the in-memory record is uniformly SI).
       real(wp) :: time_init = -huge(1.0_wp)  !! start time [years] (default: first forcing slice)
       real(wp) :: time_end  =  huge(1.0_wp)  !! end time   [years] (default: last  forcing slice)
 
@@ -76,33 +76,33 @@ module fe_control
       character(len=64)  :: name_rsl       = "rsl"                !! rsl var in rsl_restart_file
 
       ! --- restart-in path ------------------------------------------------------
-      ! The restart *capability* (fe_restart_read/write) is the model's; the *path* is
+      ! The restart *capability* (vilma_restart_read/write) is the model's; the *path* is
       ! run management. A host (CLIMBER-X) derives its own restart path from its global
       ! restart_in_dir and never reads this field.
       character(len=512) :: restart_in_file = ""
-         !! full-state restart (fe_restart.nc) to resume from: solid_earth_init at the
+         !! full-state restart (vilma_restart.nc) to resume from: solid_earth_init at the
          !! reference, then restore the saved memory/clock. A lower-resolution restart is
          !! interpolated up to the model grid.
-   end type fe_ctl_class
+   end type vilma_ctl_class
 
 contains
 
-   subroutine fe_ctl_load(c, filename, group)
+   subroutine vilma_ctl_load(c, filename, group)
       !! Fill the control record from the `&ctl` group of `filename`. There is no
       !! separate &ctl defaults file (the canonical defaults — input/fastearth3d_defaults.nml
       !! — carry only &fe3d, the host API contract). Reads are therefore non-strict:
       !! a parameter present in `filename` overrides, one that is absent keeps the
-      !! fe_ctl_class in-code default. So a run config may set only the &ctl keys it
+      !! vilma_ctl_class in-code default. So a run config may set only the &ctl keys it
       !! needs. Override `group` to read a differently-named namelist. Time fields are
       !! given in YEARS and converted to SI here.
-      type(fe_ctl_class), intent(inout) :: c
+      type(vilma_ctl_class), intent(inout) :: c
       character(len=*),   intent(in)    :: filename
       character(len=*),   intent(in), optional :: group
       character(len=64)  :: g
       real(wp) :: time_init_yr, time_end_yr
 
       g = "ctl";  if (present(group)) g = group
-      call nml_set_verbose(.false.)             ! fe_ctl_print echoes a concise summary instead
+      call nml_set_verbose(.false.)             ! vilma_ctl_print echoes a concise summary instead
 
       ! forcing
       call nml_read(filename, g, "file_forcing",  c%file_forcing)
@@ -154,11 +154,11 @@ contains
       ! restart-in path
       call nml_read(filename, g, "restart_in_file", c%restart_in_file)
       c%restart_in_file = expand_path(c%restart_in_file)
-   end subroutine fe_ctl_load
+   end subroutine vilma_ctl_load
 
-   subroutine fe_ctl_print(c, unit)
+   subroutine vilma_ctl_print(c, unit)
       !! Echo the active control configuration (to stdout, or `unit` if given).
-      type(fe_ctl_class), intent(in) :: c
+      type(vilma_ctl_class), intent(in) :: c
       integer, intent(in), optional :: unit
       integer :: u
       u = 6;  if (present(unit)) u = unit
@@ -173,6 +173,6 @@ contains
          write(u,'(a,a)')  '   horizontal: ', trim(c%file_hor)
       if (len_trim(c%restart_in_file) > 0) &
          write(u,'(a,a)')  '   restart:  ', trim(c%restart_in_file)
-   end subroutine fe_ctl_print
+   end subroutine vilma_ctl_print
 
-end module fe_control
+end module vilma_control

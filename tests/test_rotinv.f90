@@ -18,14 +18,14 @@ program test_rotinv
    !! lmax defaults to 32 (in `make check`, a few seconds). Pass a larger lmax on the
    !! command line for the full-resolution standalone run, e.g.
    !!     make openmp=1 test_rotinv && bin/test_rotinv.x 192
-   use fe_precision,       only: wp
-   use fe_constants,       only: kyr
-   use fe_earth_structure, only: earth_model, build_M3L70V01
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_response,        only: response_destroy, response_commit_step, response_apply, response_begin_step, response_enable_lateral_visc, response, response_init_elastic, response_init_ve, response_init_null, &
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: kyr
+   use vilma_earth_structure, only: earth_model, build_M3L70V01
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_response,        only: response_destroy, response_commit_step, response_apply, response_begin_step, response_enable_lateral_visc, response, response_init_elastic, response_init_ve, response_init_null, &
                                  response_horizontal_toroidal
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_analysis, sht_grid_eval_point
-   use fe_viscoelastic,    only: SCHEME_TRAP
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_analysis, sht_grid_eval_point
+   use vilma_viscoelastic,    only: SCHEME_TRAP
    implicit none
 
    real(wp), parameter :: YR     = 0.001_wp*kyr

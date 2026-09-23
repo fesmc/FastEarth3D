@@ -1,4 +1,4 @@
-module fe_precision
+module vilma_precision
    !! Working precision for FastEarth3D.
    !!
    !! `wp` is double precision and is deliberately kept identical to the C
@@ -18,9 +18,9 @@ module fe_precision
    integer, parameter :: i8 = int64
 
    ! Fail the build early if the working precision ever stops matching C double,
-   ! which would silently break the SHTns/FFTW array passing in fe_sht. When the
+   ! which would silently break the SHTns/FFTW array passing in vilma_sht. When the
    ! kinds match this is just `real(wp)`; otherwise the kind is -1 (invalid) and
    ! the compiler rejects it.
    real(kind=merge(wp, -1, wp == c_double)), private :: enforce_wp_eq_c_double
 
-end module fe_precision
+end module vilma_precision

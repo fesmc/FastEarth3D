@@ -1,4 +1,4 @@
-module fe_band
+module vilma_band
    !! Banded LU with partial pivoting — a small, dependency-free, thread-safe direct
    !! solver for the per-degree radial operator. The operator is a saddle-point
    !! system with a ZERO pressure (Π,Π) block, so a factorization MUST pivot; it is
@@ -10,7 +10,7 @@ module fe_band
    !! Storage and algorithm follow LAPACK's unblocked dgbtf2 / dgbtrs exactly:
    !! A(i,j) lives at ab(kv+1+i-j, j) with kv = kl+ku, ldab = 2*kl+ku+1 (the top kl
    !! rows are fill-in workspace created by pivoting).
-   use fe_precision, only: wp
+   use vilma_precision, only: wp
    implicit none
    private
    public :: band_lu
@@ -149,4 +149,4 @@ contains
       self%ready = .false.
    end subroutine band_destroy
 
-end module fe_band
+end module vilma_band

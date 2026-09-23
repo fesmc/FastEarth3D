@@ -151,8 +151,8 @@ practice, the key to getting the low-degree elastic Love numbers right — see t
   [Radial finite elements](../discretization/radial-fe.qmd).
 
 ::: {.callout-tip title="Where this lives in the code"}
-The governing equations are realized in `fe_earth_structure` (reference layers
-and gravity), `fe_radial_fe` (the assembled energy-Hessian operator), and
-`fe_viscoelastic` (the Maxwell memory term). The continuous-to-discrete
+The governing equations are realized in `vilma_earth_structure` (reference layers
+and gravity), `vilma_radial_fe` (the assembled energy-Hessian operator), and
+`vilma_viscoelastic` (the Maxwell memory term). The continuous-to-discrete
 mapping is documented term-by-term in the repository's `doc/formulation.md`.
 :::

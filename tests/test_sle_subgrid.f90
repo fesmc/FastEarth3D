@@ -1,5 +1,5 @@
 program test_sle_subgrid
-   !! Validate the subgrid (sloping-coast) ocean water load of fe_sle against an
+   !! Validate the subgrid (sloping-coast) ocean water load of vilma_sle against an
    !! independent calculation, and contrast it with the binary coastline.
    !!
    !! With a NULL (rigid) response the SLE reduces to pure eustatic redistribution:
@@ -16,12 +16,12 @@ program test_sle_subgrid
    !! migrates; (3) the binary coastline gives a DIFFERENT dphi here (the term is
    !! active) and does NOT satisfy the volume balance; (4) with no migration
    !! (coast does not move) subgrid and binary agree bit-for-bit.
-   use fe_precision,  only: wp
-   use fe_constants,  only: rho_ice, rho_water, pi
-   use fe_response,   only: response, response_init_elastic, response_init_ve, response_init_null
-   use fe_sht,        only: sht_grid, sht_grid_init, sht_grid_surface_integral, sht_grid_destroy
-   use fe_sle,        only: sle_solve, sle_solver, sle_result
-   use fe_field,      only: spherical_cap, exp_basin
+   use vilma_precision,  only: wp
+   use vilma_constants,  only: rho_ice, rho_water, pi
+   use vilma_response,   only: response, response_init_elastic, response_init_ve, response_init_null
+   use vilma_sht,        only: sht_grid, sht_grid_init, sht_grid_surface_integral, sht_grid_destroy
+   use vilma_sle,        only: sle_solve, sle_solver, sle_result
+   use vilma_field,      only: spherical_cap, exp_basin
    implicit none
 
    real(wp), parameter :: DEG = pi/180.0_wp

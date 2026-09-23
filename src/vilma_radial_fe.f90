@@ -1,4 +1,4 @@
-module fe_radial_fe
+module vilma_radial_fe
    !! Radial finite-element discretization of the viscoelastic field equations.
    !!
    !! For the spherically symmetric background each spherical-harmonic degree `l`
@@ -19,15 +19,15 @@ module fe_radial_fe
    !!   - radial_operator:  the per-degree banded saddle-point system (mixed
    !!                       P1 displacement+potential / P0 pressure, eqs 80-84,
    !!                       111-112), equilibrated and factored once per degree
-   !!                       with the pivoted band LU in fe_band, then reused for
+   !!                       with the pivoted band LU in vilma_band, then reused for
    !!                       every order m, load and time step.
-   use fe_precision, only: wp
-   use fe_constants, only: pi, grav_G
-   use fe_earth_structure, only: earth_gravity_at, earth_n_layers, earth_model
-   use fe_radial_integrals, only: elem_i1, elem_i2, elem_i3, elem_i4, &
+   use vilma_precision, only: wp
+   use vilma_constants, only: pi, grav_G
+   use vilma_earth_structure, only: earth_gravity_at, earth_n_layers, earth_model
+   use vilma_radial_integrals, only: elem_i1, elem_i2, elem_i3, elem_i4, &
                                   elem_i5, elem_i6, elem_i7, &
                                   elem_k1, elem_k2, elem_k3, elem_k4
-   use fe_band,             only: band_lu, band_build, band_solve, band_destroy
+   use vilma_band,             only: band_lu, band_build, band_solve, band_destroy
    implicit none
    private
 
@@ -63,7 +63,7 @@ module fe_radial_fe
 
    type :: bordered_band
       !! An operator row/column-equilibrated and factored once as a pivoted band LU
-      !! (fe_band), optionally bordered by nb KKT constraint rows wᵀd = 0:
+      !! (vilma_band), optionally bordered by nb KKT constraint rows wᵀd = 0:
       !!     [ A   W ] [d]   [f]
       !!     [ Wᵀ  0 ] [λ] = [c]      W = [w_1 … w_nb],  c = 0 unless asked.
       !! Shared by the spheroidal and toroidal radial operators. The physical
@@ -81,14 +81,14 @@ module fe_radial_fe
 
    type :: radial_operator
       !! Per-degree spheroidal saddle-point system (eqs 80-84), equilibrated and
-      !! stored as a factored band LU, ready to hand to fe_band.
+      !! stored as a factored band LU, ready to hand to vilma_band.
       integer  :: j  = -1                 !! spherical-harmonic degree
       integer  :: nr = 0, ne = 0, ndof = 0
       real(wp) :: r_earth = 0.0_wp        !! surface radius a [m]
       real(wp) :: g_surf  = 0.0_wp        !! g₀(a) [m s⁻²]
       ! Degrees j>=2 are a narrow band. Degree j=1 carries one KKT border that
       ! removes the rigid mode, so its effective bandwidth is ~full and that one
-      ! degree factors as a dense LU — still fe_band, just wide. No LIS.
+      ! degree factors as a dense LU — still vilma_band, just wide. No LIS.
       !
       ! Degree-1 only: the E_uniq penalty (4π/3) w wᵀ is densifying AND, because w
       ! carries K³~∫ψr², ~1e16× the band — i.e. a de-facto hard constraint wᵀd=0
@@ -103,7 +103,7 @@ module fe_radial_fe
       ! null direction (A d = -w*lambda, w'd = 1). Nonzero only for j = 1. Adding
       ! any multiple of it changes the FRAME, not the deformation, which is what
       ! makes a degree-1 frame choice a post-solve projection (see
-      ! response_deg1_to_cm in fe_response).
+      ! response_deg1_to_cm in vilma_response).
       real(wp), allocatable :: nullmode(:)       !! (ndof) degree-1 null direction
       logical  :: ready = .false.
    end type radial_operator
@@ -281,9 +281,9 @@ contains
       !! is self-transpose by construction, and test_assembly asserts
       !! ‖A−Aᵀ‖/‖A‖ = 0. It is nonetheless INDEFINITE (the pressure block is
       !! zero), so the factorization must pivot — hence the general
-      !! partial-pivoting band LU in fe_band rather than a Cholesky. Dense here
+      !! partial-pivoting band LU in vilma_band rather than a Cholesky. Dense here
       !! for clarity and testability; radial_operator_assemble keeps only the
-      !! nonzeros and hands them to fe_band.
+      !! nonzeros and hands them to vilma_band.
       !!
       !! `with_uniq` (default .true.) controls the degree-1 E_uniq term (eq 83):
       !! when .true. the dense rank-1 penalty is added (the reference operator);
@@ -569,7 +569,7 @@ contains
             end do
             ! corner is 0 (KKT) — no entry.
          end do
-         ! A bordered system has ~full bandwidth, so fe_band factors it as a dense LU.
+         ! A bordered system has ~full bandwidth, so vilma_band factors it as a dense LU.
          call band_build(sys%band, ns, p, rows, cols, vals, okband)
          if (.not. okband) error stop 'bordered_band_factor: band LU factorization failed'
       end block
@@ -897,4 +897,4 @@ contains
       !! banded-LU solver has no global runtime to release; LIS is no longer used.
    end subroutine radial_fe_finalize
 
-end module fe_radial_fe
+end module vilma_radial_fe

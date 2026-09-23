@@ -15,9 +15,9 @@ program diag_tensor_grid
    !!
    !! Scans the cancellation ratio and reports the relative error of the grid-space
    !! update against the exact coefficient-space update, for uniform M.
-   use fe_precision, only: wp
-   use fe_sht,       only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_destroy
-   use fe_tensor_sh, only: tensor_sh, TLAM_SPH, tensor_sh_init, tensor_sh_synth, &
+   use vilma_precision, only: wp
+   use vilma_sht,       only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_destroy
+   use vilma_tensor_sh, only: tensor_sh, TLAM_SPH, tensor_sh_init, tensor_sh_synth, &
                            tensor_sh_analysis, tensor_sh_destroy
    implicit none
 

@@ -1,6 +1,6 @@
-module fe_timestep
+module vilma_timestep
    !! Adaptive time-stepping strategies for the viscoelastic + sea-level model.
-   !! Isolated from fe_coupling so the model can carry more than one stepping strategy
+   !! Isolated from vilma_coupling so the model can carry more than one stepping strategy
    !! (fixed sub-steps, adaptive, …) behind a common driver.
    !!
    !! `adaptive_stepper` advances the VE+SLE model across a coupling interval [t0,t1]
@@ -24,11 +24,11 @@ module fe_timestep
    !!
    !! Δt enters the response only through Mk = (μ/η)Δt, so changing it (resp%set_dt) is a
    !! cheap rescale — no operator re-factorization (the band LU is Δt-independent).
-   use fe_precision,    only: wp
-   use fe_sht,          only: sht_grid
-   use fe_response,     only: response_coarse_fine_error, response_stash_coarse, response_prime_sigma, response_restore_state, response_set_dt, response_save_state, response_memory_norm, response_max_rate, response
-   use fe_sle,          only: sle_solve, sle_solver, sle_result
-   use fe_viscoelastic, only: scheme_order, scheme_is_implicit
+   use vilma_precision,    only: wp
+   use vilma_sht,          only: sht_grid
+   use vilma_response,     only: response_coarse_fine_error, response_stash_coarse, response_prime_sigma, response_restore_state, response_set_dt, response_save_state, response_memory_norm, response_max_rate, response
+   use vilma_sle,          only: sle_solve, sle_solver, sle_result
+   use vilma_viscoelastic, only: scheme_order, scheme_is_implicit
    implicit none
    private
 
@@ -93,14 +93,14 @@ contains
       real(wp),                 intent(in)    :: t0, t1
       real(wp),                 intent(inout) :: rsl(:,:)
       real(wp),                 intent(out)   :: C(:,:)
-      !! s_rot (optional): the rotational-feedback contribution to RSL (fe_rotation),
+      !! s_rot (optional): the rotational-feedback contribution to RSL (vilma_rotation),
       !! held constant across this interval and added to the SLE geometry (the caller
       !! runs the rotation ↔ SLE coupling at the interval level). Absent ⇒ no rotation.
       real(wp),       optional, intent(in)    :: s_rot(:,:)
       !! sigma_out (optional): the SLE's converged spectral surface mass load [kg m⁻²]
       !! at t1 — the SAME load the response saw, including the subgrid sloping-coast
       !! term. Returned so the caller drives the end-of-interval rotational feedback
-      !! from it rather than re-deriving the load (fe_coupling). The final SLE solve of
+      !! from it rather than re-deriving the load (vilma_coupling). The final SLE solve of
       !! the run lands on the accepted state at t1, so its load is the t1 load.
       complex(wp),    optional, intent(out)   :: sigma_out(:)
 
@@ -135,7 +135,7 @@ contains
       ! old C. Three consequences:
       !   * solid_earth_update(se, X, 0.0) is not idempotent -- calling it twice
       !     with the same X gives different rsl/C.
-      !   * the two backends differ at t0. fe_drive seeds with dt=0 and
+      !   * the two backends differ at t0. vilma_drive seeds with dt=0 and
       !     solid_earth_init leaves h_ice = h_ice_eq, so the native seed reports
       !     the REFERENCE coastline while the VILMA-v1 path (which sets h_ice before
       !     its own diagnostics) reports the LGM one. They differ over every cell
@@ -219,7 +219,7 @@ contains
                self%n_reject = self%n_reject + 1
                dt = 0.5_wp*dt
                if (dt <= 1.0e-12_wp*span) error stop &
-                  'fe_timestep: explicit guard sub-step collapsed (viscosity too stiff for FE)'
+                  'vilma_timestep: explicit guard sub-step collapsed (viscosity too stiff for FE)'
             end if
          end do
          if (present(sigma_out)) sigma_out = sig_last
@@ -279,7 +279,7 @@ contains
          ! default dt_min = 0 a persistently rejected step shrinks geometrically
          ! toward zero forever. Both are an infinite hang rather than an error.
          if (.not. (errsc <= huge(1.0_wp))) error stop &
-            'fe_timestep: implicit local-error estimate went non-finite &
+            'vilma_timestep: implicit local-error estimate went non-finite &
             &(viscosity too stiff, or the state has already diverged)'
 
          ! --- accept / reject ----------------------------------------------------
@@ -303,7 +303,7 @@ contains
          fac = min(self%grow_max, max(self%shrink_min, fac))
          self%dt_try = min(self%dt_max, max(self%dt_min, dt*fac))
          if (self%dt_try <= 1.0e-12_wp*span) error stop &
-            'fe_timestep: implicit adaptive step collapsed (tolerance unreachable)'
+            'vilma_timestep: implicit adaptive step collapsed (tolerance unreachable)'
       end do
 
       ! sig_last now holds the final accepted step's fine sub-step at t1.
@@ -327,4 +327,4 @@ contains
 
    end subroutine stepper_advance
 
-end module fe_timestep
+end module vilma_timestep

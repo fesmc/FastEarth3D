@@ -1,9 +1,9 @@
-module fe_io
+module vilma_io
    !! netCDF input/output for the coupling state, following the yelmo convention:
    !! a general, table-driven write_step writes a chosen subset of variables to a
    !! file with an unlimited time axis, so several snapshots accumulate in one
    !! file (handy for debugging). A restart file is just the full variable set
-   !! written this way; fe_restart_read restores the prognostic state.
+   !! written this way; vilma_restart_read restores the prognostic state.
    !!
    !! The variable registry — names, dimensions, units, long_names — lives in a
    !! markdown table (input/fastearth-variables.md) parsed by variable_io. The
@@ -16,22 +16,22 @@ module fe_io
    !! channels' memory stress (rot_*) are persisted too. Static (written once,
    !! checked on read): the reference state z_bed_eq, h_ice_eq. Diagnostic: h_ice,
    !! rsl, z_bed, C_ocean (lon,lat) — written for inspection and restored if present.
-   use fe_precision,    only: wp
-   use fe_constants,    only: rad2deg, sec_per_year
-   use fe_viscoelastic, only: NLAM, NLAM_TOR
-   use fe_response,     only: response_prime_sigma, response, response_init_elastic, response_init_ve, &
+   use vilma_precision,    only: wp
+   use vilma_constants,    only: rad2deg, sec_per_year
+   use vilma_viscoelastic, only: NLAM, NLAM_TOR
+   use vilma_response,     only: response_prime_sigma, response, response_init_elastic, response_init_ve, &
                               response_init_null, RESP_VE, &
                               response_horizontal, response_horizontal_toroidal
-   use fe_sht,          only: sht_grid_sph_synthesis, sht_grid_tor_synthesis
-   use fe_rotation,     only: rotation_ne, rotation_get_memory, rotation_set_memory, ROT_NCOMP
-   use fe_coupling,     only: solid_earth, solid_earth_sync_host
+   use vilma_sht,          only: sht_grid_sph_synthesis, sht_grid_tor_synthesis
+   use vilma_rotation,     only: rotation_ne, rotation_get_memory, rotation_set_memory, ROT_NCOMP
+   use vilma_coupling,     only: solid_earth, solid_earth_sync_host
    use ncio
    use variable_io
    implicit none
    private
 
-   public :: fe_restart_write, fe_restart_read, fe_write_step, fe_io_set_table
-   public :: fe_write_horizontal
+   public :: vilma_restart_write, vilma_restart_read, vilma_write_step, vilma_io_set_table
+   public :: vilma_write_horizontal
 
    ! The full time-varying variable set a restart writes, split by response kind.
    ! COMMON_VARS apply to every kind; the prognostic memory differs: RESP_VE carries
@@ -49,13 +49,13 @@ module fe_io
 
 contains
 
-   subroutine fe_io_set_table(filename)
+   subroutine vilma_io_set_table(filename)
       !! Override the variable-io table path (default input/fastearth-variables.md)
       !! and force a reload on next use.
       character(len=*), intent(in) :: filename
       table_file = filename
       if (allocated(vtable)) deallocate(vtable)
-   end subroutine fe_io_set_table
+   end subroutine vilma_io_set_table
 
    subroutine ensure_table()
       if (.not. allocated(vtable)) call load_var_io_table(vtable, trim(table_file))
@@ -63,23 +63,23 @@ contains
 
    ! --- writing ---------------------------------------------------------------
 
-   subroutine fe_restart_write(self, time, filename, folder, init)
+   subroutine vilma_restart_write(self, time, filename, folder, init)
       !! Write the full coupling state as a restart snapshot at `time` to
       !! trim(folder)//"/"//trim(filename) (folder is created if needed). Defaults:
-      !! folder="." and filename="fe_restart.nc". With init=.true. (default) the file
+      !! folder="." and filename="vilma_restart.nc". With init=.true. (default) the file
       !! is (re)created; with init=.false. the snapshot is appended at a new time index.
       type(solid_earth), intent(in) :: self
       real(wp),           intent(in) :: time
       character(len=*), optional, intent(in) :: filename, folder
       logical, optional,  intent(in) :: init
       character(len=:), allocatable :: fn, fd
-      fn = "fe_restart.nc";  if (present(filename)) fn = trim(filename)
+      fn = "vilma_restart.nc";  if (present(filename)) fn = trim(filename)
       fd = ".";              if (present(folder))   fd = trim(folder)
       call execute_command_line("mkdir -p '"//fd//"'")
-      call fe_write_step(self, fd//"/"//fn, time, init=init)
-   end subroutine fe_restart_write
+      call vilma_write_step(self, fd//"/"//fn, time, init=init)
+   end subroutine vilma_restart_write
 
-   subroutine fe_write_step(self, filename, time, nms, init)
+   subroutine vilma_write_step(self, filename, time, nms, init)
       !! General step writer. Writes the variables named in nms (default: all
       !! time-varying variables) at the time index for `time`, appending along
       !! the unlimited time axis. The model time should be passed as `time` for
@@ -125,9 +125,9 @@ contains
       end if
 
       call nc_close(ncid)
-   end subroutine fe_write_step
+   end subroutine vilma_write_step
 
-   subroutine fe_write_horizontal(self, filename, time, init)
+   subroutine vilma_write_horizontal(self, filename, time, init)
       !! Surface horizontal displacement [m] at `time`, into its own file (&ctl
       !! file_hor): the total, spheroidal + toroidal, and the toroidal part alone,
       !! as east/north components on the Gauss grid of file_out. Relative to the
@@ -149,7 +149,7 @@ contains
       real(wp),    allocatable :: sth(:,:), sph(:,:), tth(:,:), tph(:,:)
       real(wp),    allocatable :: lon_deg(:), lat_deg(:)
       integer :: ncid, n, np, nl
-      if (self%use_vilma_v1) error stop 'fe_write_horizontal: the VILMA-v1 backend returns no horizontal field'
+      if (self%use_vilma_v1) error stop 'vilma_write_horizontal: the VILMA-v1 backend returns no horizontal field'
       call ensure_table()
       np = self%sht%nphi;  nl = self%sht%nlat
       allocate(v_lm(self%sht%nlm), t_lm(self%sht%nlm))
@@ -178,7 +178,7 @@ contains
       call put_hor(filename, "u_east_tor",  tph,          n, ncid, np, nl)
       call put_hor(filename, "u_north_tor", -tth,         n, ncid, np, nl)
       call nc_close(ncid)
-   end subroutine fe_write_horizontal
+   end subroutine vilma_write_horizontal
 
    subroutine put_hor(filename, name, dat, n, ncid, np, nl)
       character(len=*), intent(in) :: filename, name
@@ -193,7 +193,7 @@ contains
    subroutine write_rotation(self, filename, n, ncid)
       !! Write the rotation solver's prognostic state at time slice n: the polar
       !! motion m (two scalars) and both degree-2 channels' packed memory stress
-      !! (NLAM, ne_rot, ROT_NCOMP). Serialization is owned by fe_rotation; this just
+      !! (NLAM, ne_rot, ROT_NCOMP). Serialization is owned by vilma_rotation; this just
       !! moves the packed arrays into the file.
       type(solid_earth), intent(in) :: self
       character(len=*),   intent(in) :: filename
@@ -320,7 +320,7 @@ contains
       ! Polar motion m = m1 + i*m2 [rad]. Already prognostic and already
       ! serialized into restarts by write_rotation; these two cases let the
       ! DIAGNOSTIC output file carry it as well, via an explicit nms list.
-      ! Only meaningful when the rotation solver ran -- fe_drive adds them to
+      ! Only meaningful when the rotation solver ran -- vilma_drive adds them to
       ! its list only if se%rotation%enabled, so a rotation=.false. run and the
       ! VILMA-v1 backend (which keeps its own internal rotation and never touches
       ! this state) omit the variables rather than writing a fabricated zero.
@@ -334,7 +334,7 @@ contains
               merge(1.0_wp, 0.0_wp, allocated(self%resp%sigma_n) .and. self%resp%sigma_primed), &
               n, ncid)
       case default
-         error stop 'fe_io: unknown variable "'//trim(name)//'"'
+         error stop 'vilma_io: unknown variable "'//trim(name)//'"'
       end select
    end subroutine write_one
 
@@ -411,7 +411,7 @@ contains
 
    ! --- reading ---------------------------------------------------------------
 
-   subroutine fe_restart_read(self, filename, time)
+   subroutine vilma_restart_read(self, filename, time)
       !! Restore the prognostic state into an already-initialised solid_earth
       !! (init() must have rebuilt the operators, spectrum and grid). Reads the
       !! response's memory state + model time at the time slice matching `time`
@@ -439,7 +439,7 @@ contains
       if (present(time)) then
          n = minloc(abs(tvals - time), dim=1)
          if (abs(tvals(n) - time) > 1.0e-6_wp*max(abs(time), 1.0_wp)) &
-            error stop 'fe_restart_read: requested time not present in file'
+            error stop 'vilma_restart_read: requested time not present in file'
       else
          n = nt
       end if
@@ -465,7 +465,7 @@ contains
       ! the restart restores the Gauss-grid state (gg) + memory; re-derive the
       ! host-grid outputs (rsl, z_bed) from it so the host reads a consistent state.
       call solid_earth_sync_host(self)
-   end subroutine fe_restart_read
+   end subroutine vilma_restart_read
 
    subroutine read_rotation(self, filename, n)
       !! Restore the rotation solver's prognostic state at slice n: the polar motion
@@ -481,7 +481,7 @@ contains
       ne   = rotation_ne(self%rotation)
       ne_f = nc_size(filename, "ne_rot")
       if (ne_f /= ne) &
-         error stop 'fe_restart_read: rotation channel size (ne_rot) does not match the model'
+         error stop 'vilma_restart_read: rotation channel size (ne_rot) does not match the model'
       allocate(load_mem(NLAM, ne, ROT_NCOMP), tidal_mem(NLAM, ne, ROT_NCOMP))
       call nc_read(filename, "rot_load_mem",  load_mem,  start=[1,1,1,n], count=[NLAM, ne, ROT_NCOMP, 1])
       call nc_read(filename, "rot_tidal_mem", tidal_mem, start=[1,1,1,n], count=[NLAM, ne, ROT_NCOMP, 1])
@@ -510,7 +510,7 @@ contains
       ! the radial mesh (ne) must always match; the horizontal resolution (nk) may
       ! differ -> cross-resolution restart.
       if (nc_size(filename, "ne") /= ne) &
-         error stop 'fe_restart_read: radial mesh (ne) does not match the model'
+         error stop 'vilma_restart_read: radial mesh (ne) does not match the model'
       ! Memory channels. A spheroidal file (NLAM) restores into a run that carries
       ! the toroidal channels too: they start at zero, which is exactly the
       ! toroidal state of every run that has only ever been spheroidal. The
@@ -518,16 +518,16 @@ contains
       ! it is refused rather than truncated.
       nl_f = nc_size(filename, "nlam")
       if (nl_f /= self%resp%nlam .and. .not. (nl_f == NLAM .and. self%resp%nlam == NLAM + NLAM_TOR)) then
-         write(*,'(a,i0,a,i0,a)') ' fe_restart_read: the file carries ', nl_f, &
+         write(*,'(a,i0,a,i0,a)') ' vilma_restart_read: the file carries ', nl_f, &
               ' memory channels, the model ', self%resp%nlam, '.'
          if (nl_f > self%resp%nlam) write(*,'(a)') '   The file holds toroidal memory from a run with '// &
               'laterally varying viscosity; this run has none to put it in.'
-         error stop 'fe_restart_read: memory channel count does not match the model'
+         error stop 'vilma_restart_read: memory channel count does not match the model'
       end if
       nk_f      = nc_size(filename, "nk")
       cross_res = (nk_f /= nk)
       if (cross_res .and. nk_f > nk) &
-         error stop 'fe_restart_read: cross-resolution downsampling (file lmax > model) not supported'
+         error stop 'vilma_restart_read: cross-resolution downsampling (file lmax > model) not supported'
       if (cross_res) then
          ! degree-grouped contiguity holds iff nk_f is the model's cumulative slot
          ! count through some degree L (i.e. same mmax/mres convention).
@@ -536,7 +536,7 @@ contains
             if (self%resp%kbeg(L+1) - 1 == nk_f) then;  ok_block = .true.;  exit;  end if
          end do
          if (.not. ok_block) &
-            error stop 'fe_restart_read: cross-resolution restart incompatible (mmax/mres mismatch)'
+            error stop 'vilma_restart_read: cross-resolution restart incompatible (mmax/mres mismatch)'
       end if
 
       if (cross_res) then
@@ -578,10 +578,10 @@ contains
       allocate(ref(np,nl))
       call nc_read(filename, "z_bed_eq", ref)
       if (maxval(abs(ref - self%gg%z_bed_eq)) > tol) &
-         error stop 'fe_restart_read: z_bed_eq does not match the initialised model'
+         error stop 'vilma_restart_read: z_bed_eq does not match the initialised model'
       call nc_read(filename, "h_ice_eq", ref)
       if (maxval(abs(ref - self%gg%h_ice_eq)) > tol) &
-         error stop 'fe_restart_read: h_ice_eq does not match the initialised model'
+         error stop 'vilma_restart_read: h_ice_eq does not match the initialised model'
    end subroutine check_reference
 
    subroutine read_diagnostics(self, filename, n, np, nl)
@@ -642,4 +642,4 @@ contains
    end subroutine get2d
 
 
-end module fe_io
+end module vilma_io

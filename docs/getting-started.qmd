@@ -52,9 +52,9 @@ configme writes the compiler fragment into the `Makefile`; building is then
 plain `make`:
 
 ```bash
-make fastearth        # -> bin/fastearth.x        (standalone forced-run driver)
-make fastearth_mkref  # -> bin/fastearth_mkref.x  (build a Gauss-grid reference state)
-make fastearth_remap  # -> bin/fastearth_remap.x  (offline lon-lat -> Gauss remap)
+make vilma        # -> bin/vilma.x        (standalone forced-run driver)
+make vilma_mkref  # -> bin/vilma_mkref.x  (build a Gauss-grid reference state)
+make vilma_remap  # -> bin/vilma_remap.x  (offline lon-lat -> Gauss remap)
 make check            # build + run the test suite
 ```
 
@@ -71,7 +71,7 @@ A run can pass a **sparse overlay** that sets only what it overrides (the yelmo
 `defaults_file` convention):
 
 ```bash
-./bin/fastearth.x examples/deglac_lgm.nml fastearth.nml
+./bin/vilma.x examples/deglac_lgm.nml fastearth.nml
 #                 ^ sparse overlay        ^ complete defaults
 ```
 
@@ -96,9 +96,9 @@ A few conventions worth knowing:
 
 | Executable | Role |
 |---|---|
-| `bin/fastearth.x` | reads a reference state + an ice-thickness forcing `h_ice(lon,lat,time)`, marches the model across the forcing (online lon-lat → Gauss remap by default), and writes the diagnostic surface fields (`rsl`, `z_bed`, `h_ice`, ocean function) to `file_out` |
-| `bin/fastearth_mkref.x` | generates the canonical Gauss-grid present-day reference (e.g. RTopo) used by `i_eq = 1`; other resolutions remap it online (cached) |
-| `bin/fastearth_remap.x` | offline conservative lon-lat → Gauss remap, to preprocess a forcing onto the model grid (`remap_input = .false.`) |
+| `bin/vilma.x` | reads a reference state + an ice-thickness forcing `h_ice(lon,lat,time)`, marches the model across the forcing (online lon-lat → Gauss remap by default), and writes the diagnostic surface fields (`rsl`, `z_bed`, `h_ice`, ocean function) to `file_out` |
+| `bin/vilma_mkref.x` | generates the canonical Gauss-grid present-day reference (e.g. RTopo) used by `i_eq = 1`; other resolutions remap it online (cached) |
+| `bin/vilma_remap.x` | offline conservative lon-lat → Gauss remap, to preprocess a forcing onto the model grid (`remap_input = .false.`) |
 
 A complete worked configuration — an LGM → present-day deglaciation forced by
 the Tarasov ice/bed reconstruction — is in
@@ -108,8 +108,8 @@ the Tarasov ice/bed reconstruction — is in
 
 `runme` stages a clean run directory (linking in `data` and `input`, copying the
 namelist, recording the parameters), then runs or submits it. The executable
-aliases match the drivers: `main` → `fastearth.x`, `mkref` → `fastearth_mkref.x`,
-`remap` → `fastearth_remap.x`.
+aliases match the drivers: `main` → `vilma.x`, `mkref` → `vilma_mkref.x`,
+`remap` → `vilma_remap.x`.
 
 ```bash
 # single local run, 8 OpenMP threads, overriding a few parameters
@@ -133,16 +133,16 @@ inspect what runme reads with `runme info`.
 ## Embedding in a host model
 
 The CLIMBER-X coupling path uses the same code behind a single
-`use fastearth3d`. The contract is intentionally narrow — the host passes **ice
+`use vilma`. The contract is intentionally narrow — the host passes **ice
 thickness** in and receives **relative sea level** and **bedrock** out, on its
 own grid. The model owns its Gauss grid and the host↔Gauss remap (built from the
 parameter record), and keeps all spherical-harmonic work inside
 (see [Implementation](implementation.qmd)):
 
 ```fortran
-use fastearth3d
+use vilma
 type(solid_earth) :: se
-call fe_par_load(se%par, "fastearth.nml")             ! configuration lives in se%par
+call vilma_par_load(se%par, "fastearth.nml")             ! configuration lives in se%par
 call solid_earth_init(se, z_bed_eq, h_ice_eq, grid=host_grid)  ! builds the Gauss grid + remap
 call solid_earth_spinup(se, h_ice_lgm)                ! optional LGM-memory spin-up
 do
