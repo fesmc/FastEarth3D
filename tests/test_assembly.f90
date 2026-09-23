@@ -15,6 +15,7 @@ program test_assembly
                                   rotation_weights, toroidal_operator_assemble, &
                                   toroidal_operator_solve_vec, toroidal_operator_destroy
    use fe_radial_integrals, only: elem_k1, elem_k2
+   use fe_viscoelastic,     only: NLAM_TOR, ve_strain_constants_tor
    implicit none
 
    type(earth_model)     :: earth
@@ -157,6 +158,18 @@ program test_assembly
       call check_toroidal(e2, m2, 'solid inner core', 2)
    end block
 
+   ! --- 4. V1: the W stiffness, re-derived from the strain representation --------
+   ! The eq-80 W block (build_toroidal_operator, from the I-integrals) and the
+   ! energy 2∫μ Σ_{λ=3,4} ‖Z^λ‖² ε^λ δε^λ r² dr rebuilt from the PRODUCTION strain
+   ! rows (strain_coeffs_tor, via ve_strain_constants_tor) and the B13 norms must
+   ! agree to round-off: two independent routes to the same Hessian. The
+   ! integrand (a r/h + bψ_k + cψ_{k+1})² is quadratic, so 2-point Gauss is exact.
+   ! This is the cross-check that localised the U–F self-gravity bug
+   ! (formulation.md), applied to the new block before anything is solved with it.
+   do j = 1, 3
+      call check_w_stiffness(earth, mesh, j)
+   end do
+
    write(*,'(a)') ''
    if (ok) then
       write(*,'(a)') ' PASS: per-degree saddle-point operator assembled correctly'
@@ -178,6 +191,48 @@ contains
          mu(e) = earth%layers(mesh%elem_layer(e))%mu
       end do
    end function elem_mu
+
+   subroutine check_w_stiffness(earth, mesh, jdeg)
+      type(earth_model), intent(in) :: earth
+      type(radial_mesh), intent(in) :: mesh
+      integer,           intent(in) :: jdeg
+      real(wp), parameter :: xg = 0.5773502691896257_wp
+      real(wp), allocatable :: W(:,:), K(:,:)
+      real(wp) :: nrm(NLAM_TOR), sa(2,NLAM_TOR), sb(2,NLAM_TOR), sc(2,NLAM_TOR)
+      real(wp) :: Jw, rk, rk1, h, ra, pk, pk1, et(2), mu_k, err, gp(2)
+      integer  :: e, ig, t, u, m
+      Jw = real(jdeg,wp)*real(jdeg+1,wp)
+      call ve_strain_constants_tor(Jw, nrm, sa, sb, sc)
+      W = build_toroidal_operator(mesh%r, elem_mu(earth, mesh), jdeg)
+      allocate(K(mesh%nr, mesh%nr));  K = 0.0_wp
+      gp = [ -xg, xg ]
+      do e = 1, mesh%ne
+         mu_k = earth%layers(mesh%elem_layer(e))%mu
+         rk = mesh%r(e);  rk1 = mesh%r(e+1);  h = rk1 - rk
+         do ig = 1, 2
+            ra  = 0.5_wp*(h*gp(ig) + rk + rk1)
+            pk  = (rk1 - ra)/h;  pk1 = (ra - rk)/h
+            do m = 1, NLAM_TOR
+               do t = 1, 2
+                  et(t) = sa(t,m)*ra/h + sb(t,m)*pk + sc(t,m)*pk1     ! r·δε^λ
+               end do
+               do t = 1, 2
+                  do u = 1, 2
+                     K(e-1+t, e-1+u) = K(e-1+t, e-1+u) &
+                                     + 2.0_wp*mu_k*nrm(m)*et(t)*et(u)*0.5_wp*h
+                  end do
+               end do
+            end do
+         end do
+      end do
+      err = maxval(abs(K - W))/maxval(abs(W))
+      if (err > 1.0e-12_wp) then
+         write(*,'(a,i0,a,es10.3)') ' (4) V1 FAIL at j=', jdeg, ': W stiffness vs strain route ', err
+         ok = .false.
+      else
+         write(*,'(a,i0,a,es10.3)') ' (4) V1 j=', jdeg, ': eq-80 W block = strain-route energy, rel err ', err
+      end if
+   end subroutine check_w_stiffness
 
    subroutine check_toroidal(earth, mesh, label, nshell_expect)
       !! Structural and exact-solution checks on the toroidal operator.

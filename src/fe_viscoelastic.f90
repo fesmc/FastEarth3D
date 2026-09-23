@@ -31,14 +31,25 @@ module fe_viscoelastic
    ! Per-element Maxwell kernel, shared with the field driver (fe_response):
    public :: NLAM, strain_coeffs, ve_strain_constants, dissipative_rhs, &
              advance_memory
+   ! ... and its toroidal counterpart, active only with lateral viscosity:
+   public :: NLAM_TOR, strain_coeffs_tor, ve_strain_constants_tor, dissipative_rhs_tor, &
+             advance_memory_tor
    ! Time-integration schemes for the Maxwell memory update (advance_memory):
    public :: SCHEME_FE, SCHEME_ETD1, SCHEME_TRAP, SCHEME_BE
    public :: scheme_is_implicit, scheme_order, scheme_from_name
    public :: ve_init, ve_step, ve_step_double, ve_destroy
 
-   ! Spheroidal strain keeps four tensor-harmonic components; LAM maps the local
-   ! index 1..4 to Martinec's λ ∈ {1,2,5,6} (λ=3,4 are toroidal, dropped).
-   integer, parameter :: NLAM = 4
+   ! Spheroidal strain keeps four tensor-harmonic components; the local index
+   ! 1..4 maps to Martinec's λ ∈ {1,2,5,6}. The toroidal λ = 3,4 exist only once
+   ! lateral viscosity mixes the two families (Martinec 2000 after eq 110). They
+   ! are APPENDED as channels NLAM+1..NLAM+NLAM_TOR of the same memory arrays,
+   ! which a radially symmetric run allocates 4 wide and a laterally varying one
+   ! 6 wide, so snapshots, buffers and restarts carry them with no extra code.
+   ! The strain map is exactly block-diagonal — λ3,4 depend only on W, λ1,2,5,6
+   ! only on U,V — so each family has its own kernels, and the spheroidal ones
+   ! read and write channels 1..NLAM of an array of either width.
+   integer, parameter :: NLAM     = 4
+   integer, parameter :: NLAM_TOR = 2
 
    ! How the per-element memory stress is advanced in time (see advance_memory).
    ! Forward-Euler is the default and is byte-for-byte the historical behaviour;
@@ -359,6 +370,74 @@ contains
       call strain_coeffs(0.0_wp,0.0_wp,0.0_wp,1.0_wp, Jr, sa(4,:), sb(4,:), sc(4,:))
    end subroutine ve_strain_constants
 
+   pure subroutine strain_coeffs_tor(w1, w2, Jr, a, b, c)
+      !! Toroidal strain coefficients (a,b,c) for λ = 3,4 from an element's nodal
+      !! W (Martinec eq 87, the rows the spheroidal kernel drops). For
+      !! u = W(r) e_r×∇₁Y the strain is (W′ − W/r) Z³ + (W/r) Z⁴ (fe_tensor_sh), so
+      !! with W = W^k ψ_k + W^{k+1} ψ_{k+1} and ε = a/h + bψ_k/r + cψ_{k+1}/r:
+      !!   λ=3:  a = W^{k+1} − W^k,  b = −W^k,  c = −W^{k+1}
+      !!   λ=4:  a = 0,              b =  W^k,  c =  W^{k+1}
+      real(wp), intent(in)  :: w1, w2, Jr
+      real(wp), intent(out) :: a(NLAM_TOR), b(NLAM_TOR), c(NLAM_TOR)
+      a(1) = -w1 + w2;   b(1) = -w1;      c(1) = -w2          ! λ=3
+      a(2) = 0.0_wp;     b(2) =  w1;      c(2) =  w2          ! λ=4
+      ! Z⁴ has no harmonic below degree 2 (B13 norm J(J−2)/2 = 0 at l ≤ 1), the
+      ! same statement as Z⁶ in strain_coeffs, for the same reason: a strain in a
+      ! slot whose basis function does not exist becomes a phantom memory.
+      if (Jr <= 2.0_wp) then
+         b(2) = 0.0_wp;  c(2) = 0.0_wp
+      end if
+   end subroutine strain_coeffs_tor
+
+   pure subroutine ve_strain_constants_tor(Jr, norm, sa, sb, sc)
+      !! Toroidal counterpart of ve_strain_constants: the B13 norms of Z³, Z⁴,
+      !! [J/2, J(J−2)/2], and the strain coefficients of the two unit test dofs
+      !! (δW_k, δW_{k+1}).
+      real(wp), intent(in)  :: Jr
+      real(wp), intent(out) :: norm(NLAM_TOR), sa(2,NLAM_TOR), sb(2,NLAM_TOR), sc(2,NLAM_TOR)
+      norm = [ 0.5_wp*Jr, 0.5_wp*Jr*(Jr - 2.0_wp) ]
+      call strain_coeffs_tor(1.0_wp, 0.0_wp, Jr, sa(1,:), sb(1,:), sc(1,:))
+      call strain_coeffs_tor(0.0_wp, 1.0_wp, Jr, sa(2,:), sb(2,:), sc(2,:))
+   end subroutine ve_strain_constants_tor
+
+   pure subroutine dissipative_rhs_tor(ne, r, sa, sb, sc, norm, Am, Bm, Cm, f)
+      !! Toroidal dissipative forcing −∫ τ^V:δε dV on the nodal W test dofs, f of
+      !! length nr indexed by node. The same 2-point radial Gauss quadrature
+      !! (eqs 94-95) of Σ_λ norm_λ τ^{V,λ} δε^λ as dissipative_rhs, over λ = 3,4,
+      !! read from channels NLAM+1..NLAM+NLAM_TOR of the full-width memory.
+      integer,  intent(in)    :: ne
+      real(wp), intent(in)    :: r(:), sa(:,:), sb(:,:), sc(:,:), norm(:)
+      real(wp), intent(in)    :: Am(:,:), Bm(:,:), Cm(:,:)   !! (NLAM+NLAM_TOR, ne)
+      real(wp), intent(inout) :: f(:)
+      real(wp), parameter :: xg = 0.5773502691896257_wp   ! 1/√3
+      real(wp) :: gp(2)
+      real(wp) :: rk, rk1, h, ra, psik, psik1, tauV(NLAM_TOR), deps, D, floc(2)
+      integer  :: e, ig, t, m
+      gp = [ -xg, xg ]
+      do e = 1, ne
+         rk = r(e);  rk1 = r(e+1);  h = rk1 - rk
+         floc = 0.0_wp
+         do ig = 1, 2
+            ra    = 0.5_wp*(h*gp(ig) + rk + rk1)
+            psik  = (rk1 - ra)/h
+            psik1 = (ra - rk)/h
+            do m = 1, NLAM_TOR
+               tauV(m) = Am(NLAM+m,e)/h + Bm(NLAM+m,e)*psik/ra + Cm(NLAM+m,e)*psik1/ra
+            end do
+            do t = 1, 2                                  ! δW_k, δW_{k+1}
+               D = 0.0_wp
+               do m = 1, NLAM_TOR
+                  deps = sa(t,m)/h + sb(t,m)*psik/ra + sc(t,m)*psik1/ra
+                  D = D + norm(m)*tauV(m)*deps
+               end do
+               floc(t) = floc(t) - D*ra*ra*h*0.5_wp
+            end do
+         end do
+         f(e)   = f(e)   + floc(1)
+         f(e+1) = f(e+1) + floc(2)
+      end do
+   end subroutine dissipative_rhs_tor
+
    pure subroutine dissipative_rhs(ne, r, sa, sb, sc, norm, Am, Bm, Cm, f)
       !! Accumulate the dissipative memory forcing −∫ τ^{V}:δε dV into the RHS f
       !! (length ndof). Per element: 2-point radial Gauss quadrature (eqs 94-95)
@@ -367,7 +446,7 @@ contains
       !! arrays so both the 1-D stepper and the per-(l,m) field driver share it.
       integer,  intent(in)    :: ne
       real(wp), intent(in)    :: r(:), sa(:,:), sb(:,:), sc(:,:), norm(:)
-      real(wp), intent(in)    :: Am(:,:), Bm(:,:), Cm(:,:)   !! (NLAM, ne)
+      real(wp), intent(in)    :: Am(:,:), Bm(:,:), Cm(:,:)   !! (NLAM or NLAM+NLAM_TOR, ne)
       real(wp), intent(inout) :: f(:)
       real(wp), parameter :: xg = 0.5773502691896257_wp   ! 1/√3
       real(wp) :: gp(2)
@@ -424,7 +503,7 @@ contains
       !! forward-Euler kernel, so existing callers are unchanged.
       integer,  intent(in)    :: ne
       real(wp), intent(in)    :: mu(:), Mk(:), Un(:), Vn(:), Jr
-      real(wp), intent(inout) :: Am(:,:), Bm(:,:), Cm(:,:)   !! (NLAM, ne)
+      real(wp), intent(inout) :: Am(:,:), Bm(:,:), Cm(:,:)   !! (NLAM or NLAM+NLAM_TOR, ne)
       integer,  intent(in),  optional :: scheme
       real(wp), intent(in),  optional :: Un_prev(:), Vn_prev(:)
       real(wp), intent(out), optional :: err
@@ -433,9 +512,8 @@ contains
       !! elements spectrally and leave the genuinely-3-D ones to advance_memory_3d.
       logical,  intent(in),  optional :: active(:)
       real(wp) :: a(NLAM), b(NLAM), c(NLAM), ap(NLAM), bp(NLAM), cp(NLAM)
-      real(wp) :: om, two_muM, Me, phi1, phi2, w_new, w_prev, twoMu, locerr
-      real(wp) :: denom, c_old, w_eps
-      integer  :: e, m, sch
+      real(wp) :: locerr
+      integer  :: e, sch
 
       sch = SCHEME_FE;  if (present(scheme)) sch = scheme
       locerr = 0.0_wp
@@ -445,67 +523,109 @@ contains
             if (.not. active(e)) cycle      ! left to the pseudo-spectral 3-D path
          end if
          call strain_coeffs(Un(e), Un(e+1), Vn(e), Vn(e+1), Jr, a, b, c)
-         Me = Mk(e)
-
-         if (sch == SCHEME_ETD1) then
-            call etd_phis(Me, phi1, phi2)
+         if (sch == SCHEME_ETD1 .or. sch == SCHEME_TRAP) &
             call strain_coeffs(Un_prev(e), Un_prev(e+1), Vn_prev(e), Vn_prev(e+1), &
                                Jr, ap, bp, cp)
-            om     = exp(-Me)
-            twoMu  = 2.0_wp*mu(e)
-            w_new  = twoMu*Me*phi2                 ! weight on ε_{n+1}
-            w_prev = twoMu*Me*(phi1 - phi2)        ! weight on ε_n
-            do m = 1, NLAM
-               Am(m,e) = om*Am(m,e) - w_prev*ap(m) - w_new*a(m)
-               Bm(m,e) = om*Bm(m,e) - w_prev*bp(m) - w_new*b(m)
-               Cm(m,e) = om*Cm(m,e) - w_prev*cp(m) - w_new*c(m)
-            end do
-            ! Embedded estimate: ETD1 minus ETD0 differs only in the forcing, by
-            ! w_prev·(ε_{n+1} − ε_n) per component (ETD0 weight on ε_{n+1} is 2μMφ₁).
-            do m = 1, NLAM
-               locerr = max(locerr, abs(w_prev*(a(m) - ap(m))), &
-                                    abs(w_prev*(b(m) - bp(m))), &
-                                    abs(w_prev*(c(m) - cp(m))))
-            end do
-         else if (sch == SCHEME_TRAP) then
-            ! Crank–Nicolson on dτ/dt = −(1/τ_M)(τ + 2με), with τ implicit:
-            ! τ_{n+1} = [(1−M/2)τ_n − μM(ε_n+ε_{n+1})] / (1+M/2). Here `a` is the
-            ! endpoint strain ε_{n+1} (Un) and `ap` the start strain ε_n (Un_prev).
-            call strain_coeffs(Un_prev(e), Un_prev(e+1), Vn_prev(e), Vn_prev(e+1), &
-                               Jr, ap, bp, cp)
-            denom = 1.0_wp + 0.5_wp*Me
-            c_old = (1.0_wp - 0.5_wp*Me)/denom
-            w_eps = mu(e)*Me/denom
-            do m = 1, NLAM
-               Am(m,e) = c_old*Am(m,e) - w_eps*(a(m) + ap(m))
-               Bm(m,e) = c_old*Bm(m,e) - w_eps*(b(m) + bp(m))
-               Cm(m,e) = c_old*Cm(m,e) - w_eps*(c(m) + cp(m))
-            end do
-         else if (sch == SCHEME_BE) then
-            ! Backward Euler: τ_{n+1} = (τ_n − 2μM ε_{n+1})/(1+M). 1st-order but
-            ! A-stable; the control that isolates "iterate the coupling" (implicit,
-            ! consistent) from "raise the memory-rule order" (TRAP). `a` is ε_{n+1}.
-            denom = 1.0_wp + Me
-            c_old = 1.0_wp/denom
-            w_eps = 2.0_wp*mu(e)*Me/denom
-            do m = 1, NLAM
-               Am(m,e) = c_old*Am(m,e) - w_eps*a(m)
-               Bm(m,e) = c_old*Bm(m,e) - w_eps*b(m)
-               Cm(m,e) = c_old*Cm(m,e) - w_eps*c(m)
-            end do
-         else
-            om      = 1.0_wp - Me
-            two_muM = 2.0_wp*mu(e)*Me
-            do m = 1, NLAM
-               Am(m,e) = om*Am(m,e) - two_muM*a(m)
-               Bm(m,e) = om*Bm(m,e) - two_muM*b(m)
-               Cm(m,e) = om*Cm(m,e) - two_muM*c(m)
-            end do
-         end if
+         call maxwell_update(sch, Mk(e), mu(e), a, b, c, ap, bp, cp, &
+                             Am(1:NLAM,e), Bm(1:NLAM,e), Cm(1:NLAM,e), locerr)
       end do
 
       if (present(err)) err = locerr
    end subroutine advance_memory
+
+   pure subroutine advance_memory_tor(ne, mu, Mk, Wn, Jr, Am, Bm, Cm, &
+                                      scheme, Wn_prev, active)
+      !! advance_memory for the toroidal channels λ = 3,4 (NLAM+1..NLAM+NLAM_TOR of
+      !! the full-width memory), from the nodal W. The Maxwell rule is the same
+      !! per-channel scalar recurrence (maxwell_update), so every scheme carries
+      !! over unchanged; only the strain map differs.
+      integer,  intent(in)    :: ne
+      real(wp), intent(in)    :: mu(:), Mk(:), Wn(:), Jr
+      real(wp), intent(inout) :: Am(:,:), Bm(:,:), Cm(:,:)   !! (NLAM+NLAM_TOR, ne)
+      integer,  intent(in),  optional :: scheme
+      real(wp), intent(in),  optional :: Wn_prev(:)
+      logical,  intent(in),  optional :: active(:)
+      real(wp) :: a(NLAM_TOR), b(NLAM_TOR), c(NLAM_TOR), ap(NLAM_TOR), bp(NLAM_TOR), cp(NLAM_TOR)
+      real(wp) :: locerr
+      integer  :: e, sch
+      sch = SCHEME_FE;  if (present(scheme)) sch = scheme
+      locerr = 0.0_wp
+      do e = 1, ne
+         if (present(active)) then
+            if (.not. active(e)) cycle
+         end if
+         call strain_coeffs_tor(Wn(e), Wn(e+1), Jr, a, b, c)
+         if (sch == SCHEME_ETD1 .or. sch == SCHEME_TRAP) &
+            call strain_coeffs_tor(Wn_prev(e), Wn_prev(e+1), Jr, ap, bp, cp)
+         call maxwell_update(sch, Mk(e), mu(e), a, b, c, ap, bp, cp, &
+                             Am(NLAM+1:,e), Bm(NLAM+1:,e), Cm(NLAM+1:,e), locerr)
+      end do
+   end subroutine advance_memory_tor
+
+   pure subroutine maxwell_update(sch, Me, mu_e, a, b, c, ap, bp, cp, Am, Bm, Cm, locerr)
+      !! One element's memory advance, channel by channel: the scheme formulas of
+      !! advance_memory applied to shape coefficients (A,B,C) from the endpoint
+      !! strain (a,b,c) and, for ETD1/TRAP, the start strain (ap,bp,cp). Shared by
+      !! the spheroidal and toroidal channels; `locerr` accumulates ETD1's
+      !! embedded error estimate.
+      integer,  intent(in)    :: sch
+      real(wp), intent(in)    :: Me, mu_e, a(:), b(:), c(:), ap(:), bp(:), cp(:)
+      real(wp), intent(inout) :: Am(:), Bm(:), Cm(:), locerr
+      real(wp) :: om, two_muM, phi1, phi2, w_new, w_prev, twoMu, denom, c_old, w_eps
+      integer  :: m
+
+      if (sch == SCHEME_ETD1) then
+         call etd_phis(Me, phi1, phi2)
+         om     = exp(-Me)
+         twoMu  = 2.0_wp*mu_e
+         w_new  = twoMu*Me*phi2                 ! weight on ε_{n+1}
+         w_prev = twoMu*Me*(phi1 - phi2)        ! weight on ε_n
+         do m = 1, size(a)
+            Am(m) = om*Am(m) - w_prev*ap(m) - w_new*a(m)
+            Bm(m) = om*Bm(m) - w_prev*bp(m) - w_new*b(m)
+            Cm(m) = om*Cm(m) - w_prev*cp(m) - w_new*c(m)
+         end do
+         ! Embedded estimate: ETD1 minus ETD0 differs only in the forcing, by
+         ! w_prev·(ε_{n+1} − ε_n) per component (ETD0 weight on ε_{n+1} is 2μMφ₁).
+         do m = 1, size(a)
+            locerr = max(locerr, abs(w_prev*(a(m) - ap(m))), &
+                                 abs(w_prev*(b(m) - bp(m))), &
+                                 abs(w_prev*(c(m) - cp(m))))
+         end do
+      else if (sch == SCHEME_TRAP) then
+         ! Crank–Nicolson on dτ/dt = −(1/τ_M)(τ + 2με), with τ implicit:
+         ! τ_{n+1} = [(1−M/2)τ_n − μM(ε_n+ε_{n+1})] / (1+M/2). Here `a` is the
+         ! endpoint strain ε_{n+1} (Un) and `ap` the start strain ε_n (Un_prev).
+         denom = 1.0_wp + 0.5_wp*Me
+         c_old = (1.0_wp - 0.5_wp*Me)/denom
+         w_eps = mu_e*Me/denom
+         do m = 1, size(a)
+            Am(m) = c_old*Am(m) - w_eps*(a(m) + ap(m))
+            Bm(m) = c_old*Bm(m) - w_eps*(b(m) + bp(m))
+            Cm(m) = c_old*Cm(m) - w_eps*(c(m) + cp(m))
+         end do
+      else if (sch == SCHEME_BE) then
+         ! Backward Euler: τ_{n+1} = (τ_n − 2μM ε_{n+1})/(1+M). 1st-order but
+         ! A-stable; the control that isolates "iterate the coupling" (implicit,
+         ! consistent) from "raise the memory-rule order" (TRAP). `a` is ε_{n+1}.
+         denom = 1.0_wp + Me
+         c_old = 1.0_wp/denom
+         w_eps = 2.0_wp*mu_e*Me/denom
+         do m = 1, size(a)
+            Am(m) = c_old*Am(m) - w_eps*a(m)
+            Bm(m) = c_old*Bm(m) - w_eps*b(m)
+            Cm(m) = c_old*Cm(m) - w_eps*c(m)
+         end do
+      else
+         om      = 1.0_wp - Me
+         two_muM = 2.0_wp*mu_e*Me
+         do m = 1, size(a)
+            Am(m) = om*Am(m) - two_muM*a(m)
+            Bm(m) = om*Bm(m) - two_muM*b(m)
+            Cm(m) = om*Cm(m) - two_muM*c(m)
+         end do
+      end if
+   end subroutine maxwell_update
 
    pure subroutine etd_phis(M, phi1, phi2)
       !! φ-functions for the linear-strain exponential update:
