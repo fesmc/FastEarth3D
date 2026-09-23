@@ -26,15 +26,17 @@ module fe_radial_fe
    use fe_earth_structure, only: earth_gravity_at, earth_n_layers, earth_model
    use fe_radial_integrals, only: elem_i1, elem_i2, elem_i3, elem_i4, &
                                   elem_i5, elem_i6, elem_i7, &
-                                  elem_k1, elem_k2, elem_k3
+                                  elem_k1, elem_k2, elem_k3, elem_k4
    use fe_band,             only: band_lu, band_build, band_solve, band_destroy
    implicit none
    private
 
-   public :: radial_mesh, radial_operator
+   public :: radial_mesh, radial_operator, toroidal_operator
    public :: loading_love, tidal_love, radial_fe_finalize
    ! Assembly building blocks (public so the unit tests can inspect them).
    public :: build_dense_operator, shell_Rk, uniq_weight
+   public :: build_toroidal_operator, toroidal_dead_nodes, rotation_weights
+   public :: toroidal_operator_assemble, toroidal_operator_solve_vec, toroidal_operator_destroy
    public :: idx_u, idx_v, idx_f, idx_p, ndof_of
    public :: radial_mesh_build, radial_operator_assemble, radial_operator_solve, radial_operator_solve_vec, radial_operator_load_rhs, radial_operator_tidal_rhs, radial_operator_destroy
 
@@ -59,24 +61,35 @@ module fe_radial_fe
       integer,  allocatable :: elem_layer(:)  !! source earth layer per element (ne)
    end type radial_mesh
 
+   type :: bordered_band
+      !! An operator row/column-equilibrated and factored once as a pivoted band LU
+      !! (fe_band), optionally bordered by nb KKT constraint rows wᵀd = 0:
+      !!     [ A   W ] [d]   [f]
+      !!     [ Wᵀ  0 ] [λ] = [c]      W = [w_1 … w_nb],  c = 0 unless asked.
+      !! Shared by the spheroidal and toroidal radial operators. The physical
+      !! entries span ~20 orders of magnitude (μ r²/h vs the pressure couplings vs
+      !! 1/4πG), so the geometric-mean equilibration Â = Dr A Dc — folding the
+      !! border rows/columns into the maxima — is what keeps the direct LU's pivot
+      !! growth in check; the scalings are kept to recover the physical solution.
+      integer :: nd = 0                   !! physical dimension
+      integer :: nb = 0                   !! number of border (constraint) rows
+      integer :: ns = 0                   !! solved dimension nd + nb
+      type(band_lu)         :: band       !! factored (banded/bordered) LU
+      real(wp), allocatable :: dr(:), dc(:)   !! row / column equilibration (nd)
+      real(wp), allocatable :: w(:,:)         !! (nd, nb) constraint vectors
+   end type bordered_band
+
    type :: radial_operator
-      !! Per-degree saddle-point system, equilibrated and stored as a factored band LU (fe_band),
-      !! ready to hand to fe_band. The physical operator (eqs 80-84) spans ~20 orders
-      !! of magnitude in entry size (μ r²/h vs the pressure couplings vs 1/4πG),
-      !! so it is row/column-equilibrated first to keep the direct LU's pivot growth in check; we keep the
-      !! scalings to recover the physical solution.
+      !! Per-degree spheroidal saddle-point system (eqs 80-84), equilibrated and
+      !! stored as a factored band LU, ready to hand to fe_band.
       integer  :: j  = -1                 !! spherical-harmonic degree
       integer  :: nr = 0, ne = 0, ndof = 0
-      integer  :: ndof_solve = 0          !! solved dimension (ndof, or ndof+1 if bordered)
       real(wp) :: r_earth = 0.0_wp        !! surface radius a [m]
       real(wp) :: g_surf  = 0.0_wp        !! g₀(a) [m s⁻²]
-      ! Solver for the equilibrated system: a pivoted banded LU (fe_band), direct,
-      ! cache-light, and re-entrant (so many degrees solve concurrently). Degrees
-      ! j>=2 are a narrow band. Degree j=1 carries the dense KKT border (w row/col)
-      ! that removes the rigid mode, so its effective bandwidth is ~full and that
-      ! one degree factors as a dense LU — still fe_band, just wide. No LIS.
-      type(band_lu)         :: band              !! factored (banded/bordered) LU
-      real(wp), allocatable :: dr(:), dc(:)      !! row / column equilibration
+      ! Degrees j>=2 are a narrow band. Degree j=1 carries one KKT border that
+      ! removes the rigid mode, so its effective bandwidth is ~full and that one
+      ! degree factors as a dense LU — still fe_band, just wide. No LIS.
+      !
       ! Degree-1 only: the E_uniq penalty (4π/3) w wᵀ is densifying AND, because w
       ! carries K³~∫ψr², ~1e16× the band — i.e. a de-facto hard constraint wᵀd=0
       ! (the CM/geocenter frame, Blewitt 2003). We instead impose it exactly and
@@ -84,8 +97,7 @@ module fe_radial_fe
       ! wᵀ and column w (zero corner), one Lagrange multiplier λ:
       !     [ A_band  w ] [d]   [f]
       !     [ wᵀ      0 ] [λ] = [0]   ⇒  A_band d + w λ = f,  wᵀ d = 0.
-      logical               :: bordered = .false.
-      real(wp), allocatable :: w(:)              !! degree-1 KKT constraint vector (ndof)
+      type(bordered_band) :: sys
       ! Degree-1 rigid-translation null mode of A, recovered from the KKT system
       ! itself: with a zero physical RHS and border value 1, the solution IS the
       ! null direction (A d = -w*lambda, w'd = 1). Nonzero only for j = 1. Adding
@@ -96,6 +108,30 @@ module fe_radial_fe
       logical  :: ready = .false.
    end type radial_operator
 
+   type :: toroidal_operator
+      !! Per-degree toroidal system for the nodal W_k (k = 1..nr): the W block of
+      !! eq 80 alone. It couples to nothing else on the left-hand side — toroidal
+      !! flow is divergence-free (no pressure, eq 82), has no radial displacement
+      !! (no self-gravity, eq 81), and eq 84 has no δW term — so it is its own
+      !! tridiagonal system rather than a fifth interleaved field widening the
+      !! spheroidal band. W is driven only through the dissipative RHS, i.e. only
+      !! once laterally varying viscosity has mixed the memory (Martinec 2000
+      !! after eq 110).
+      !!
+      !! Two kinds of W dof the physics does not constrain:
+      !!  - a node whose every element has μ = 0 carries no shear energy at all.
+      !!    It is PINNED, W = 0: a Dirichlet condition on a displacement the fluid
+      !!    does not transmit (identity row, zero RHS);
+      !!  - at j = 1, W ∝ r on a solid shell is a rigid rotation with zero strain.
+      !!    Each solid shell (a run of μ > 0 elements between fluid) gets one KKT
+      !!    border wᵀW = 0 with w = ∫ψ r³ dr over that shell: no net rotation,
+      !!    ∫ x × u dV = 0 (Tisserand). A gauge only — a rigid rotation has no
+      !!    strain, so it neither feeds the memory nor moves any output.
+      integer :: j = -1, nr = 0, ne = 0
+      type(bordered_band) :: sys
+      logical, allocatable :: pinned(:)   !! (nr) W dofs fixed to zero
+      logical :: ready = .false.
+   end type toroidal_operator
 
 contains
 
@@ -410,19 +446,16 @@ contains
 
    subroutine radial_operator_assemble(self, earth, mesh, j)
       !! Assemble the per-degree operator (eqs 80-84), row/column-equilibrate it,
-      !! and factor it once for repeated direct solves. The equilibration is
-      !! a geometric-mean scaling Â = Dr A Dc that brings every entry to O(1) —
-      !! essential for pivot-growth control of a system whose physical entries span
-      !! ~20 orders of magnitude. Independent of m and load, so reused across all
-      !! orders and (later) time steps of degree j.
+      !! and factor it once for repeated direct solves (bordered_band_factor).
+      !! Independent of m and load, so reused across all orders and time steps of
+      !! degree j.
       type(radial_operator), intent(inout) :: self
       type(earth_model),      intent(in)    :: earth
       type(radial_mesh),      intent(in)    :: mesh
       integer,                intent(in)    :: j
 
-      real(wp), allocatable :: A(:,:)
-      real(wp) :: dr_b, dc_b           !! border row/col equilibration (transient)
-      integer  :: nd, ns, i, k, nnz
+      real(wp), allocatable :: A(:,:), w(:,:)
+      integer  :: nd
 
       call radial_operator_destroy(self)
       ! Build the BAND part only (no dense E_uniq fill). For j=1 the rigid-mode
@@ -436,87 +469,21 @@ contains
       self%nr       = mesh%nr
       self%ne       = mesh%ne
       self%ndof     = nd
-      self%bordered = (j == 1)
       self%r_earth  = earth%r_earth
       self%g_surf   = earth_gravity_at(earth, earth%r_earth)
 
-      ! --- degree-1 KKT border vector (the constraint direction w) -------------
-      ns = nd
-      if (self%bordered) then
-         self%w = uniq_weight(mesh)
-         ns = nd + 1
+      if (j == 1) then
+         allocate(w(nd,1));  w(:,1) = uniq_weight(mesh)
+         call bordered_band_factor(self%sys, A, w)
+      else
+         call bordered_band_factor(self%sys, A)
       end if
-      self%ndof_solve = ns
-
-      ! --- geometric-mean equilibration of the (augmented) operator ------------
-      ! dc by columns, then dr by rows, folding the border row wᵀ (entry w(k) in
-      ! column k) and column w (entry w(i) in row i) into the maxima so every
-      ! scaled entry — band AND border — lands at O(1). The corner is 0.
-      allocate(self%dc(nd), self%dr(nd))
-      dc_b = 1.0_wp;  dr_b = 1.0_wp
-      do k = 1, nd
-         self%dc(k) = colnorm(A(:,k))
-         if (self%bordered) then                                ! w allocated only when bordered
-            if (abs(self%w(k)) > 1.0_wp/self%dc(k)**2) &
-               self%dc(k) = 1.0_wp/sqrt(abs(self%w(k)))
-         end if
-      end do
-      if (self%bordered) dc_b = colnorm(self%w)                 ! border column w
-      do i = 1, nd
-         self%dr(i) = rownorm(A(i,:), self%dc)
-         if (self%bordered) then
-            if (abs(self%w(i))*dc_b > 1.0_wp/self%dr(i)**2) &
-               self%dr(i) = 1.0_wp/sqrt(abs(self%w(i))*dc_b)
-         end if
-      end do
-      if (self%bordered) dr_b = rownorm(self%w, self%dc)        ! border row wᵀ
-
-      ! --- extract the scaled operator Â = Dr A Dc into COO, factor the band LU once ----
-      nnz = count(A /= 0.0_wp)
-      if (self%bordered) nnz = nnz + 2*count(self%w /= 0.0_wp)
-      block
-         integer,  allocatable :: rows(:), cols(:)
-         real(wp), allocatable :: vals(:)
-         integer :: p
-         allocate(rows(nnz), cols(nnz), vals(nnz))
-         p = 0
-         do k = 1, nd            ! column
-            do i = 1, nd         ! row
-               if (A(i,k) == 0.0_wp) cycle
-               p = p + 1
-               rows(p) = i;  cols(p) = k;  vals(p) = self%dr(i)*A(i,k)*self%dc(k)
-            end do
-         end do
-         if (self%bordered) then
-            do i = 1, nd                                   ! border column: w
-               if (self%w(i) == 0.0_wp) cycle
-               p = p + 1
-               rows(p) = i;  cols(p) = ns
-               vals(p) = self%dr(i)*self%w(i)*dc_b
-            end do
-            do k = 1, nd                                   ! border row (constraint wᵀ d = 0)
-               if (self%w(k) == 0.0_wp) cycle
-               p = p + 1
-               rows(p) = ns;  cols(p) = k
-               vals(p) = dr_b*self%w(k)*self%dc(k)
-            end do
-            ! corner is 0 (KKT) — no entry.
-         end if
-         ! Factor with the pivoted banded LU. j>=2 is a narrow band; j=1 includes
-         ! the dense KKT border (ns = nd+1), so fe_band sees ~full bandwidth and
-         ! factors that one degree as a dense LU.
-         block
-            logical :: okband
-            call band_build(self%band, ns, p, rows, cols, vals, okband)
-            if (.not. okband) error stop 'radial_operator_assemble: band LU factorization failed'
-         end block
-      end block
       self%ready = .true.
 
       ! --- degree-1 rigid-translation null mode --------------------------------
       ! Zero physical RHS, unit constraint value: the solution is the null
       ! direction itself. One extra banded solve per degree-1 operator, at setup.
-      if (self%bordered) then
+      if (self%sys%nb > 0) then
          block
             real(wp), allocatable :: zero_b(:)
             allocate(zero_b(nd), self%nullmode(nd))
@@ -526,6 +493,125 @@ contains
          end block
       end if
    end subroutine radial_operator_assemble
+
+   subroutine bordered_band_factor(sys, A, w)
+      !! Equilibrate A (dense, nd×nd), border it with the columns of w if given,
+      !! and factor. The geometric-mean scaling Â = Dr A Dc brings every entry to
+      !! O(1): dc by columns, then dr by rows, folding the border row wᵀ (entry
+      !! w(k) in column k) and column w (entry w(i) in row i) into the maxima so
+      !! every scaled entry — band AND border — lands at O(1). The corner is 0.
+      type(bordered_band), intent(inout) :: sys
+      real(wp),            intent(in)    :: A(:,:)
+      real(wp), optional,  intent(in)    :: w(:,:)
+      real(wp), allocatable :: dr_b(:), dc_b(:)   !! border row/col equilibration (transient)
+      integer  :: nd, nb, ns, i, k, b, nnz
+
+      call bordered_band_destroy(sys)
+      nd = size(A,1);  nb = 0
+      if (present(w)) nb = size(w,2)
+      ns = nd + nb
+      sys%nd = nd;  sys%nb = nb;  sys%ns = ns
+      allocate(sys%w(nd,nb))
+      if (nb > 0) sys%w = w
+
+      allocate(sys%dc(nd), sys%dr(nd), dc_b(nb), dr_b(nb))
+      do k = 1, nd
+         sys%dc(k) = colnorm(A(:,k))
+         do b = 1, nb
+            if (abs(sys%w(k,b)) > 1.0_wp/sys%dc(k)**2) &
+               sys%dc(k) = 1.0_wp/sqrt(abs(sys%w(k,b)))
+         end do
+      end do
+      do b = 1, nb
+         dc_b(b) = colnorm(sys%w(:,b))                     ! border column w_b
+      end do
+      do i = 1, nd
+         sys%dr(i) = rownorm(A(i,:), sys%dc)
+         do b = 1, nb
+            if (abs(sys%w(i,b))*dc_b(b) > 1.0_wp/sys%dr(i)**2) &
+               sys%dr(i) = 1.0_wp/sqrt(abs(sys%w(i,b))*dc_b(b))
+         end do
+      end do
+      do b = 1, nb
+         dr_b(b) = rownorm(sys%w(:,b), sys%dc)             ! border row w_bᵀ
+      end do
+
+      ! --- extract the scaled operator Â = Dr A Dc into COO, factor the band LU once ----
+      nnz = count(A /= 0.0_wp) + 2*count(sys%w /= 0.0_wp)
+      block
+         integer,  allocatable :: rows(:), cols(:)
+         real(wp), allocatable :: vals(:)
+         integer :: p
+         logical :: okband
+         real(wp) :: wb(nd), dcb, drb
+         allocate(rows(nnz), cols(nnz), vals(nnz))
+         p = 0
+         do k = 1, nd            ! column
+            do i = 1, nd         ! row
+               if (A(i,k) == 0.0_wp) cycle
+               p = p + 1
+               rows(p) = i;  cols(p) = k;  vals(p) = sys%dr(i)*A(i,k)*sys%dc(k)
+            end do
+         end do
+         do b = 1, nb
+            wb = sys%w(:,b);  dcb = dc_b(b);  drb = dr_b(b)
+            do i = 1, nd                                   ! border column: w_b
+               if (wb(i) == 0.0_wp) cycle
+               p = p + 1
+               rows(p) = i;  cols(p) = nd + b
+               vals(p) = sys%dr(i)*wb(i)*dcb
+            end do
+            do k = 1, nd                                   ! border row (w_bᵀ d = 0)
+               if (wb(k) == 0.0_wp) cycle
+               p = p + 1
+               rows(p) = nd + b;  cols(p) = k
+               vals(p) = drb*wb(k)*sys%dc(k)
+            end do
+            ! corner is 0 (KKT) — no entry.
+         end do
+         ! A bordered system has ~full bandwidth, so fe_band factors it as a dense LU.
+         call band_build(sys%band, ns, p, rows, cols, vals, okband)
+         if (.not. okband) error stop 'bordered_band_factor: band LU factorization failed'
+      end block
+   end subroutine bordered_band_factor
+
+   subroutine bordered_band_solve(sys, b, x, border)
+      !! Solve for an arbitrary physical RHS b (length nd), returning the physical
+      !! solution x: equilibrate, direct banded-LU solve, un-scale, drop the
+      !! Lagrange multipliers. `border` (nb) sets nonzero constraint values wᵀd = c.
+      type(bordered_band), intent(in)  :: sys
+      real(wp),            intent(in)  :: b(:)
+      real(wp),            intent(out) :: x(:)
+      real(wp), optional,  intent(in)  :: border(:)
+      ! Reusable scratch for the equilibrated RHS / solution. SAVEd (allocated once,
+      ! grown only if a larger system appears) so the per-degree field driver's
+      ! many thousands of solves per step don't each pay a heap allocation — under
+      ! a large heap (many resident operators) that alloc was a big cost. Declared
+      ! threadprivate so each OpenMP thread keeps a private copy.
+      real(wp), allocatable, save :: bs(:), y(:)
+      !$omp threadprivate(bs, y)
+      integer  :: nd, ns
+      nd = sys%nd;  ns = sys%ns
+      if (.not. allocated(bs)) then
+         allocate(bs(ns), y(ns))
+      else if (size(bs) < ns) then
+         deallocate(bs, y);  allocate(bs(ns), y(ns))
+      end if
+      bs(1:ns) = 0.0_wp                          ! border RHS (multipliers) is 0
+      bs(1:nd) = sys%dr * b                      ! equilibrate physical rows: b̂ = Dr b
+      if (present(border)) bs(nd+1:ns) = border
+      call band_solve(sys%band, bs(1:ns), y(1:ns))
+      x = sys%dc * y(1:nd)                       ! recover physical solution
+   end subroutine bordered_band_solve
+
+   subroutine bordered_band_destroy(sys)
+      type(bordered_band), intent(inout) :: sys
+      call band_destroy(sys%band)
+      if (allocated(sys%dr)) deallocate(sys%dr)
+      if (allocated(sys%dc)) deallocate(sys%dc)
+      if (allocated(sys%w))  deallocate(sys%w)
+      sys%nd = 0;  sys%nb = 0;  sys%ns = 0
+   end subroutine bordered_band_destroy
 
    function radial_operator_load_rhs(self, sigma) result(b)
       !! Build the physical RHS for a degree-j surface mass load of coefficient
@@ -570,32 +656,18 @@ contains
       real(wp), optional,     intent(out) :: resid
       character(len=*), optional, intent(in) :: options  !! ignored (precon built at assemble)
       real(wp), optional,     intent(in)  :: border  !! j=1 KKT constraint value w'd (default 0)
-      ! Reusable scratch for the equilibrated RHS / solution. SAVEd (allocated once,
-      ! grown only if a larger system appears) so the per-degree field driver's
-      ! many thousands of solves per step don't each pay a heap allocation — under
-      ! a large heap (many resident operators) that alloc was a big cost. Declared
-      ! threadprivate so a future OpenMP parallel solve keeps a private copy.
-      real(wp), allocatable, save :: bs(:), y(:)
-      !$omp threadprivate(bs, y)
-      integer  :: nd, ns
-      nd = self%ndof;  ns = self%ndof_solve
-      if (.not. allocated(bs)) then
-         allocate(bs(ns), y(ns))
-      else if (size(bs) < ns) then
-         deallocate(bs, y);  allocate(bs(ns), y(ns))
-      end if
-      bs(1:ns) = 0.0_wp                          ! border RHS (j=1 multiplier) is 0
-      bs(1:nd) = self%dr * b                     ! equilibrate physical rows: b̂ = Dr b
       ! A non-zero constraint value slides the solution along the rigid-translation
       ! null space: d(c) = d(0) + c*n. Used once per degree-1 operator to recover
       ! n itself; the equilibration of this single row is irrelevant because every
       ! use rescales n by a ratio of its own components.
-      if (present(border) .and. self%bordered) bs(ns) = border
-      call band_solve(self%band, bs(1:ns), y(1:ns))    ! direct banded LU (j=1: bordered)
+      if (present(border) .and. self%sys%nb > 0) then
+         call bordered_band_solve(self%sys, b, x, border=[border])
+      else
+         call bordered_band_solve(self%sys, b, x)
+      end if
       if (present(iters)) iters = 1              ! direct solve
       if (present(resid)) resid = 0.0_wp
       if (present(info))  info  = 0
-      x = self%dc * y(1:nd)                      ! recover physical solution (drop μ / λ border)
    end subroutine radial_operator_solve_vec
 
    subroutine radial_operator_solve(self, sigma, U_a, V_a, F_a, iters, resid, info, options)
@@ -617,15 +689,132 @@ contains
 
    subroutine radial_operator_destroy(self)
       type(radial_operator), intent(inout) :: self
-      call band_destroy(self%band)
-      if (allocated(self%dr))   deallocate(self%dr)
-      if (allocated(self%dc))   deallocate(self%dc)
-      if (allocated(self%w))    deallocate(self%w)
+      call bordered_band_destroy(self%sys)
       if (allocated(self%nullmode)) deallocate(self%nullmode)
-      self%bordered   = .false.
-      self%ndof_solve = 0
       self%ready      = .false.
    end subroutine radial_operator_destroy
+
+   ! --- Toroidal operator ---------------------------------------------------------
+
+   function build_toroidal_operator(r, mu, j) result(A)
+      !! The eq-80 W block for degree j≥1, dense (nr×nr), nothing pinned:
+      !!   2∫μ [ ‖Z³‖² ε³δε³ + ‖Z⁴‖² ε⁴δε⁴ ] r² dr,  ε³ = W′ − W/r,  ε⁴ = W/r,
+      !! with ‖Z³‖² = J/2, ‖Z⁴‖² = J(J−2)/2 (B13), i.e. per element
+      !!   μ_k { J [ I¹ − I³(b,a) − I³(a,b) + I⁶ ] + J(J−2) I⁶ } W^a δW^b.
+      !! The same factor convention as the spheroidal shear block (whose λ=2 part
+      !! this is, with V→W and U→0). Symmetric by construction; tridiagonal. It
+      !! depends on the mesh only through the node radii r (nr) and the element
+      !! shear moduli mu (nr−1) — no density, gravity or pressure enters.
+      real(wp), intent(in) :: r(:), mu(:)
+      integer,  intent(in) :: j
+      real(wp), allocatable :: A(:,:)
+      real(wp) :: i1(2,2), i3(2,2), i6(2,2), Jr
+      integer  :: e, ia, ib, gmap(2)
+      Jr = real(j, wp)*real(j+1, wp)
+      allocate(A(size(r), size(r)));  A = 0.0_wp
+      do e = 1, size(mu)
+         if (mu(e) == 0.0_wp) cycle
+         i1 = elem_i1(r(e), r(e+1))
+         i3 = elem_i3(r(e), r(e+1))
+         i6 = elem_i6(r(e), r(e+1))
+         gmap = [e, e+1]
+         do ia = 1, 2          ! trial node (α)
+            do ib = 1, 2       ! test node (β)
+               A(gmap(ib), gmap(ia)) = A(gmap(ib), gmap(ia)) + mu(e)*( &
+                    Jr*(i1(ia,ib) - i3(ib,ia) - i3(ia,ib) + i6(ia,ib)) &
+                  + Jr*(Jr - 2.0_wp)*i6(ia,ib) )
+            end do
+         end do
+      end do
+   end function build_toroidal_operator
+
+   function toroidal_dead_nodes(mu) result(dead)
+      !! Nodes all of whose elements are fluid (μ = 0): no shear energy, so no W.
+      !! mu is per element; the result is per node (size(mu)+1).
+      real(wp), intent(in) :: mu(:)
+      logical, allocatable :: dead(:)
+      integer :: e
+      allocate(dead(size(mu)+1));  dead = .true.
+      do e = 1, size(mu)
+         if (mu(e) > 0.0_wp) then
+            dead(e) = .false.;  dead(e+1) = .false.
+         end if
+      end do
+   end function toroidal_dead_nodes
+
+   function rotation_weights(r, mu) result(w)
+      !! Degree-1 net-rotation constraint vectors, one column per solid shell (a
+      !! maximal run of μ > 0 elements): w_s(k) = Σ_{e∈s} ∫ψ_k r³ dr, so that
+      !! w_sᵀW = 0 says shell s has no net rotation, ∫_s x × u dV = 0 for the
+      !! toroidal field u = W e_r×∇₁Y₁ₘ. Its null mode — W ∝ r on shell s, zero
+      !! elsewhere — has w_sᵀn > 0 and w_tᵀn = 0 (t ≠ s), so the bordered system
+      !! is non-singular however many shells the stack has.
+      real(wp), intent(in) :: r(:), mu(:)
+      real(wp), allocatable :: w(:,:)
+      real(wp) :: k4(2)
+      integer, allocatable :: shell(:)
+      integer :: e, ns
+      logical :: solid, prev_solid
+      allocate(shell(size(mu)));  shell = 0
+      ns = 0;  prev_solid = .false.
+      do e = 1, size(mu)
+         solid = mu(e) > 0.0_wp
+         if (solid .and. .not. prev_solid) ns = ns + 1
+         if (solid) shell(e) = ns
+         prev_solid = solid
+      end do
+      allocate(w(size(r), ns));  w = 0.0_wp
+      do e = 1, size(mu)
+         if (shell(e) == 0) cycle
+         k4 = elem_k4(r(e), r(e+1))
+         w(e,   shell(e)) = w(e,   shell(e)) + k4(1)
+         w(e+1, shell(e)) = w(e+1, shell(e)) + k4(2)
+      end do
+   end function rotation_weights
+
+   subroutine toroidal_operator_assemble(self, r, mu, j)
+      !! Assemble, pin the dead dofs, border j = 1 by the per-shell net-rotation
+      !! constraints, and factor once for every order, memory and time step.
+      type(toroidal_operator), intent(inout) :: self
+      real(wp),                intent(in)    :: r(:)    !! node radii (nr)
+      real(wp),                intent(in)    :: mu(:)   !! element shear modulus (nr−1)
+      integer,                 intent(in)    :: j
+      real(wp), allocatable :: A(:,:)
+      integer :: k
+      call toroidal_operator_destroy(self)
+      if (j < 1) error stop 'toroidal_operator_assemble: toroidal fields start at degree 1'
+      if (size(mu) /= size(r) - 1) error stop 'toroidal_operator_assemble: mu must be per element'
+      self%j = j;  self%nr = size(r);  self%ne = size(mu)
+      A = build_toroidal_operator(r, mu, j)
+      self%pinned = toroidal_dead_nodes(mu)
+      do k = 1, self%nr
+         if (self%pinned(k)) A(k,k) = 1.0_wp      ! row and column are otherwise empty
+      end do
+      if (j == 1) then
+         call bordered_band_factor(self%sys, A, rotation_weights(r, mu))
+      else
+         call bordered_band_factor(self%sys, A)
+      end if
+      self%ready = .true.
+   end subroutine toroidal_operator_assemble
+
+   subroutine toroidal_operator_solve_vec(self, b, x)
+      !! Solve for the nodal W (length nr) under the dissipative forcing b. The
+      !! pinned dofs take their Dirichlet value, zero, whatever b holds there.
+      type(toroidal_operator), intent(in)  :: self
+      real(wp),                intent(in)  :: b(:)
+      real(wp),                intent(out) :: x(:)
+      real(wp) :: bd(self%nr)
+      bd = merge(0.0_wp, b, self%pinned)
+      call bordered_band_solve(self%sys, bd, x)
+   end subroutine toroidal_operator_solve_vec
+
+   subroutine toroidal_operator_destroy(self)
+      type(toroidal_operator), intent(inout) :: self
+      call bordered_band_destroy(self%sys)
+      if (allocated(self%pinned)) deallocate(self%pinned)
+      self%j = -1;  self%ready = .false.
+   end subroutine toroidal_operator_destroy
 
    pure real(wp) function colnorm(col) result(d)
       !! Column scale 1/√(max|·|); unit scale for an all-zero column.

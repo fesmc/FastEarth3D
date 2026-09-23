@@ -2,7 +2,7 @@ program test_integrals
    !! Verify the closed-form element integrals (fe_radial_integrals, Martinec 2000
    !! Appendix C) against 5-point Gauss-Legendre numerical quadrature of their
    !! defining integrands. 5-point GL is exact for the polynomial integrands
-   !! (I1-I6, K1-K3) and highly accurate for the smooth 1/r integrand (I7).
+   !! (I1-I6, K1-K4) and highly accurate for the smooth 1/r integrand (I7).
    use fe_precision, only: wp
    use fe_radial_integrals
    implicit none
@@ -25,6 +25,7 @@ program test_integrals
    call chk_vec('K1', elem_k1(rk,rk1), num_vec(1,2))
    call chk_vec('K2', elem_k2(rk,rk1), num_vec(0,1))
    call chk_vec('K3', elem_k3(rk,rk1), num_vec(0,2))
+   call chk_vec('K4', elem_k4(rk,rk1), num_vec(0,3))
 
    print '(a,es12.4)', ' worst relative error = ', worst
    if (ok) then

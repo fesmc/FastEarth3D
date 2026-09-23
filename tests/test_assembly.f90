@@ -3,11 +3,17 @@ program test_assembly
    !! (Martinec 2000 eqs 80-84), built dense by fe_radial_fe%build_dense_operator.
    !! This is rung-2 step 2: verify the operator is built right *before* solving.
    !! The physics validation (Love numbers vs Spada 2011) is the next step.
+   !! Section 3 does the same for the toroidal W operator (eq 80's W block),
+   !! including its fluid-core pinning and the degree-1 rotation gauge.
    use fe_precision,        only: wp
    use fe_constants,        only: pi, grav_G
-   use fe_earth_structure,  only: earth_gravity_at, earth_model, build_M3L70V01
+   use fe_earth_structure,  only: earth_gravity_at, earth_model, earth_layer, build_M3L70V01, &
+                                  RHEOL_ELASTIC, RHEOL_FLUID
    use fe_radial_fe,        only: radial_mesh_build, radial_mesh, build_dense_operator, shell_Rk, &
-                                  idx_u, idx_v, idx_f, idx_p, ndof_of
+                                  idx_u, idx_v, idx_f, idx_p, ndof_of, &
+                                  toroidal_operator, build_toroidal_operator, toroidal_dead_nodes, &
+                                  rotation_weights, toroidal_operator_assemble, &
+                                  toroidal_operator_solve_vec, toroidal_operator_destroy
    use fe_radial_integrals, only: elem_k1, elem_k2
    implicit none
 
@@ -132,6 +138,25 @@ program test_assembly
       write(*,'(a,es10.3)') ' (2f) operator symmetric (energy Hessian), ||A-Aᵀ||/||A||=', asym
    end if
 
+   ! --- 3. The toroidal W operator ------------------------------------------------
+   call check_toroidal(earth, mesh, 'M3-L70-V01', 1)
+
+   ! 3g. A stack with a SOLID INNER CORE under the fluid outer core: two solid
+   ! shells, so two independent degree-1 rigid rotations and two borders. With a
+   ! single whole-Earth constraint the relative rotation of the shells would be
+   ! left free and the j = 1 system singular.
+   block
+      type(earth_model) :: e2
+      type(radial_mesh) :: m2
+      e2 = earth
+      deallocate(e2%layers);  allocate(e2%layers(6))
+      e2%layers(1:4) = earth%layers(1:4)
+      e2%layers(5) = earth_layer(1221.5e3_wp, 3480.0e3_wp, 10750.0_wp, 0.0_wp, 0.0_wp, RHEOL_FLUID)
+      e2%layers(6) = earth_layer(0.0_wp, 1221.5e3_wp, 12900.0_wp, 1.76e11_wp, huge(1.0_wp), RHEOL_ELASTIC)
+      call radial_mesh_build(m2, e2)
+      call check_toroidal(e2, m2, 'solid inner core', 2)
+   end block
+
    write(*,'(a)') ''
    if (ok) then
       write(*,'(a)') ' PASS: per-degree saddle-point operator assembled correctly'
@@ -141,6 +166,128 @@ program test_assembly
    end if
 
 contains
+
+   function elem_mu(earth, mesh) result(mu)
+      !! Shear modulus per element, as fe_response stores it.
+      type(earth_model), intent(in) :: earth
+      type(radial_mesh), intent(in) :: mesh
+      real(wp), allocatable :: mu(:)
+      integer :: e
+      allocate(mu(mesh%ne))
+      do e = 1, mesh%ne
+         mu(e) = earth%layers(mesh%elem_layer(e))%mu
+      end do
+   end function elem_mu
+
+   subroutine check_toroidal(earth, mesh, label, nshell_expect)
+      !! Structural and exact-solution checks on the toroidal operator.
+      type(earth_model), intent(in) :: earth
+      type(radial_mesh), intent(in) :: mesh
+      character(len=*),  intent(in) :: label
+      integer,           intent(in) :: nshell_expect
+      type(toroidal_operator) :: top
+      real(wp), allocatable :: W(:,:), rsh(:), W0(:), x(:), b(:), wr(:,:)
+      logical,  allocatable :: dead(:)
+      real(wp) :: Jw, en, en_exact, err, c, scl
+      integer  :: jt, k, e, lay, s, n, bw
+
+      write(*,'(a)') ' (3) toroidal operator, '//label
+      n = mesh%nr
+      dead = toroidal_dead_nodes(elem_mu(earth, mesh))
+
+      ! 3a. j = 2: symmetric, finite, tridiagonal
+      jt = 2;  Jw = real(jt,wp)*real(jt+1,wp)
+      W = build_toroidal_operator(mesh%r, elem_mu(earth, mesh), jt)
+      err = maxval(abs(W - transpose(W)))/maxval(abs(W))
+      bw = 0
+      do k = 1, n
+         do e = 1, n
+            if (W(k,e) /= 0.0_wp) bw = max(bw, abs(k - e))
+         end do
+      end do
+      if (err > 1.0e-14_wp .or. any(ieee_is_nan_arr(W)) .or. bw > 1) then
+         write(*,'(a,es10.3,a,i0)') '     (3a) FAIL: asymmetry ', err, ', half-bandwidth ', bw;  ok = .false.
+      else
+         write(*,'(a,es10.3)') '     (3a) symmetric, finite, tridiagonal; ||W-Wᵀ||/||W|| =', err
+      end if
+
+      ! 3b. the P1 mesh represents W = r exactly, where ε³ = W′ − W/r = 0 and only
+      ! the λ=4 energy survives: Wᵀ A W = J(J−2) Σ_layers μ (r_top³ − r_bot³)/3.
+      rsh = mesh%r
+      en  = dot_product(rsh, matmul(W, rsh))
+      en_exact = 0.0_wp
+      do lay = 1, size(earth%layers)
+         en_exact = en_exact + earth%layers(lay)%mu* &
+                    (earth%layers(lay)%r_top**3 - earth%layers(lay)%r_bot**3)/3.0_wp
+      end do
+      en_exact = Jw*(Jw - 2.0_wp)*en_exact
+      err = abs(en - en_exact)/en_exact
+      if (err > 1.0e-12_wp) then
+         write(*,'(a,es10.3)') '     (3b) FAIL: energy of W = r off by ', err;  ok = .false.
+      else
+         write(*,'(a,es10.3)') '     (3b) energy of W = r exact (λ=4 only), rel err =', err
+      end if
+
+      ! 3c. every dof either carries shear stiffness or is pinned
+      if (any(.not. dead .and. all(W == 0.0_wp, dim=2)) .or. &
+          any(dead .and. any(W /= 0.0_wp, dim=2))) then
+         write(*,'(a)') '     (3c) FAIL: pinned set does not match the empty rows';  ok = .false.
+      else
+         write(*,'(a,i0,a,i0,a)') '     (3c) ', count(dead), ' of ', n, &
+              ' W dofs pinned (fluid), the rest carry stiffness'
+      end if
+
+      ! 3d. j = 2 solve recovers a known W that vanishes on the pinned dofs
+      allocate(W0(n), x(n), b(n))
+      do k = 1, n
+         W0(k) = merge(0.0_wp, sin(3.0_wp*mesh%r(k)/mesh%r(n)) + 0.3_wp, dead(k))
+      end do
+      b = matmul(W, W0)
+      call toroidal_operator_assemble(top, mesh%r, elem_mu(earth, mesh), jt)
+      call toroidal_operator_solve_vec(top, b, x)
+      err = maxval(abs(x - W0))/maxval(abs(W0))
+      if (err > 1.0e-10_wp) then
+         write(*,'(a,es10.3)') '     (3d) FAIL: j=2 solve error ', err;  ok = .false.
+      else
+         write(*,'(a,es10.3)') '     (3d) j=2 solve recovers W, rel err =', err
+      end if
+
+      ! 3e. j = 1: W ∝ r on each solid shell is null (rigid rotation); the
+      ! bordered solve returns W0 minus exactly those modes, with every shell's
+      ! net rotation w_sᵀW = 0.
+      jt = 1
+      W  = build_toroidal_operator(mesh%r, elem_mu(earth, mesh), jt)
+      wr = rotation_weights(mesh%r, elem_mu(earth, mesh))
+      if (size(wr,2) /= nshell_expect) then
+         write(*,'(a,i0,a,i0)') '     (3e) FAIL: found ', size(wr,2), ' solid shells, expected ', nshell_expect
+         ok = .false.
+      end if
+      scl = maxval(abs(W))*maxval(mesh%r)
+      err = 0.0_wp
+      do s = 1, size(wr,2)
+         rsh = merge(mesh%r, 0.0_wp, wr(:,s) /= 0.0_wp)       ! rigid rotation of shell s
+         err = max(err, maxval(abs(matmul(W, rsh)))/scl)
+      end do
+      b = matmul(W, W0)
+      call toroidal_operator_assemble(top, mesh%r, elem_mu(earth, mesh), jt)
+      call toroidal_operator_solve_vec(top, b, x)
+      c = 0.0_wp
+      do s = 1, size(wr,2)
+         c = max(c, abs(dot_product(wr(:,s), x))/(maxval(abs(wr(:,s)))*maxval(abs(x))))
+         rsh = merge(mesh%r, 0.0_wp, wr(:,s) /= 0.0_wp)
+         ! remove shell s's rotation from W0 - x and require nothing is left
+         W0 = W0 - rsh*dot_product(wr(:,s), W0 - x)/dot_product(wr(:,s), rsh)
+      end do
+      if (err > 1.0e-12_wp .or. c > 1.0e-12_wp .or. maxval(abs(W0 - x))/maxval(abs(x)) > 1.0e-10_wp) then
+         write(*,'(a,3es10.2)') '     (3e) FAIL: j=1 null/constraint/solve ', err, c, &
+              maxval(abs(W0 - x))/maxval(abs(x));  ok = .false.
+      else
+         write(*,'(a,i0,a,3es10.2)') '     (3e) j=1: ', size(wr,2), &
+              ' rotation mode(s) null and removed; null, wᵀW, solve =', err, c, &
+              maxval(abs(W0 - x))/maxval(abs(x))
+      end if
+      call toroidal_operator_destroy(top)
+   end subroutine check_toroidal
 
    elemental logical function ieee_is_nan_arr(x) result(isnan)
       real(wp), intent(in) :: x

@@ -15,11 +15,13 @@ module fe_radial_integrals
    !!   I7: ∫ (1/r) ψ_a ψ_b dr  (singular at r=0; only used with coefficient R_k,
    !!                            which is 0 for the innermost element — eq 77)
    !!   K1: ∫ ψ'_a r² dr          K2: ∫ ψ_a r dr           K3: ∫ ψ_a r² dr
+   !!   K4: ∫ ψ_a r³ dr  (not in Martinec App. C: the net-rotation weight of the
+   !!                     degree-1 toroidal constraint, ∫ x × u dV ∝ ∫ W r³ dr)
    use fe_precision, only: wp
    implicit none
    private
    public :: elem_i1, elem_i2, elem_i3, elem_i4, elem_i5, elem_i6, elem_i7
-   public :: elem_k1, elem_k2, elem_k3
+   public :: elem_k1, elem_k2, elem_k3, elem_k4
 
 contains
 
@@ -111,5 +113,16 @@ contains
       v(1) = h/12.0_wp*(rk1*rk1 + 2.0_wp*rk1*rk + 3.0_wp*rk*rk)
       v(2) = h/12.0_wp*(3.0_wp*rk1*rk1 + 2.0_wp*rk1*rk + rk*rk)
    end function elem_k3
+
+   pure function elem_k4(rk, rk1) result(v)   ! ∫ ψ_a r³ dr
+      !! Same pattern as K3, one power up: (1/h)∫(r_{k+1}−r) r³ dr and
+      !! (1/h)∫(r−r_k) r³ dr, written without the r⁴/r⁵ differences that would
+      !! cancel catastrophically on a thin shell far from the centre.
+      real(wp), intent(in) :: rk, rk1
+      real(wp) :: v(2), h
+      h = rk1 - rk
+      v(1) = h/20.0_wp*(rk1**3 + 2.0_wp*rk1**2*rk + 3.0_wp*rk1*rk**2 + 4.0_wp*rk**3)
+      v(2) = h/20.0_wp*(4.0_wp*rk1**3 + 3.0_wp*rk1**2*rk + 2.0_wp*rk1*rk**2 + rk**3)
+   end function elem_k4
 
 end module fe_radial_integrals
