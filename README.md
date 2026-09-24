@@ -8,7 +8,7 @@
 visco-elastic deformation model coupled with the sea-level equation — intended
 as an **open-source alternative to VILMA-v1** within the CLIMBER-X climate model.
 
-The method is a clean-room reimplementation of the **spectral–finite-element,
+The method is a new implementation of the **spectral–finite-element,
 time-domain** approach of Martinec (2000): spherical harmonics horizontally,
 finite elements radially, an incompressible Maxwell rheology integrated
 explicitly in time, a self-consistent sea-level equation with migrating

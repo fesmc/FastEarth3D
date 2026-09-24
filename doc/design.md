@@ -20,8 +20,8 @@ We reproduce **VILMA-v1's physics** (confirmed from Albrecht, Bagge & Klemann 20
 self-gravitating, Maxwell** viscoelastic sphere, solved by the
 **spectral–finite-element, time-domain** method of **Martinec (2000)**, *GJI*
 142:117, with rotational feedback (Martinec & Hagedoorn 2014) and a full
-migrating-coastline sea-level equation. This is a clean-room reimplementation
-from the published literature — we do not read VILMA-v1 source.
+migrating-coastline sea-level equation. This is a new implementation
+from the published literature.
 
 ## 2. Why this method (landscape)
 
