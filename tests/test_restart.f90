@@ -75,6 +75,7 @@ contains
                                           ! motion m + both channels' memory (rot_*)
       p%l_visc_3d     = visc3d            ! vendored Bagge field: 3-D elements, 6 channels
       p%visc_3d_file  = "input/bagge2021.nc"
+      p%l_toroidal    = visc3d            ! carry the toroidal field in the 3-D case
 
       ! === reference run A ====================================================
       a%par = p; call solid_earth_init(a, z_bed_eq, h_ice_eq)

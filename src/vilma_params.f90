@@ -120,19 +120,19 @@ module vilma_params
       ! Mirrors the CLIMBER-X VILMA-v1 scheme (src/geo/vilma.F90) but with a RELATIVE
       ! 1-sigma instead of a constant floor: perturb log10(eta) by f_visc_sd*sigma,
       ! sigma read from the file if name_visc_sd is set, else f_visc_rel*log10(eta).
-      ! Degree-1 reference frame. "cf" (default) keeps the historical behaviour:
+      ! Degree-1 reference frame. "cm" (default) puts both the displacement and
+      ! the geoid in the centre-of-mass frame, in which the solid Earth translates --
+      ! geocenter motion, a real part of the degree-1 sea-level fingerprint, and
+      ! what VILMA-v1 computes (it reports the term in vega_deg1.dat); it cuts the
+      ! disc residual against VILMA-v1 ~5x. "cf" keeps the historical behaviour:
       ! the degree-1 displacement gauge is the solver's own w'd = 0 (no
       ! volume-integrated translation, centre-of-figure-like) while the geoid is
-      ! referenced to CM (N1 = 0), so rsl carries NO degree 1 at all. "cm" puts
-      ! both in the centre-of-mass frame, in which the solid Earth translates --
-      ! geocenter motion, a real part of the degree-1 sea-level fingerprint, and
-      ! what VILMA-v1 computes (it reports the term in vega_deg1.dat).
+      ! referenced to CM (N1 = 0), so rsl carries NO degree 1 at all.
       !
-      ! This changes degree 1 ONLY; every degree >= 2 is bit-identical. It is off
-      ! by default because the block A disc benchmark was validated with N1
-      ! dropped, and because degree 1 has no community reference: Spada's tables
-      ! and tests/test_benchmark_love both start at degree 2.
-      character(len=8) :: deg1_frame = "cf"   !! "cf" | "cm"
+      ! This changes degree 1 ONLY; every degree >= 2 is bit-identical. Use "cf"
+      ! to reproduce the block A disc benchmark, which was validated with N1
+      ! dropped (Spada's tables and tests/test_benchmark_love start at degree 2).
+      character(len=8) :: deg1_frame = "cm"   !! "cm" | "cf"
       logical  :: l_visc_3d   = .false.   !! load a lateral log10(eta) field
       character(len=512) :: visc_3d_file  = ""       !! lon-lat-r log10(eta) field
       character(len=64)  :: name_visc     = "eta"    !! viscosity var (log10 Pa s)
@@ -148,9 +148,9 @@ module vilma_params
          !! element is treated as genuinely 3-D (pays the dyadic SHT round-trip); below it the
          !! element collapses to its lateral-mean scalar rate (cheap degree-diagonal path). Raising
          !! it demotes weakly-3-D elements to 1-D and cuts the memory-advance cost (the dominant cost).
-      logical  :: l_toroidal     = .true.   !! carry the toroidal degree of freedom once a 3-D element
-         !! exists (Martinec 2000 after eq 110). .false. reproduces the spheroidal-only model
-         !! exactly: the control for measuring what the coupling does, not a speed knob.
+      logical  :: l_toroidal     = .false.  !! carry the toroidal degree of freedom once a 3-D element
+         !! exists (Martinec 2000 after eq 110). Off by default: it is slower and its effect on
+         !! the solution is not yet shown (design-toroidal.md V7). .false. is the spheroidal-only model.
 
       ! --- VILMA-v1 backend (solver="v1" only; vilma_v1) -------------------------
       ! INERT unless solver="v1". These mirror the settings CLIMBER-X's VILMA-v1

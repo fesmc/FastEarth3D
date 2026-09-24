@@ -118,11 +118,12 @@
                              ! then the full model carrying the spun-up memory
 
     ! --- 3D viscosity field + uncertainty (vilma_earth_structure) --------
-    ! Degree-1 reference frame: "cf" (default, historical) leaves the degree-1
-    ! displacement in the solver's own w'd = 0 gauge while referencing the geoid
-    ! to CM, so rsl carries no degree 1; "cm" puts both in the centre-of-mass
-    ! frame, keeping geocenter motion. Degrees >= 2 are unaffected either way.
-    deg1_frame = "cf"
+    ! Degree-1 reference frame: "cm" (default) puts displacement and geoid in the
+    ! centre-of-mass frame, keeping geocenter motion (as VILMA-v1 does); "cf"
+    ! (historical) leaves the degree-1 displacement in the solver's own w'd = 0
+    ! gauge while referencing the geoid to CM, so rsl carries no degree 1.
+    ! Degrees >= 2 are unaffected either way.
+    deg1_frame = "cm"
     l_visc_3d      = .false. ! load a lateral log10(eta) field
     ! Default 3-D field: Bagge et al. (2021), floored at log10 eta = 19.5 (visc_log10_min
     ! below). Preferred over Pan 2022, whose raw min (~13.7 dex) is unphysical and ~6x slower.
@@ -139,8 +140,8 @@
     visc3d_tol     = 1.0e-3  ! lateral log10(eta) spread [dex] above which an element is genuinely
                              ! 3-D (pays the dyadic SHT round-trip); higher => fewer 3-D elements,
                              ! cheaper memory advance, at the cost of approximating weak lateral structure
-    l_toroidal     = .true.  ! carry the toroidal field once an element is genuinely 3-D; .false. is the
-                             ! spheroidal-only control (design-toroidal.md V7), not a speed knob
+    l_toroidal     = .false. ! carry the toroidal field once an element is genuinely 3-D; off by default
+                             ! (slower, effect not yet shown: design-toroidal.md V7)
 
     ! --- VILMA-v1 backend (solver = "v1" only; vilma_v1) --------------
     ! INERT unless solver = "v1". Mirrors what CLIMBER-X's VILMA-v1 wrapper

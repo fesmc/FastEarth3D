@@ -472,13 +472,13 @@ contains
 
       ! degree-1 frame. Two conventions, `deg1_frame` in the namelist:
       !
-      !   "cf" (default): the per-degree solve fixes the displacement gauge
+      !   "cf": the per-degree solve fixes the displacement gauge
       !        (wᵀd=0, no volume-integrated translation, centre-of-figure-like)
       !        while the geoid is referenced to CM, where the degree-1 external
       !        potential vanishes ⇒ N₁≡0. Validated against the Spada-2011 disc
       !        n_disc, which matches once N₁ is dropped. The two halves are in
       !        DIFFERENT frames, so rsl carries no degree 1 at all.
-      !   "cm": response_deg1_to_cm has already put the state in the CM frame, so
+      !   "cm" (default): response_deg1_to_cm has already put the state in the CM frame, so
       !        F(a)=0 came out of the projection and ngain(1) is zero as a RESULT,
       !        not an override — and the displacement carries geocenter motion.
       !
