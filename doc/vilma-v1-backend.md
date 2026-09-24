@@ -13,13 +13,13 @@ This is a **core-developer facility**, not a user feature.
 ## 1. VILMA-v1 is NOT a dependency
 
 The default build (`make vilma`) does not reference a single VILMA-v1 symbol,
-needs no `vilma/include`, and does not link `vega_pism.a`. VILMA-v1 is a
+needs no `vilma1/include`, and does not link `vega_pism.a`. VILMA-v1 is a
 hand-installed, precompiled library that is absent on most machines, and it must
 stay that way.
 
 Everything VILMA-v1-specific lives inside `#ifdef VILMA_V1` in `src/vilma_v1.f90`,
 which the `vilma_v1=1` make switch turns on (`config/common.mk`, mirroring
-CLIMBER-X's own `vilma=` / `fastearth=` toggles). With `vilma_v1=0` — the default —
+CLIMBER-X's own `vilma=` toggle). With `vilma_v1=0` — the default —
 that file compiles to a pure-Fortran stub, and asking for `solver="v1"` at
 runtime aborts at init with an actionable message:
 
@@ -31,7 +31,7 @@ runtime aborts at init with an actionable message:
   To use it, rebuild with the backend switched on:
 
       make clean
-      make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma
+      make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma1
   ...
 ```
 

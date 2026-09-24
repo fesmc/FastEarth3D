@@ -2,7 +2,12 @@
 title: "Installation and running"
 ---
 
-This page covers getting VILMA built and running a forced simulation. The
+::: {.callout-warning title="Under heavy development"}
+VILMA v2 is not yet ready for use in a scientific production capacity. If you
+want to use VILMA for now, please contact Volker Klemann at GFZ.
+:::
+
+This page covers getting VILMA v2 built and running a forced simulation. The
 build is driven by **configme** (one source of machine/compiler truth) and runs
 are staged by **runme** (single simulations and ensembles, locally or on SLURM).
 
@@ -24,7 +29,7 @@ self-describes the exact ref it needs.
 Makefile fragment, and links everything together:
 
 ```bash
-configme install FastEarth3D
+configme install vilma
 ```
 
 It resolves the machine and compiler from flags, your `~/.configme/config.toml`,
@@ -33,17 +38,17 @@ fesm-utils checkout instead of cloning:
 
 ```bash
 # pick machine + compiler explicitly
-configme install FastEarth3D -m macbook -c gfortran
+configme install vilma -m macbook -c gfortran
 
 # symlink an on-disk fesm-utils rather than cloning it
-configme install FastEarth3D --link fesm-utils=/abs/path/to/fesm-utils
+configme install vilma --link fesm-utils=/abs/path/to/fesm-utils
 ```
 
 Supported machines include `awi_albedo`, `chinook`, `dkrz_levante`, `linux`,
 `macbook`, `pik_hpc2024`; compilers `gfortran`, `ifort`, `ifx`. Run
 `configme list` for the current set and `configme status` to see what is present
 versus pending. If you only need to (re)generate the Makefile for an
-already-present checkout, `configme config FastEarth3D` does that without
+already-present checkout, `configme config vilma` does that without
 cloning.
 
 ## Build
@@ -65,7 +70,7 @@ production resolutions fast — build `openmp=1` (see [Solver](discretization/so
 ## Configuration: the `&vilma` namelist
 
 All runtime parameters live in a single namelist group **`&vilma`**.
-[`vilma.nml`](https://github.com/fesmc/VILMA/blob/main/vilma.nml)
+[`vilma.nml`](https://github.com/fesmc/vilma/blob/main/vilma.nml)
 is the canonical, fully documented defaults set — *every* parameter is present.
 A run can pass a **sparse overlay** that sets only what it overrides (the yelmo
 `defaults_file` convention):
@@ -102,7 +107,7 @@ A few conventions worth knowing:
 
 A complete worked configuration — an LGM → present-day deglaciation forced by
 the Tarasov ice/bed reconstruction — is in
-[`examples/deglac_lgm.nml`](https://github.com/fesmc/VILMA/blob/main/examples/deglac_lgm.nml).
+[`examples/deglac_lgm.nml`](https://github.com/fesmc/vilma/blob/main/examples/deglac_lgm.nml).
 
 ## Running with runme
 

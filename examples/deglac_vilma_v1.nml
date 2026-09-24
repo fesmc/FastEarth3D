@@ -5,7 +5,7 @@
     ! behind one driver, one forcing, one reference, one output layout.
     !
     !   make clean
-    !   make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma
+    !   make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma1
     !   bin/vilma.x examples/deglac_vilma_v1.nml
     !
     ! The default build (make vilma) aborts at init with an actionable

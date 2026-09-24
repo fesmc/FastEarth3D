@@ -143,7 +143,7 @@ contains
       write(error_unit,'(a)') '  To use it, rebuild with the backend switched on:'
       write(error_unit,'(a)') ''
       write(error_unit,'(a)') '      make clean'
-      write(error_unit,'(a)') '      make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma'
+      write(error_unit,'(a)') '      make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma1'
       write(error_unit,'(a)') ''
       write(error_unit,'(a)') '  where VILMA_V1_ROOT holds  include/*.mod  and  lib/vega_pism.a .'
       write(error_unit,'(a)') ''

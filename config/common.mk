@@ -85,8 +85,8 @@ endif
 # vilma_v1=1: -DVILMA_V1 activates the real wrapper; VILMA_V1_ROOT must point at an install
 #   containing include/*.mod and lib/vega_pism.a.
 #
-# Mirrors the vilma= / fastearth= toggles in CLIMBER-X's config/common.mk.
-VILMA_V1_ROOT ?= vilma
+# Mirrors the vilma= toggle in CLIMBER-X's config/common.mk.
+VILMA_V1_ROOT ?= vilma1
 CPPFLAGS_VILMA_V1 =
 INC_VILMA_V1 =
 LIB_VILMA_V1 =
