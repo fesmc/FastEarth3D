@@ -29,7 +29,7 @@ self-describes the exact ref it needs.
 Makefile fragment, and links everything together:
 
 ```bash
-configme install vilma
+configme install vilma2
 ```
 
 It resolves the machine and compiler from flags, your `~/.configme/config.toml`,
@@ -38,17 +38,17 @@ fesm-utils checkout instead of cloning:
 
 ```bash
 # pick machine + compiler explicitly
-configme install vilma -m macbook -c gfortran
+configme install vilma2 -m macbook -c gfortran
 
 # symlink an on-disk fesm-utils rather than cloning it
-configme install vilma --link fesm-utils=/abs/path/to/fesm-utils
+configme install vilma2 --link fesm-utils=/abs/path/to/fesm-utils
 ```
 
 Supported machines include `awi_albedo`, `chinook`, `dkrz_levante`, `linux`,
 `macbook`, `pik_hpc2024`; compilers `gfortran`, `ifort`, `ifx`. Run
 `configme list` for the current set and `configme status` to see what is present
 versus pending. If you only need to (re)generate the Makefile for an
-already-present checkout, `configme config vilma` does that without
+already-present checkout, `configme config vilma2` does that without
 cloning.
 
 ## Build

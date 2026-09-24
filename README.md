@@ -47,9 +47,9 @@ module) plus a system netCDF. **configme** clones/links the dependencies and
 generates the machine/compiler Makefile:
 
 ```bash
-configme install vilma                       # resolve machine/compiler, clone deps
-configme install vilma -m macbook -c gfortran
-configme install vilma --link fesm-utils=/abs/path/to/fesm-utils   # reuse a checkout
+configme install vilma2                      # resolve machine/compiler, clone deps
+configme install vilma2 -m macbook -c gfortran
+configme install vilma2 --link fesm-utils=/abs/path/to/fesm-utils   # reuse a checkout
 ```
 
 ## Build

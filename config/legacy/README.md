@@ -3,7 +3,7 @@
 Superseded by **configme**, which is the supported way to configure a build:
 
 ```bash
-configme install vilma -m macbook -c gfortran
+configme install vilma2 -m macbook -c gfortran
 ```
 
 See the Install section of the top-level [README](../../README.md).
