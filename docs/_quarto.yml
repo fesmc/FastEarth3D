@@ -72,7 +72,6 @@ website:
           - benchmarks/love-numbers.qmd
           - benchmarks/disc.qmd
           - benchmarks/sea-level.qmd
-          - benchmarks/visc3d.qmd
       - references.qmd
 
 format:

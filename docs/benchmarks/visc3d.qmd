@@ -1,5 +1,6 @@
 ---
 title: "Benchmark: lateral viscosity"
+search: false
 ---
 
 ::: {.callout-note appearance="minimal"}
