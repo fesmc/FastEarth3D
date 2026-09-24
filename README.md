@@ -31,9 +31,9 @@ VILMA v2 is under heavy development and not yet ready for scientific
 production use (see the note at the top). Implemented and validated so far: the spectral–finite-element solver
 core, viscoelastic time stepping, the self-consistent migrating-coastline
 sea-level equation, rotational feedback (polar motion), and laterally varying
-(3D) viscosity, including the toroidal flow it drives (optional, off by
-default) — plus restart, spin-up, online lon-lat→Gauss remapping, and a
-host-coupling API.
+(3D) viscosity — plus restart, spin-up, online lon-lat→Gauss remapping, and a
+host-coupling API. The toroidal flow driven by lateral viscosity is also
+implemented (optional, off by default) but so far only unit-tested.
 
 Validated against the Spada et al. (2011) and Martinec et al. (2018) community
 benchmarks (radial Love numbers, disc-load response, sea-level equation) and
