@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Installation and running – FastEarth3D</title>
+<title>Installation and running – VILMA</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -288,7 +288,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">FastEarth3D</span>
+    <span class="navbar-title">VILMA</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -366,7 +366,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
-    <a class="nav-link" href="https://github.com/fesmc/FastEarth3D"> <i class="bi bi-github" role="img" aria-label="GitHub">
+    <a class="nav-link" href="https://github.com/fesmc/VILMA"> <i class="bi bi-github" role="img" aria-label="GitHub">
 </i> 
 <span class="menu-text"></span></a>
   </li>  
@@ -406,7 +406,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">FastEarth3D</span></a>
+ <span class="menu-text">VILMA</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -547,12 +547,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#dependencies" id="toc-dependencies" class="nav-link active" data-scroll-target="#dependencies">Dependencies</a></li>
   <li><a href="#install-with-configme" id="toc-install-with-configme" class="nav-link" data-scroll-target="#install-with-configme">Install with configme</a></li>
   <li><a href="#build" id="toc-build" class="nav-link" data-scroll-target="#build">Build</a></li>
-  <li><a href="#configuration-the-fe3d-namelist" id="toc-configuration-the-fe3d-namelist" class="nav-link" data-scroll-target="#configuration-the-fe3d-namelist">Configuration: the <code>&amp;fe3d</code> namelist</a></li>
+  <li><a href="#configuration-the-vilma-namelist" id="toc-configuration-the-vilma-namelist" class="nav-link" data-scroll-target="#configuration-the-vilma-namelist">Configuration: the <code>&amp;vilma</code> namelist</a></li>
   <li><a href="#the-drivers" id="toc-the-drivers" class="nav-link" data-scroll-target="#the-drivers">The drivers</a></li>
   <li><a href="#running-with-runme" id="toc-running-with-runme" class="nav-link" data-scroll-target="#running-with-runme">Running with runme</a></li>
   <li><a href="#embedding-in-a-host-model" id="toc-embedding-in-a-host-model" class="nav-link" data-scroll-target="#embedding-in-a-host-model">Embedding in a host model</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/FastEarth3D/blob/main/getting-started.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/FastEarth3D/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/VILMA/blob/main/getting-started.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/VILMA/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -577,10 +577,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>This page covers getting FastEarth3D built and running a forced simulation. The build is driven by <strong>configme</strong> (one source of machine/compiler truth) and runs are staged by <strong>runme</strong> (single simulations and ensembles, locally or on SLURM).</p>
+<p>This page covers getting VILMA built and running a forced simulation. The build is driven by <strong>configme</strong> (one source of machine/compiler truth) and runs are staged by <strong>runme</strong> (single simulations and ensembles, locally or on SLURM).</p>
 <section id="dependencies" class="level2">
 <h2 class="anchored" data-anchor-id="dependencies">Dependencies</h2>
-<p>FastEarth3D needs only a small, well-established stack:</p>
+<p>VILMA needs only a small, well-established stack:</p>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -619,16 +619,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="build" class="level2">
 <h2 class="anchored" data-anchor-id="build">Build</h2>
 <p>configme writes the compiler fragment into the <code>Makefile</code>; building is then plain <code>make</code>:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> fastearth        <span class="co"># -&gt; bin/fastearth.x        (standalone forced-run driver)</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> fastearth_mkref  <span class="co"># -&gt; bin/fastearth_mkref.x  (build a Gauss-grid reference state)</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> fastearth_remap  <span class="co"># -&gt; bin/fastearth_remap.x  (offline lon-lat -&gt; Gauss remap)</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> vilma        <span class="co"># -&gt; bin/vilma.x        (standalone forced-run driver)</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> vilma_mkref  <span class="co"># -&gt; bin/vilma_mkref.x  (build a Gauss-grid reference state)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> vilma_remap  <span class="co"># -&gt; bin/vilma_remap.x  (offline lon-lat -&gt; Gauss remap)</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> check            <span class="co"># build + run the test suite</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Build switches: <code>debug = 0|1|2</code> (optimized / checks / profile) and <code>openmp = 0|1</code> (<strong>default 1</strong>). The threaded degree loop is what makes production resolutions fast — build <code>openmp=1</code> (see <a href="./discretization/solver.html">Solver</a>).</p>
 </section>
-<section id="configuration-the-fe3d-namelist" class="level2">
-<h2 class="anchored" data-anchor-id="configuration-the-fe3d-namelist">Configuration: the <code>&amp;fe3d</code> namelist</h2>
-<p>All runtime parameters live in a single namelist group <strong><code>&amp;fe3d</code></strong>. <a href="https://github.com/fesmc/FastEarth3D/blob/main/fastearth.nml"><code>fastearth.nml</code></a> is the canonical, fully documented defaults set — <em>every</em> parameter is present. A run can pass a <strong>sparse overlay</strong> that sets only what it overrides (the yelmo <code>defaults_file</code> convention):</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/fastearth.x</span> examples/deglac_lgm.nml fastearth.nml</span>
+<section id="configuration-the-vilma-namelist" class="level2">
+<h2 class="anchored" data-anchor-id="configuration-the-vilma-namelist">Configuration: the <code>&amp;vilma</code> namelist</h2>
+<p>All runtime parameters live in a single namelist group <strong><code>&amp;vilma</code></strong>. <a href="https://github.com/fesmc/VILMA/blob/main/vilma.nml"><code>vilma.nml</code></a> is the canonical, fully documented defaults set — <em>every</em> parameter is present. A run can pass a <strong>sparse overlay</strong> that sets only what it overrides (the yelmo <code>defaults_file</code> convention):</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/vilma.x</span> examples/deglac_lgm.nml vilma.nml</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#                 ^ sparse overlay        ^ complete defaults</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>A few conventions worth knowing:</p>
 <ul>
@@ -655,41 +655,41 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>bin/fastearth.x</code></td>
+<td><code>bin/vilma.x</code></td>
 <td>reads a reference state + an ice-thickness forcing <code>h_ice(lon,lat,time)</code>, marches the model across the forcing (online lon-lat → Gauss remap by default), and writes the diagnostic surface fields (<code>rsl</code>, <code>z_bed</code>, <code>h_ice</code>, ocean function) to <code>file_out</code></td>
 </tr>
 <tr class="even">
-<td><code>bin/fastearth_mkref.x</code></td>
+<td><code>bin/vilma_mkref.x</code></td>
 <td>generates the canonical Gauss-grid present-day reference (e.g.&nbsp;RTopo) used by <code>i_eq = 1</code>; other resolutions remap it online (cached)</td>
 </tr>
 <tr class="odd">
-<td><code>bin/fastearth_remap.x</code></td>
+<td><code>bin/vilma_remap.x</code></td>
 <td>offline conservative lon-lat → Gauss remap, to preprocess a forcing onto the model grid (<code>remap_input = .false.</code>)</td>
 </tr>
 </tbody>
 </table>
-<p>A complete worked configuration — an LGM → present-day deglaciation forced by the Tarasov ice/bed reconstruction — is in <a href="https://github.com/fesmc/FastEarth3D/blob/main/examples/deglac_lgm.nml"><code>examples/deglac_lgm.nml</code></a>.</p>
+<p>A complete worked configuration — an LGM → present-day deglaciation forced by the Tarasov ice/bed reconstruction — is in <a href="https://github.com/fesmc/VILMA/blob/main/examples/deglac_lgm.nml"><code>examples/deglac_lgm.nml</code></a>.</p>
 </section>
 <section id="running-with-runme" class="level2">
 <h2 class="anchored" data-anchor-id="running-with-runme">Running with runme</h2>
-<p><code>runme</code> stages a clean run directory (linking in <code>data</code> and <code>input</code>, copying the namelist, recording the parameters), then runs or submits it. The executable aliases match the drivers: <code>main</code> → <code>fastearth.x</code>, <code>mkref</code> → <code>fastearth_mkref.x</code>, <code>remap</code> → <code>fastearth_remap.x</code>.</p>
+<p><code>runme</code> stages a clean run directory (linking in <code>data</code> and <code>input</code>, copying the namelist, recording the parameters), then runs or submits it. The executable aliases match the drivers: <code>main</code> → <code>vilma.x</code>, <code>mkref</code> → <code>vilma_mkref.x</code>, <code>remap</code> → <code>vilma_remap.x</code>.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># single local run, 8 OpenMP threads, overriding a few parameters</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">runme</span> <span class="at">-o</span> runs/deglac <span class="at">-e</span> main <span class="at">--omp</span> 8 <span class="at">-r</span> <span class="dt">\</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>      <span class="at">-p</span> fe3d.lmax=128 fe3d.earth_response=ve fe3d.file_out=out.nc</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>      <span class="at">-p</span> vilma.lmax=128 vilma.earth_response=ve vilma.file_out=out.nc</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>How a run is launched is set by two flags:</p>
 <ul>
 <li><code>-r</code> run the executable;</li>
 <li><code>-s</code> prepare a SLURM submit script (and submit it, with <code>-r</code>);</li>
 <li><code>-s -r</code> prepare <strong>and</strong> submit on HPC; <code>-s</code> alone stages the script to inspect; omitting both stages the run directory only.</li>
 </ul>
-<p>A comma list, range, or distribution in <code>-p</code> turns a parameter into an <strong>ensemble dimension</strong> (<code>-p fe3d.lmax=64,128</code>), with <code>-a</code> naming the member directories from their parameter values. SLURM settings (cluster, account, threads) live in <code>.runme/config.toml</code>; bootstrap it with <code>runme config init</code> and inspect what runme reads with <code>runme info</code>.</p>
+<p>A comma list, range, or distribution in <code>-p</code> turns a parameter into an <strong>ensemble dimension</strong> (<code>-p vilma.lmax=64,128</code>), with <code>-a</code> naming the member directories from their parameter values. SLURM settings (cluster, account, threads) live in <code>.runme/config.toml</code>; bootstrap it with <code>runme config init</code> and inspect what runme reads with <code>runme info</code>.</p>
 </section>
 <section id="embedding-in-a-host-model" class="level2">
 <h2 class="anchored" data-anchor-id="embedding-in-a-host-model">Embedding in a host model</h2>
-<p>The CLIMBER-X coupling path uses the same code behind a single <code>use fastearth3d</code>. The contract is intentionally narrow — the host passes <strong>ice thickness</strong> in and receives <strong>relative sea level</strong> and <strong>bedrock</strong> out, on its own grid. The model owns its Gauss grid and the host↔︎Gauss remap (built from the parameter record), and keeps all spherical-harmonic work inside (see <a href="./implementation.html">Implementation</a>):</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode fortran code-with-copy"><code class="sourceCode fortranfixed"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">use</span> fastearth3d</span>
+<p>The CLIMBER-X coupling path uses the same code behind a single <code>use vilma</code>. The contract is intentionally narrow — the host passes <strong>ice thickness</strong> in and receives <strong>relative sea level</strong> and <strong>bedrock</strong> out, on its own grid. The model owns its Gauss grid and the host↔︎Gauss remap (built from the parameter record), and keeps all spherical-harmonic work inside (see <a href="./implementation.html">Implementation</a>):</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode fortran code-with-copy"><code class="sourceCode fortranfixed"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">use</span> vilma</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">type(solid_earth)</span> <span class="dt">::</span> se</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">call fe_par_load(se%par, "fastearth.nml")             ! configuration lives in se%par</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">call vilma_par_load(se%par, "vilma.nml")             ! configuration lives in se%par</span></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">call solid_earth_init(se, z_bed_eq, h_ice_eq, grid=host_grid)  ! builds the Gauss grid + remap</span></span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">call solid_earth_spinup(se, h_ice_lgm)                ! optional LGM-memory spin-up</span></span>
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="kw">do</span></span>
@@ -789,7 +789,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     }
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
       var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/fesmc\.github\.io\/VILMA\/");
+        var filterRegex = new RegExp("https:\/\/fesmc\.github\.io\/vilma\/");
       var isInternal = (href) => {
           return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
@@ -1118,8 +1118,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="./index.html" class="pagination-link" aria-label="FastEarth3D">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">FastEarth3D</span>
+      <a href="./index.html" class="pagination-link" aria-label="VILMA">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">VILMA</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
@@ -1133,4 +1133,4 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/FastEarth3D/blob/main/getting-started.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/FastEarth3D/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/VILMA/blob/main/getting-started.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/VILMA/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

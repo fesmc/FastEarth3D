@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>The banded direct solver and performance – FastEarth3D</title>
+<title>The banded direct solver and performance – VILMA</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -282,7 +282,7 @@ window.Quarto = {
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="../index.html">
-    <span class="navbar-title">FastEarth3D</span>
+    <span class="navbar-title">VILMA</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -360,7 +360,7 @@ window.Quarto = {
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
-    <a class="nav-link" href="https://github.com/fesmc/FastEarth3D"> <i class="bi bi-github" role="img" aria-label="GitHub">
+    <a class="nav-link" href="https://github.com/fesmc/VILMA"> <i class="bi bi-github" role="img" aria-label="GitHub">
 </i> 
 <span class="menu-text"></span></a>
   </li>  
@@ -400,7 +400,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">FastEarth3D</span></a>
+ <span class="menu-text">VILMA</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -542,7 +542,7 @@ window.Quarto = {
   <li><a href="#no-external-linear-algebra-dependency" id="toc-no-external-linear-algebra-dependency" class="nav-link" data-scroll-target="#no-external-linear-algebra-dependency">No external linear-algebra dependency</a></li>
   <li><a href="#performance-of-the-sle-driver" id="toc-performance-of-the-sle-driver" class="nav-link" data-scroll-target="#performance-of-the-sle-driver">Performance of the SLE driver</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/FastEarth3D/blob/main/discretization/solver.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/FastEarth3D/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/VILMA/blob/main/discretization/solver.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/VILMA/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -567,20 +567,20 @@ window.Quarto = {
 </header>
 
 
-<p>The per-degree saddle-point system is small, banded, and reused unchanged across all orders <span class="math inline">\(m\)</span>, all loads, and every time step. FastEarth3D therefore solves it with a <strong>dependency-free, re-entrant, pivoted banded LU</strong> — factor once, solve many times — which is both faster and structurally simpler than the iterative solver used in early versions.</p>
+<p>The per-degree saddle-point system is small, banded, and reused unchanged across all orders <span class="math inline">\(m\)</span>, all loads, and every time step. VILMA therefore solves it with a <strong>dependency-free, re-entrant, pivoted banded LU</strong> — factor once, solve many times — which is both faster and structurally simpler than the iterative solver used in early versions.</p>
 <section id="why-a-banded-direct-solve-fits" class="level2">
 <h2 class="anchored" data-anchor-id="why-a-banded-direct-solve-fits">Why a banded direct solve fits</h2>
 <p>Laid out node-interleaved as <span class="math inline">\([U\ V\ F\mid\Pi]\)</span>, the operator has a <strong>half-bandwidth of <span class="math inline">\(\sim 6\)</span></strong>. Its entries span <span class="math inline">\(\sim 20\)</span> orders of magnitude (<span class="math inline">\(\mu r^2/h\)</span> versus the pressure couplings versus <span class="math inline">\(1/4\pi G\)</span>), so it is first <strong>geometric-mean row/column equilibrated</strong>. Two facts then make a direct band solve ideal:</p>
 <ul>
 <li>The operator depends on degree only through <span class="math inline">\(J = j(j+1)\)</span>, so it is assembled and factored <strong>once per degree</strong> and reused for all <span class="math inline">\(m\)</span>, all loads, and all time steps. A step costs only a band back-substitution.</li>
-<li>It is <strong>indefinite</strong> (zero pressure block), so <strong>partial pivoting is required</strong>; the <code>fe_band</code> LU pivots within the band.</li>
+<li>It is <strong>indefinite</strong> (zero pressure block), so <strong>partial pivoting is required</strong>; the <code>vilma_band</code> LU pivots within the band.</li>
 </ul>
 <p>Degree 1 carries the dense KKT border (the rigid-mode constraint), giving that one degree a near-full bandwidth — it factors as a dense LU through the <em>same</em> code path. The result is <span class="math inline">\(\sim 20\ \mu\mathrm{s}\)</span> per solve, versus <span class="math inline">\(\sim 700\
 \mu\mathrm{s}\)</span> for the earlier iterative (GMRES+ILU) solver, with no preconditioner fill to evict from cache.</p>
 </section>
 <section id="no-external-linear-algebra-dependency" class="level2">
 <h2 class="anchored" data-anchor-id="no-external-linear-algebra-dependency">No external linear-algebra dependency</h2>
-<p><code>fe_band</code> is hand-rolled and <strong>dependency-free</strong>: it pulls in no LAPACK and no LIS. This is a deliberate design choice driven by linking into a larger, OpenMP-parallel host:</p>
+<p><code>vilma_band</code> is hand-rolled and <strong>dependency-free</strong>: it pulls in no LAPACK and no LIS. This is a deliberate design choice driven by linking into a larger, OpenMP-parallel host:</p>
 <div class="callout callout-style-default callout-note callout-titled" title="Why LIS (and LAPACK) were removed">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -653,7 +653,7 @@ window.Quarto = {
 </tr>
 </tbody>
 </table>
-<p>The full sea-level benchmark (<span class="math inline">\(\ell_{\max}=128\)</span>, <span class="math inline">\(\sim 750\)</span> steps) thus runs in <strong>minutes rather than hours</strong>, which is what makes the <a href="../benchmarks/sea-level.html">Martinec (2018) SLE cases</a> feasible as routine validation. At VILMA resolution (SH degree 170) the same machinery applies.</p>
+<p>The full sea-level benchmark (<span class="math inline">\(\ell_{\max}=128\)</span>, <span class="math inline">\(\sim 750\)</span> steps) thus runs in <strong>minutes rather than hours</strong>, which is what makes the <a href="../benchmarks/sea-level.html">Martinec (2018) SLE cases</a> feasible as routine validation. At VILMA-v1 resolution (SH degree 170) the same machinery applies.</p>
 <div class="callout callout-style-default callout-tip callout-titled" title="Where this lives in the code">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -664,7 +664,7 @@ window.Quarto = {
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><code>fe_band</code> (pivoted banded LU + equilibration), <code>fe_radial_fe</code> (assembly, factorization, reuse), <code>fe_response</code> (<code>skip_tol</code>, degree-grouped slots, OpenMP loop). Build with <code>make openmp=1</code> for the threaded degree loop (serial dependencies + <code>-fopenmp</code>).</p>
+<p><code>vilma_band</code> (pivoted banded LU + equilibration), <code>vilma_radial_fe</code> (assembly, factorization, reuse), <code>vilma_response</code> (<code>skip_tol</code>, degree-grouped slots, OpenMP loop). Build with <code>make openmp=1</code> for the threaded degree loop (serial dependencies + <code>-fopenmp</code>).</p>
 </div>
 </div>
 
@@ -758,7 +758,7 @@ window.Quarto = {
     }
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
       var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/fesmc\.github\.io\/VILMA\/");
+        var filterRegex = new RegExp("https:\/\/fesmc\.github\.io\/vilma\/");
       var isInternal = (href) => {
           return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
@@ -1102,4 +1102,4 @@ window.Quarto = {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/FastEarth3D/blob/main/discretization/solver.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/FastEarth3D/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/VILMA/blob/main/discretization/solver.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/VILMA/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

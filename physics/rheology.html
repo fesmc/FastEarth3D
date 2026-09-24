@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Maxwell rheology and the memory stress – FastEarth3D</title>
+<title>Maxwell rheology and the memory stress – VILMA</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -301,7 +301,7 @@ window.Quarto = {
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="../index.html">
-    <span class="navbar-title">FastEarth3D</span>
+    <span class="navbar-title">VILMA</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -379,7 +379,7 @@ window.Quarto = {
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
-    <a class="nav-link" href="https://github.com/fesmc/FastEarth3D"> <i class="bi bi-github" role="img" aria-label="GitHub">
+    <a class="nav-link" href="https://github.com/fesmc/VILMA"> <i class="bi bi-github" role="img" aria-label="GitHub">
 </i> 
 <span class="menu-text"></span></a>
   </li>  
@@ -419,7 +419,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">FastEarth3D</span></a>
+ <span class="menu-text">VILMA</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -563,7 +563,7 @@ window.Quarto = {
   <li><a href="#stability" id="toc-stability" class="nav-link" data-scroll-target="#stability">Stability</a></li>
   <li><a href="#a-modal-reduction-was-tried" id="toc-a-modal-reduction-was-tried" class="nav-link" data-scroll-target="#a-modal-reduction-was-tried">A modal reduction was tried</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/FastEarth3D/blob/main/physics/rheology.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/FastEarth3D/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/VILMA/blob/main/physics/rheology.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/VILMA/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -588,7 +588,7 @@ window.Quarto = {
 </header>
 
 
-<p>The mantle is modelled as an <strong>incompressible Maxwell</strong> body: it responds elastically on short timescales and viscously on long ones, with a single Maxwell time <span class="math inline">\(\tau_M = \eta/\mu\)</span> per layer. FastEarth3D integrates this constitutive law <strong>explicitly in the time domain</strong> — there is no normal-mode decomposition and no Laplace transform. This is the structural choice that makes laterally varying (3D) viscosity essentially free.</p>
+<p>The mantle is modelled as an <strong>incompressible Maxwell</strong> body: it responds elastically on short timescales and viscously on long ones, with a single Maxwell time <span class="math inline">\(\tau_M = \eta/\mu\)</span> per layer. VILMA integrates this constitutive law <strong>explicitly in the time domain</strong> — there is no normal-mode decomposition and no Laplace transform. This is the structural choice that makes laterally varying (3D) viscosity essentially free.</p>
 <section id="the-maxwell-body" class="level2">
 <h2 class="anchored" data-anchor-id="the-maxwell-body">The Maxwell body</h2>
 <p>For a deviatoric stress <span class="math inline">\(\boldsymbol{\tau}\)</span> and deviatoric strain <span class="math inline">\(\boldsymbol{\varepsilon}\)</span>, the Maxwell rheology is</p>
@@ -644,7 +644,7 @@ F_{\text{diss}} \;=\; -\!\int \boldsymbol{\tau}^{V,i} : \delta\boldsymbol{\varep
 <p><span class="math display">\[
 \Delta t \;\lesssim\; \frac{2\,\eta_{\min}}{\mu}.
 \]</span></p>
-<p>In practice a <strong>viscosity floor</strong> (e.g.&nbsp;<span class="math inline">\(\sim 10^{19}\ \mathrm{Pa\,s}\)</span>) caps the fastest relaxation and sets a usable step (VILMA-scale runs use <span class="math inline">\(\Delta t \approx 2.5\)</span> yr; the benchmark cases here use 20 yr). Elastic layers (<span class="math inline">\(M\to 0\)</span>) freeze and carry no memory; fluid layers (<span class="math inline">\(\mu = 0\)</span>) carry no memory either.</p>
+<p>In practice a <strong>viscosity floor</strong> (e.g.&nbsp;<span class="math inline">\(\sim 10^{19}\ \mathrm{Pa\,s}\)</span>) caps the fastest relaxation and sets a usable step (VILMA-v1-scale runs use <span class="math inline">\(\Delta t \approx 2.5\)</span> yr; the benchmark cases here use 20 yr). Elastic layers (<span class="math inline">\(M\to 0\)</span>) freeze and carry no memory; fluid layers (<span class="math inline">\(\mu = 0\)</span>) carry no memory either.</p>
 <div class="callout callout-style-default callout-tip callout-titled" title="Where this lives in the code">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -655,7 +655,7 @@ F_{\text{diss}} \;=\; -\!\int \boldsymbol{\tau}^{V,i} : \delta\boldsymbol{\varep
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><code>fe_viscoelastic</code> holds both the 1D per-degree stepper (<code>ve_degree</code>) and the shared per-element kernel. The memory state is the only prognostic field carried across a restart (<code>fe_io</code>). Time integration is validated by <code>test_relax</code> (a held load relaxes elastic <span class="math inline">\(\to\)</span> fluid, <span class="math inline">\(t_{\text{relax}}\propto\eta\)</span>, step-converged) and is benchmarked in <a href="../benchmarks/sea-level.html">Sea-level equation</a>.</p>
+<p><code>vilma_viscoelastic</code> holds both the 1D per-degree stepper (<code>ve_degree</code>) and the shared per-element kernel. The memory state is the only prognostic field carried across a restart (<code>vilma_io</code>). Time integration is validated by <code>test_relax</code> (a held load relaxes elastic <span class="math inline">\(\to\)</span> fluid, <span class="math inline">\(t_{\text{relax}}\propto\eta\)</span>, step-converged) and is benchmarked in <a href="../benchmarks/sea-level.html">Sea-level equation</a>.</p>
 </div>
 </div>
 </section>
@@ -759,7 +759,7 @@ Martinec, Z. 2000. <span>“Spectral–Finite Element Approach to Three-Dimensio
     }
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
       var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp("https:\/\/fesmc\.github\.io\/VILMA\/");
+        var filterRegex = new RegExp("https:\/\/fesmc\.github\.io\/vilma\/");
       var isInternal = (href) => {
           return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
@@ -1103,4 +1103,4 @@ Martinec, Z. 2000. <span>“Spectral–Finite Element Approach to Three-Dimensio
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/FastEarth3D/blob/main/physics/rheology.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/FastEarth3D/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/VILMA/blob/main/physics/rheology.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/VILMA/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
