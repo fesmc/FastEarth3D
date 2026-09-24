@@ -76,7 +76,11 @@ no mass is double-counted:
   level *and* the ice does not ground:
   $\rho_{\text{ice}}\,I < -\rho_{\text{water}}\,\text{topo}$. Only **grounded**
   ice loads the bed and changes the ocean-water budget; floating ice is already
-  carried by the ocean term.
+  carried by the ocean term. The grounded-ice increment is therefore the
+  difference of the two grounded columns, each masked by its *own* ocean
+  function, $\Delta I_g = I\,(1-C) - I_0\,(1-C_0)$. Masking the raw increment
+  by the current $C$ alone, $(I-I_0)(1-C)$, would drop the whole column of
+  marine-grounded reference ice from the melt source when its cell floods.
 - **Two ocean-geometry modes.** A *fixed* ocean (Martinec SLE1) holds
   $C = O^{(0)} = (\text{topo}_0 < 0)$ for the whole run; the *migrating*
   coastline (SLE2) updates $C$ every outer iteration.
@@ -102,13 +106,26 @@ cheaply.
 
 ## Reference frame and degree 1
 
-The geocenter (degree-1) terms are physical and frame-dependent. VILMA
-solves degree 1 in the **CM frame** [@Blewitt2003] via a rigid-translation
-constraint, so the displacement degree-1 (and hence the uplift) is
-self-consistent with the geoid. The Spada-2011 disc benchmark uses a *mixed*
-convention — displacement in a CE-like gauge ($h_1\approx 0$), geoid in the CM
-frame ($N_1 = 0$) — which VILMA reproduces by referencing the degree-1
-geoid to CM. See the [disc benchmark](../benchmarks/disc.qmd).
+The geocenter (degree-1) terms are physical and frame-dependent. The radial
+solve fixes the rigid-translation null space with a gauge (zero
+volume-integrated displacement, a centre-of-figure-like frame; see
+[Radial finite elements](../discretization/radial-fe.qmd)). Since a rigid
+translation carries no strain, the frame can then be changed after the solve
+by adding a multiple of the null mode. `deg1_frame` selects the frame:
+
+| `deg1_frame` | Displacement | Geoid | Use |
+|---|---|---|---|
+| `"cm"` (default) | CM frame: the solid Earth translates (geocenter motion) | CM ($F_1(a) = 0$, i.e. $k_1=-1$) | real-Earth runs; as VILMA-v1 |
+| `"cf"` | solver gauge, no net translation | CM ($N_1 = 0$) | Spada disc benchmark |
+
+In `"cm"` the CM condition is imposed once, on the solved state, so
+displacement and geoid refer to the same frame and the relative sea level
+carries the degree-1 fingerprint of geocenter motion [@Blewitt2003]. This
+reduces the disc residual against VILMA-v1 about fivefold. `"cf"` is the
+*mixed* convention of the Spada (2011) disc benchmark, displacement in a
+CE-like gauge ($h_1\approx 0$) and geoid in CM ($N_1 = 0$), under which
+`rsl` has no degree-1 part. Degrees $\ge 2$ are identical in both frames. See
+the [disc benchmark](../benchmarks/disc.qmd).
 
 ::: {.callout-tip title="Where this lives in the code"}
 `vilma_response` defines the response-operator interface and its three

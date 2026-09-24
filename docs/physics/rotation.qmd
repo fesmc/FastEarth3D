@@ -64,10 +64,14 @@ like any other — self-consistent, not a bolt-on correction.
 
 - **Degree-2, tidal Love numbers.** The rotational deformation uses *tidal*
   (not loading) Love numbers; the centrifugal forcing is purely degree 2.
-- **The secular number $k_s$.** Computing $k_s$ from the assumed lithosphere
-  thickness leads to the well-known "lithosphere-thickness paradox" in rotational
-  stability; the model can instead pin $k_s$ to the observed hydrostatic
-  flattening [@Mitrovica2005], recommended for deep time.
+- **The secular number $k_s$.** By default $k_s$ is the model's own fluid
+  limit $k^T_f$: the tidal response with every Maxwell layer fluidized, which
+  reproduces Spada test 3/2. Deriving $k_s$ from the assumed lithosphere
+  thickness leads to the well-known "lithosphere-thickness paradox" in
+  rotational stability. The observed-flattening value
+  $k_s = 3G(C-A)/(a^5\Omega^2)$ [@Mitrovica2005], recommended for deep time,
+  is computed as well. It can currently be selected only through the
+  `rotation_init` API (optional `k_s` argument), not the namelist.
 - **Couple through the SLE.** The rotational potential enters the sea-level
   equation self-consistently (above).
 

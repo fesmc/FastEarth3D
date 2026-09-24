@@ -146,7 +146,8 @@ practice, the key to getting the low-degree elastic Love numbers right — see t
   each of the flotation criterion, the eustatic conversion, and the sea-level
   equation.
 - **Degree 1 is frame-dependent.** The geocenter (degree-1) signal is physical
-  and is *not* hard-coded; it is solved in the **CM frame** [@Blewitt2003]. See
+  and is *not* hard-coded. By default displacement and geoid are both expressed
+  in the **centre-of-mass (CM) frame** [@Blewitt2003] (`deg1_frame = "cm"`). See
   [Sea-level equation](sea-level.qmd) and
   [Radial finite elements](../discretization/radial-fe.qmd).
 

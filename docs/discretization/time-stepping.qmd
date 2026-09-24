@@ -27,10 +27,21 @@ Elastic layers ($M\to 0$) freeze; fluid layers ($\mu=0$) carry no memory. The
 elastic Love number to the fluid limit $-(2j+1)/3$, with $t_{\text{relax}}\propto\eta$
 and convergence under step refinement.
 
-This explicit update is **conditionally stable** — the step is capped by the
+This explicit update is **conditionally stable**: the step is capped by the
 shortest Maxwell time, so a short dynamical $\Delta t$ is sub-cycled within the
-coupling interval (the `vilma_timestep` controller sizes it; `scheme = "trap"`
-selects the 2nd-order adaptive variant).
+coupling interval. The `vilma_timestep` controller sizes the sub-steps
+according to the memory scheme (see [Rheology](../physics/rheology.qmd#memory-time-schemes)):
+
+- **`"fe"`** (default): the 1st-order update has no embedded error signal, so
+  $\Delta t$ is set *a priori* by the stability ceiling $M = \mu\Delta t/\eta \le$
+  `cfl`, and the interval is split into equal sub-steps.
+- **`"trap"`**: each candidate step is taken once at $\Delta t$ and once as two
+  $\Delta t/2$ halves; their difference estimates the local error of the
+  memory (`rtol`, `atol`). A rejected step is rolled back and retried smaller;
+  an accepted one keeps the fine result and lets $\Delta t$ grow (`grow_max`,
+  bounded by `dt_min`/`dt_max`).
+
+The ice load is interpolated linearly between the interval endpoints.
 
 ## The viscoelastic field driver
 
@@ -52,6 +63,10 @@ comes from the *frozen* past-relaxation memory. The step is bracketed:
 - `apply()` is then a cheap affine evaluation the SLE fixed point may call
   repeatedly;
 - **`commit_step`** advances the Maxwell memory once, with the converged load.
+
+With `scheme = "trap"`, `commit_step` iterates the step endpoint (re-solving
+the drift against the trial $\boldsymbol{\tau}^{V,i}$) until the surface drift
+stops changing, since the trapezoidal update needs the end-of-step strain.
 
 Each complex $(\ell,m)$ history is stored as two real histories (real/imaginary),
 since the operator and $M=\mu\Delta t/\eta$ are real. The per-element Maxwell

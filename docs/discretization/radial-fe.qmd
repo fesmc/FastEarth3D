@@ -90,9 +90,9 @@ $\lVert A - A^{\mathsf T}\rVert = 0$ on the assembled matrix.
 Degree 1 carries the rigid-translation null space, removed by $E_{\text{uniq}}$
 (eq. 83). That penalty is a rank-1 term whose coefficient is $\sim 10^{16}\times$
 the band entries — i.e. it is already a *hard constraint* $w^{\mathsf T}d = 0$
-(the CM/geocenter frame, [@Blewitt2003]) in all but name. Imposing it as a dense
-penalty would fill the band; instead it borders the band with **one KKT
-row/column**:
+(zero volume-integrated displacement, a centre-of-figure-like gauge) in all but
+name. Imposing it as a dense penalty would fill the band; instead it borders
+the band with **one KKT row/column**:
 
 $$
 \begin{bmatrix} A_{\text{band}} & w\\ w^{\mathsf T} & 0\end{bmatrix}
@@ -102,8 +102,14 @@ $$
 $$
 
 The solve runs at $\text{ndof}+1$ internally but keeps the physical $\text{ndof}$
-interface, so the time stepper needs no degree-1 special case. The geocenter is
-thus the physical degree-1 signal, not a hard-coded $\{h_1,l_1,k_1\}$.
+interface, so the time stepper needs no degree-1 special case. The same KKT
+system also yields the null mode itself (zero physical right-hand side, border
+value 1). Because a rigid translation carries no strain, the reference frame is
+a post-solve choice: adding a multiple of the null mode that makes the exterior
+degree-1 potential vanish, $F_1(a) = 0$, puts the state in the **CM frame**
+[@Blewitt2003] (`deg1_frame = "cm"`, the default). The geocenter is thus the
+physical degree-1 signal, not a hard-coded $\{h_1,l_1,k_1\}$. See
+[Sea-level equation](../physics/sea-level.qmd#reference-frame-and-degree-1).
 
 ::: {.callout-tip title="Where this lives in the code"}
 `vilma_radial_fe` assembles `build_dense_operator` (the reference dense operator,
