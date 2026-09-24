@@ -70,7 +70,7 @@ FFT), but it *is* OpenMP-parallel, so build with `openmp=1` (the default).
 
 ```sh
 make clean
-make vilma vilma_v1=1 VILMA_V1_ROOT=/work/ba1442/robinson/models/vilma
+make vilma vilma_v1=1 VILMA_V1_ROOT=/work/ba1442/robinson/models/vilma1
 ```
 
 Then, in the run config's `&vilma` group:
@@ -231,7 +231,7 @@ ln -s <fesm-utils>/{fftw,SHTns,lis} $FU/          # no netCDF in these
 A=/sw/spack-levante/netcdf-fortran-4.6.2-5t6lbs
 C=/sw/spack-levante/netcdf-c-4.9.2-x7g75q
 make clean
-make vilma vilma_v1=1 VILMA_V1_ROOT=/work/ba1442/robinson/models/vilma \
+make vilma vilma_v1=1 VILMA_V1_ROOT=/work/ba1442/robinson/models/vilma1 \
      FESMUTILSROOT=$FU \
      INC_NC="-I$A/include -I$C/include" \
      LIB_NC="-L$A/lib -lnetcdff -L$C/lib -lnetcdf -Wl,-rpath,$A/lib -Wl,-rpath,$C/lib"
