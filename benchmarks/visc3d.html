@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Benchmark: Love numbers – VILMA v2</title>
+<title>Benchmark: lateral viscosity (Klemann et al.) – VILMA v2</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -25,6 +25,41 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 /* CSS for citations */
 div.csl-bib-body { }
@@ -55,8 +90,8 @@ div.csl-indent {
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../benchmarks/disc.html" rel="next">
-<link href="../benchmarks/index.html" rel="prev">
+<link href="../references.html" rel="next">
+<link href="../benchmarks/sea-level.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
@@ -399,7 +434,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../benchmarks/index.html">Benchmarks</a></li><li class="breadcrumb-item"><a href="../benchmarks/love-numbers.html">Benchmark: Love numbers</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../benchmarks/index.html">Benchmarks</a></li><li class="breadcrumb-item"><a href="../benchmarks/visc3d.html">Benchmark: lateral viscosity (Klemann et al.)</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -533,7 +568,7 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../benchmarks/love-numbers.html" class="sidebar-item-text sidebar-link active">
+  <a href="../benchmarks/love-numbers.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Benchmark: Love numbers</span></a>
   </div>
 </li>
@@ -551,7 +586,7 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../benchmarks/visc3d.html" class="sidebar-item-text sidebar-link">
+  <a href="../benchmarks/visc3d.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Benchmark: lateral viscosity (Klemann et al.)</span></a>
   </div>
 </li>
@@ -573,22 +608,24 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#earth-model" id="toc-earth-model" class="nav-link active" data-scroll-target="#earth-model">Earth model</a></li>
-  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a></li>
-  <li><a href="#analytic-anchors" id="toc-analytic-anchors" class="nav-link" data-scroll-target="#analytic-anchors">Analytic anchors</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link active" data-scroll-target="#setup">Setup</a>
+  <ul class="collapse">
+  <li><a href="#readings-of-the-setup-note" id="toc-readings-of-the-setup-note" class="nav-link" data-scroll-target="#readings-of-the-setup-note">Readings of the setup note</a></li>
+  </ul></li>
+  <li><a href="#output" id="toc-output" class="nav-link" data-scroll-target="#output">Output</a></li>
+  <li><a href="#running" id="toc-running" class="nav-link" data-scroll-target="#running">Running</a></li>
   <li><a href="#result" id="toc-result" class="nav-link" data-scroll-target="#result">Result</a></li>
   <li><a href="#figures" id="toc-figures" class="nav-link" data-scroll-target="#figures">Figures</a></li>
-  <li><a href="#provenance" id="toc-provenance" class="nav-link" data-scroll-target="#provenance">Provenance</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/vilma/blob/main/benchmarks/love-numbers.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/vilma/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/vilma/blob/main/benchmarks/visc3d.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/vilma/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../benchmarks/index.html">Benchmarks</a></li><li class="breadcrumb-item"><a href="../benchmarks/love-numbers.html">Benchmark: Love numbers</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../benchmarks/index.html">Benchmarks</a></li><li class="breadcrumb-item"><a href="../benchmarks/visc3d.html">Benchmark: lateral viscosity (Klemann et al.)</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Benchmark: Love numbers</h1>
+<h1 class="title">Benchmark: lateral viscosity (Klemann et al.)</h1>
 </div>
 
 
@@ -611,66 +648,125 @@ window.Quarto = {
 <i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-body-container">
-<p><strong>Reference:</strong> Spada et al.&nbsp;(2011), the Charles University GIA benchmark, earth model <strong>M3–L70–V01</strong> <span class="citation" data-cites="Spada2011">(<a href="#ref-Spada2011" role="doc-biblioref">Spada et al. 2011</a>)</span>. <strong>Test:</strong> <code>test_benchmark_love</code> (in <code>make check</code>). <strong>Status:</strong> ✅ elastic and fluid <span class="math inline">\(h,\ell,k\)</span> match to <span class="math inline">\(\sim 0.1\%\)</span> at every degree 2–256.</p>
+<p><strong>Reference:</strong> community benchmark of GIA codes with laterally heterogeneous earth structure, setup note by Klemann et al. <span class="citation" data-cites="Klemann2022setup">(<a href="#ref-Klemann2022setup" role="doc-biblioref">Klemann et al. 2022</a>)</span> (<code>doc/refs/klemann-visc3d-benchmarks-setup.pdf</code>). <strong>Driver:</strong> <code>bench_klemann3d</code> (not in <code>make check</code>). <strong>Status:</strong> 🔧 set up and run at low resolution; no reference solutions published yet.</p>
 </div>
 </div>
 </div>
-<p>This benchmark tests the <strong>per-degree radial solver</strong> in isolation: for a unit surface load at degree <span class="math inline">\(j\)</span>, do the elastic (instantaneous) and fluid (fully relaxed) loading Love numbers match the reference?</p>
-<section id="earth-model" class="level2">
-<h2 class="anchored" data-anchor-id="earth-model">Earth model</h2>
-<p><strong>M3–L70–V01</strong> — incompressible, self-gravitating, layered Maxwell:</p>
-<ul>
-<li>a 70 km <strong>elastic lithosphere</strong> (<span class="math inline">\(\eta\to\infty\)</span>),</li>
-<li>three viscous <strong>mantle layers</strong>,</li>
-<li>an inviscid <strong>fluid core</strong> (<span class="math inline">\(\mu=0\)</span>).</li>
-</ul>
-<p>The layer table (radius, density, shear modulus, viscosity) is the incompressible model of the Spada et al.&nbsp;(2011) benchmark. VILMA’s <code>vilma_earth_structure</code> reproduces the benchmark’s interface gravities, total mass, and moment of inertia as an independent check before any Love number is computed.</p>
-</section>
-<section id="definitions" class="level2">
-<h2 class="anchored" data-anchor-id="definitions">Definitions</h2>
-<p>For a degree-<span class="math inline">\(j\)</span> surface load of coefficient <span class="math inline">\(\sigma\)</span>, with the load’s own surface potential <span class="math inline">\(\varphi^{L} = 4\pi G\,a\,\sigma/(2j+1)\)</span>, the loading Love numbers are extracted from the surface radial functions (Farrell 1972 normalization, <span class="citation" data-cites="Farrell1972">(<a href="#ref-Farrell1972" role="doc-biblioref">Farrell 1972</a>)</span>):</p>
+<p>The benchmark follows <span class="citation" data-cites="Spada2011">Spada et al. (<a href="#ref-Spada2011" role="doc-biblioref">2011</a>)</span> and <span class="citation" data-cites="Martinec2018">Martinec et al. (<a href="#ref-Martinec2018" role="doc-biblioref">2018</a>)</span> but adds a <strong>low-viscosity column</strong> under or near an ice load. It isolates the effect of lateral viscosity on vertical and horizontal displacement, on the gravitational potential, and on geocentre motion. The note defines compressible and incompressible variants; VILMA is incompressible, so only <strong>A-i, B-i and C-i</strong> are run.</p>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<p><strong>Earth.</strong> M3–L70–V01 (as for the <a href="../benchmarks/love-numbers.html">Love numbers</a>), with interfaces added at 60 and 220 km depth so that FE nodes bound the structure. The 60–70 km part of the lithosphere is made Maxwell with <span class="math inline">\(\eta = 10^{30}\)</span> Pa s, because an elastic element cannot carry a lateral viscosity. This split changes the test-A result by <span class="math inline">\(\lesssim 4\times10^{-9}\)</span> relative.</p>
+<p><strong>Structure.</strong> A rotationally symmetric column over 60–220 km depth, centred at <span class="math inline">\((\vartheta_S, \lambda_S)\)</span>, with a smoothed-Heaviside profile in the angular distance <span class="math inline">\(\vartheta\)</span> from its centre:</p>
 <p><span class="math display">\[
-h_j = \frac{g_0(a)\,U(a)}{\varphi^{L}}, \qquad
-\ell_j = \frac{g_0(a)\,V(a)}{\varphi^{L}}, \qquad
-k_j = -\frac{F(a)}{\varphi^{L}} - 1.
+\log_{10}\eta = \log_{10}\eta_\text{ref}
+  + \left(\log_{10}\eta_c - \log_{10}\eta_\text{ref}\right) H(\vartheta),
+\qquad
+H(\vartheta) = \left[1 + e^{2(\vartheta-\vartheta_w)/d}\right]^{-1},
 \]</span></p>
-<p>The <span class="math inline">\(-1\)</span> in <span class="math inline">\(k_j\)</span> follows from Martinec’s <span class="math inline">\(\varphi_1 = F\)</span> being the <em>total</em> perturbation potential, which carries the load’s direct potential with the opposite sign to <span class="math inline">\(\varphi^{L}\)</span> (<span class="math inline">\(F\to-\varphi^{L}\)</span> for a rigid sphere).</p>
-</section>
-<section id="analytic-anchors" class="level2">
-<h2 class="anchored" data-anchor-id="analytic-anchors">Analytic anchors</h2>
-<p>Two limits are exact and are checked first (<code>test_love</code>, to <span class="math inline">\(\sim 10^{-5}\)</span>):</p>
+<p>with half-width <span class="math inline">\(\vartheta_w = 12°\)</span>, edge width <span class="math inline">\(d = 1°\)</span> and centre viscosity <span class="math inline">\(\eta_c = 10^{18}\)</span> Pa s. That is a drop of 3 orders of magnitude in the mantle and 12 in the 60–70 km lithosphere, which the note asks to reach the same centre value.</p>
+<p><strong>Load.</strong> A cap of radius <span class="math inline">\(\alpha = 10°\)</span> with a square-root profile,</p>
+<p><span class="math display">\[
+\sigma(\vartheta) = \rho_\text{ice}\, h_L
+  \sqrt{\frac{\cos\vartheta - \cos\alpha}{1 - \cos\alpha}},
+\qquad h_L = 1500\ \mathrm{m},\ \rho_\text{ice} = 931\ \mathrm{kg\,m^{-3}},
+\]</span></p>
+<p>centred at <span class="math inline">\((\vartheta_L, \lambda_L)\)</span>. Its SH coefficients are exact: Gauss–Legendre quadrature in <span class="math inline">\(s\)</span> with <span class="math inline">\(\cos\vartheta = \cos\alpha + (1-\cos\alpha)s^2\)</span> turns the square-root edge into a polynomial, and the addition theorem rotates the cap to its centre. Two forcings: <strong>heav</strong> (load applied at <span class="math inline">\(t=0\)</span>) and <strong>ramp</strong> (thickness linear over 0–10 kyr, then held). No ocean, no rotation.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>test</th>
+<th>structure <span class="math inline">\((\vartheta_S, \lambda_S)\)</span></th>
+<th>load <span class="math inline">\((\vartheta_L, \lambda_L)\)</span></th>
+<th>geometry</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>A-i</td>
+<td>none (S0)</td>
+<td>(0°, 0°)</td>
+<td>1-D reference</td>
+</tr>
+<tr class="even">
+<td>B-i</td>
+<td>(0°, 0°)</td>
+<td>(0°, 0°)</td>
+<td>axisymmetric, structure under load</td>
+</tr>
+<tr class="odd">
+<td>C-i</td>
+<td>(35°, 25°)</td>
+<td>(30°, 25°)</td>
+<td>off-axis, structure and load overlap</td>
+</tr>
+</tbody>
+</table>
+<p>A and B are axisymmetric and run with <span class="math inline">\(m_\max = 0\)</span>; C runs the full spectrum.</p>
+<p><strong>Time stepping.</strong> Explicit (<code>fe</code>) memory update. <span class="math inline">\(\Delta t\)</span> is set by the Maxwell ceiling at <span class="math inline">\(\eta_c\)</span> (<span class="math inline">\(\mu\Delta t/\eta_c \le 1\)</span>), rounded to divide 100 yr, which gives <span class="math inline">\(\Delta t = 0.448\)</span> yr. All three tests use the same <span class="math inline">\(\Delta t\)</span>, so their differences come from the structure alone.</p>
+<section id="readings-of-the-setup-note" class="level3">
+<h3 class="anchored" data-anchor-id="readings-of-the-setup-note">Readings of the setup note</h3>
+<p>The note is a draft and a few points had to be interpreted:</p>
 <ul>
-<li><strong>Fluid</strong> (<span class="math inline">\(\mu\to 0\)</span>, homogeneous): <span class="math inline">\(h_j\to-(2j+1)/3\)</span>, <span class="math inline">\(k_j\to-1\)</span>.</li>
-<li><strong>Rigid</strong> (<span class="math inline">\(\mu\to\infty\)</span>): <span class="math inline">\(h_j,\ell_j,k_j\to 0\)</span>.</li>
+<li>The half-width of the structure is 12° in the text and 10° in the table; 12° is used.</li>
+<li><span class="math inline">\(\Delta\eta = -10^3\)</span> is read as a factor <span class="math inline">\(10^{-3}\)</span> in log space (the formula in the note gives <span class="math inline">\(\eta = 0\)</span> for S0, <span class="math inline">\(\Delta\eta = 0\)</span>).</li>
+<li>The prose swaps the ice and water densities; the table’s values (<span class="math inline">\(\rho_\text{ice} = 931\)</span>, <span class="math inline">\(\rho_w = 1000\)</span>) are used.</li>
+<li>“<span class="math inline">\(\vartheta_S\)</span> and <span class="math inline">\(\alpha\)</span> are increased” in the ramp is read as the <span class="citation" data-cites="Spada2011">Spada et al. (<a href="#ref-Spada2011" role="doc-biblioref">2011</a>)</span> ramp: the ice <strong>thickness</strong> grows linearly, the geometry is fixed.</li>
+<li>The model’s own constants (seconds per year, <span class="math inline">\(G\)</span>) are used; they differ from the note’s by <span class="math inline">\(\lesssim 10^{-4}\)</span> relative.</li>
 </ul>
-<p>The fluid limit independently exercises self-gravity, incompressibility, the Poisson coupling, and the load forcing; the rigid limit checks the shear block and the <span class="math inline">\(F\)</span> sign.</p>
+</section>
+</section>
+<section id="output" class="level2">
+<h2 class="anchored" data-anchor-id="output">Output</h2>
+<p>At the epochs 0.1, 0.2, 0.5, 1, 2, 5, 10, 11, 12, 15, 20, 50 and 100 kyr, the fields are evaluated at points every 0.1°. The points lie along the great circle from the structure centre through the load centre to the antipode. For A and B, where both centres sit at the pole, that circle is the <span class="math inline">\(\lambda = 0\)</span> meridian. The files follow the protocol (tab-delimited, <code>#</code> header):</p>
+<ul>
+<li><code>disp_VILMA2_&lt;T&gt;-i_&lt;forcing&gt;.txt</code>: longitude, latitude, distance along the section [deg], time [kyr], <span class="math inline">\(u_r\)</span>, <span class="math inline">\(u_\vartheta\)</span>, <span class="math inline">\(u_\varphi\)</span> [m] and <span class="math inline">\(\delta\phi\)</span> [m² s⁻²].</li>
+<li><code>gcm_VILMA2_&lt;T&gt;-i_&lt;forcing&gt;.txt</code>: time [kyr] and the geocentre offset <span class="math inline">\(u_\text{gcm} = u_\text{CF} - u_\text{CM}\)</span> (<span class="math inline">\(x, y, z\)</span> [m]).</li>
+</ul>
+<p>Conventions:</p>
+<ul>
+<li><strong>Frame.</strong> Displacements are in the CM frame (<code>deg1_frame = "cm"</code>). Then <span class="math inline">\(u_\text{gcm} = u_\text{CF}\)</span>, the surface mean of the displacement vector, <span class="math inline">\((U_1 + 2V_1)/3\)</span> in Cartesian components <span class="citation" data-cites="Blewitt2003">(<a href="#ref-Blewitt2003" role="doc-biblioref">Blewitt 2003</a>)</span>.</li>
+<li><strong>Potential.</strong> <span class="math inline">\(\delta\phi = -F(a) = g N\)</span>, which includes the load’s own potential.</li>
+<li><strong>Horizontal displacement</strong> is spheroidal plus <a href="../physics/toroidal.html">toroidal</a>. Its components are in the local geographic basis, so <span class="math inline">\(u_\vartheta\)</span> changes sign where the section crosses a pole. At the pole itself, the basis is that of the meridian the section runs along.</li>
+</ul>
+</section>
+<section id="running" class="level2">
+<h2 class="anchored" data-anchor-id="running">Running</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> bench_klemann3d openmp=1</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">ulimit</span> <span class="at">-s</span> unlimited<span class="kw">;</span> <span class="va">OMP_STACKSIZE</span><span class="op">=</span>256M <span class="ex">./bin/bench_klemann3d.x</span> C heav 128</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The arguments are <code>&lt;A|B|C&gt; &lt;heav|ramp&gt; [lmax=128] [t_end_kyr=100] [outdir=runs/klemann3d]</code>. <code>analysis/plot_klemann3d.jl [dir] [heav|ramp]</code> plots the cross-sections and the geocentre motion.</p>
+<p>The step count is set by <span class="math inline">\(\eta_c\)</span>: 223 000 steps to 100 kyr. At <span class="math inline">\(\ell_\max = 64\)</span> with 8 threads (laptop), a C run costs about 53 ms per step, or about 3.3 h. A and B, with <span class="math inline">\(m_\max = 0\)</span>, take minutes. The target resolution is <span class="math inline">\(\ell_\max = 128\)</span>.</p>
 </section>
 <section id="result" class="level2">
 <h2 class="anchored" data-anchor-id="result">Result</h2>
-<p>The elastic and fluid <span class="math inline">\(h,\ell,k\)</span> match the benchmark table to <span class="math inline">\(\sim 0.1\%\)</span> (the P1 discretization level) at every degree from 2 to 256. The fluid limit was always exact (<span class="math inline">\(&lt;0.5\%\)</span>); the elastic numbers are the discriminating test. Correct discretization of the self-gravity <span class="math inline">\(U\)</span>–<span class="math inline">\(F\)</span> block is essential for the low-degree elastic numbers — see the <a href="../discretization/radial-fe.html">typo in <span class="citation" data-cites="Martinec2000">Martinec (<span>2000</span>)</span> eq. (81)</a>. TABOO (NV=3, CODE=7) served as an independent reference to regenerate the M3–L70–V01 table.</p>
+<p>Only a short test so far (<span class="math inline">\(\ell_\max = 64\)</span>, to 2 kyr). The load mass matches the closed form exactly. The geocentre offset is about <span class="math inline">\(-4\)</span> m along the load axis, which is the expected size for <span class="math inline">\(3.6\times10^{18}\)</span> kg of ice, and for C it points towards the load’s longitude. At <span class="math inline">\(\ell_\max = 64\)</span>, B shows Gibbs ringing with a ~3° period and a bulge at the structure edge: the 1° edge width is not resolved. The full runs at <span class="math inline">\(\ell_\max = 128\)</span> are to follow.</p>
 </section>
 <section id="figures" class="level2">
 <h2 class="anchored" data-anchor-id="figures">Figures</h2>
-<p><em>Figures to be added: <span class="math inline">\(h_j,\ell_j,k_j\)</span> versus degree (elastic and fluid), VILMA vs.&nbsp;the M3–L70–V01 table; relative-error spectra.</em></p>
+<p><em>Figures to be added: <span class="math inline">\(u_r\)</span>, <span class="math inline">\(u_\vartheta\)</span>, <span class="math inline">\(u_\varphi\)</span>, <span class="math inline">\(\delta\phi\)</span> along the section for A/B/C; geocentre motion; comparison with the other codes once available.</em></p>
 <!--
-![Elastic Love numbers vs degree](figures/love_elastic.png)
-![Relative error vs degree](figures/love_error.png)
+![Cross-sections, heav](figures/visc3d_sections_heav.png)
+![Geocentre motion](figures/visc3d_gcm.png)
 -->
-</section>
-<section id="provenance" class="level2">
-<h2 class="anchored" data-anchor-id="provenance">Provenance</h2>
-<p>Reference table: <code>data/benchmarks/love_M3-L70-V01/mod_M3-L70-V01</code>, from the <code>giapy</code> package (MIT) [S. B. Kachuck], originating in the Charles University GIA benchmark; independently regenerable with TABOO (GPLv3). Full details in <code>data/benchmarks/PROVENANCE.md</code>.</p>
 
 
 
 </section>
 
 <a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Back to top</a><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
-<div id="ref-Farrell1972" class="csl-entry" role="listitem">
-Farrell, W. E. 1972. <span>“Deformation of the Earth by Surface Loads.”</span> <em>Reviews of Geophysics</em> 10 (3): 761–97. <a href="https://doi.org/10.1029/RG010i003p00761">https://doi.org/10.1029/RG010i003p00761</a>.
+<div id="ref-Blewitt2003" class="csl-entry" role="listitem">
+Blewitt, G. 2003. <span>“Self-Consistency in Reference Frames, Geocenter Definition, and Surface Loading of the Solid Earth.”</span> <em>Journal of Geophysical Research: Solid Earth</em> 108 (B2): 2103. <a href="https://doi.org/10.1029/2002JB002082">https://doi.org/10.1029/2002JB002082</a>.
 </div>
-<div id="ref-Martinec2000" class="csl-entry" role="listitem">
-Martinec, Z. 2000. <span>“Spectral–Finite Element Approach to Three-Dimensional Viscoelastic Relaxation in a Spherical Earth.”</span> <em>Geophysical Journal International</em> 142 (1): 117–41. <a href="https://doi.org/10.1046/j.1365-246x.2000.00138.x">https://doi.org/10.1046/j.1365-246x.2000.00138.x</a>.
+<div id="ref-Klemann2022setup" class="csl-entry" role="listitem">
+Klemann, V., J. Austermann, M. Bagge, et al. 2022. <em>Benchmark of Numerical <span>GIA</span> Codes Capable of Laterally Heterogeneous Earth Structures</em>. Setup note, unpublished.
+</div>
+<div id="ref-Martinec2018" class="csl-entry" role="listitem">
+Martinec, Z., V. Klemann, W. van der Wal, et al. 2018. <span>“A Benchmark Study of Numerical Implementations of the Sea Level Equation in <span>GIA</span> Modelling.”</span> <em>Geophysical Journal International</em> 215 (1): 389–414. <a href="https://doi.org/10.1093/gji/ggy280">https://doi.org/10.1093/gji/ggy280</a>.
 </div>
 <div id="ref-Spada2011" class="csl-entry" role="listitem">
 Spada, G., V. R. Barletta, V. Klemann, et al. 2011. <span>“A Benchmark Study for Glacial Isostatic Adjustment Codes.”</span> <em>Geophysical Journal International</em> 185 (1): 106–32. <a href="https://doi.org/10.1111/j.1365-246X.2011.04952.x">https://doi.org/10.1111/j.1365-246X.2011.04952.x</a>.
@@ -1091,13 +1187,13 @@ Spada, G., V. R. Barletta, V. Klemann, et al. 2011. <span>“A Benchmark Study f
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../benchmarks/index.html" class="pagination-link" aria-label="Benchmarks">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Benchmarks</span>
+      <a href="../benchmarks/sea-level.html" class="pagination-link" aria-label="Benchmark: the sea-level equation">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Benchmark: the sea-level equation</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../benchmarks/disc.html" class="pagination-link" aria-label="Benchmark: disc-load response">
-        <span class="nav-page-text">Benchmark: disc-load response</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../references.html" class="pagination-link" aria-label="References">
+        <span class="nav-page-text">References</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
@@ -1106,4 +1202,4 @@ Spada, G., V. R. Barletta, V. Klemann, et al. 2011. <span>“A Benchmark Study f
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/vilma/blob/main/benchmarks/love-numbers.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/vilma/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/vilma/blob/main/benchmarks/visc3d.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/vilma/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
