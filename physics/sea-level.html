@@ -56,7 +56,7 @@ div.csl-indent {
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
 <link href="../physics/rotation.html" rel="next">
-<link href="../physics/rheology.html" rel="prev">
+<link href="../physics/toroidal.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
@@ -332,6 +332,10 @@ window.Quarto = {
  <span class="dropdown-text">Maxwell rheology and the memory stress</span></a>
   </li>  
         <li>
+    <a class="dropdown-item" href="../physics/toroidal.html">
+ <span class="dropdown-text">Toroidal flow under lateral viscosity</span></a>
+  </li>  
+        <li>
     <a class="dropdown-item" href="../physics/sea-level.html">
  <span class="dropdown-text">The sea-level equation</span></a>
   </li>  
@@ -455,6 +459,12 @@ window.Quarto = {
   <div class="sidebar-item-container"> 
   <a href="../physics/rheology.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Maxwell rheology and the memory stress</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../physics/toroidal.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Toroidal flow under lateral viscosity</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -653,7 +663,7 @@ S \;=\; C\cdot\bigl(N - u + \Delta\phi\bigr),
 <h2 class="anchored" data-anchor-id="ocean-function-flotation-and-the-coast">Ocean function, flotation, and the coast</h2>
 <p>The ocean function distinguishes three regimes, each handled explicitly so that no mass is double-counted:</p>
 <ul>
-<li><strong>Grounded vs.&nbsp;floating ice.</strong> A cell is ocean only where it is below sea level <em>and</em> the ice does not ground: <span class="math inline">\(\rho_{\text{ice}}\,I &lt; -\rho_{\text{water}}\,\text{topo}\)</span>. Only <strong>grounded</strong> ice loads the bed and changes the ocean-water budget; floating ice is already carried by the ocean term.</li>
+<li><strong>Grounded vs.&nbsp;floating ice.</strong> A cell is ocean only where it is below sea level <em>and</em> the ice does not ground: <span class="math inline">\(\rho_{\text{ice}}\,I &lt; -\rho_{\text{water}}\,\text{topo}\)</span>. Only <strong>grounded</strong> ice loads the bed and changes the ocean-water budget; floating ice is already carried by the ocean term. The grounded-ice increment is therefore the difference of the two grounded columns, each masked by its <em>own</em> ocean function, <span class="math inline">\(\Delta I_g = I\,(1-C) - I_0\,(1-C_0)\)</span>. Masking the raw increment by the current <span class="math inline">\(C\)</span> alone, <span class="math inline">\((I-I_0)(1-C)\)</span>, would drop the whole column of marine-grounded reference ice from the melt source when its cell floods.</li>
 <li><strong>Two ocean-geometry modes.</strong> A <em>fixed</em> ocean (Martinec SLE1) holds <span class="math inline">\(C = O^{(0)} = (\text{topo}_0 &lt; 0)\)</span> for the whole run; the <em>migrating</em> coastline (SLE2) updates <span class="math inline">\(C\)</span> every outer iteration.</li>
 <li><strong>Sub-grid (sloping-coast) loading.</strong> The binary load <span class="math inline">\(\rho_{\text{water}}\,C\!\cdot\!S\)</span> puts the full sea-level change wherever <span class="math inline">\(C=1\)</span>, giving a sharp shoreline. The optional sub-grid mode instead loads the actual water-column change <span class="math inline">\(s = C\!\cdot\!S - \zeta^{(0)}(C - C_0)\)</span>, which tapers smoothly to zero as a newly flooded cell fills from its own bed (Martinec 2018, §2.2, eqs. 15–19). This is a <em>local</em> correction — one extra field term and one integral — yet it collapses the cap-edge grounding-line residuals in the migrating benchmark cases to the <span class="math inline">\(\sim 1\%\)</span> level.</li>
 </ul>
@@ -673,7 +683,38 @@ S \;=\; C\cdot\bigl(N - u + \Delta\phi\bigr),
 </section>
 <section id="reference-frame-and-degree-1" class="level2">
 <h2 class="anchored" data-anchor-id="reference-frame-and-degree-1">Reference frame and degree 1</h2>
-<p>The geocenter (degree-1) terms are physical and frame-dependent. VILMA solves degree 1 in the <strong>CM frame</strong> <span class="citation" data-cites="Blewitt2003">(<a href="#ref-Blewitt2003" role="doc-biblioref">Blewitt 2003</a>)</span> via a rigid-translation constraint, so the displacement degree-1 (and hence the uplift) is self-consistent with the geoid. The Spada-2011 disc benchmark uses a <em>mixed</em> convention — displacement in a CE-like gauge (<span class="math inline">\(h_1\approx 0\)</span>), geoid in the CM frame (<span class="math inline">\(N_1 = 0\)</span>) — which VILMA reproduces by referencing the degree-1 geoid to CM. See the <a href="../benchmarks/disc.html">disc benchmark</a>.</p>
+<p>The geocenter (degree-1) terms are physical and frame-dependent. The radial solve fixes the rigid-translation null space with a gauge (zero volume-integrated displacement, a centre-of-figure-like frame; see <a href="../discretization/radial-fe.html">Radial finite elements</a>). Since a rigid translation carries no strain, the frame can then be changed after the solve by adding a multiple of the null mode. <code>deg1_frame</code> selects the frame:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th><code>deg1_frame</code></th>
+<th>Displacement</th>
+<th>Geoid</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>"cm"</code> (default)</td>
+<td>CM frame: the solid Earth translates (geocenter motion)</td>
+<td>CM (<span class="math inline">\(F_1(a) = 0\)</span>, i.e.&nbsp;<span class="math inline">\(k_1=-1\)</span>)</td>
+<td>real-Earth runs; as VILMA-v1</td>
+</tr>
+<tr class="even">
+<td><code>"cf"</code></td>
+<td>solver gauge, no net translation</td>
+<td>CM (<span class="math inline">\(N_1 = 0\)</span>)</td>
+<td>Spada disc benchmark</td>
+</tr>
+</tbody>
+</table>
+<p>In <code>"cm"</code> the CM condition is imposed once, on the solved state, so displacement and geoid refer to the same frame and the relative sea level carries the degree-1 fingerprint of geocenter motion <span class="citation" data-cites="Blewitt2003">(<a href="#ref-Blewitt2003" role="doc-biblioref">Blewitt 2003</a>)</span>. This reduces the disc residual against VILMA-v1 about fivefold. <code>"cf"</code> is the <em>mixed</em> convention of the Spada (2011) disc benchmark, displacement in a CE-like gauge (<span class="math inline">\(h_1\approx 0\)</span>) and geoid in CM (<span class="math inline">\(N_1 = 0\)</span>), under which <code>rsl</code> has no degree-1 part. Degrees <span class="math inline">\(\ge 2\)</span> are identical in both frames. See the <a href="../benchmarks/disc.html">disc benchmark</a>.</p>
 <div class="callout callout-style-default callout-tip callout-titled" title="Where this lives in the code">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1115,8 +1156,8 @@ Kendall, R. A., J. X. Mitrovica, and G. A. Milne. 2005. <span>“On Post-Glacial
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../physics/rheology.html" class="pagination-link" aria-label="Maxwell rheology and the memory stress">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Maxwell rheology and the memory stress</span>
+      <a href="../physics/toroidal.html" class="pagination-link" aria-label="Toroidal flow under lateral viscosity">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Toroidal flow under lateral viscosity</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">

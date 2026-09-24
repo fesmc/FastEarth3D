@@ -332,6 +332,10 @@ window.Quarto = {
  <span class="dropdown-text">Maxwell rheology and the memory stress</span></a>
   </li>  
         <li>
+    <a class="dropdown-item" href="../physics/toroidal.html">
+ <span class="dropdown-text">Toroidal flow under lateral viscosity</span></a>
+  </li>  
+        <li>
     <a class="dropdown-item" href="../physics/sea-level.html">
  <span class="dropdown-text">The sea-level equation</span></a>
   </li>  
@@ -455,6 +459,12 @@ window.Quarto = {
   <div class="sidebar-item-container"> 
   <a href="../physics/rheology.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Maxwell rheology and the memory stress</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../physics/toroidal.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Toroidal flow under lateral viscosity</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -626,7 +636,7 @@ I(t) = \bigl[\delta(t) + k^{L}(t)\bigr] * I_{\rm rigid}(t),
 <h2 class="anchored" data-anchor-id="design-constraints-honoured">Design constraints honoured</h2>
 <ul>
 <li><strong>Degree-2, tidal Love numbers.</strong> The rotational deformation uses <em>tidal</em> (not loading) Love numbers; the centrifugal forcing is purely degree 2.</li>
-<li><strong>The secular number <span class="math inline">\(k_s\)</span>.</strong> Computing <span class="math inline">\(k_s\)</span> from the assumed lithosphere thickness leads to the well-known “lithosphere-thickness paradox” in rotational stability; the model can instead pin <span class="math inline">\(k_s\)</span> to the observed hydrostatic flattening <span class="citation" data-cites="Mitrovica2005">(<a href="#ref-Mitrovica2005" role="doc-biblioref">Mitrovica et al. 2005</a>)</span>, recommended for deep time.</li>
+<li><strong>The secular number <span class="math inline">\(k_s\)</span>.</strong> By default <span class="math inline">\(k_s\)</span> is the model’s own fluid limit <span class="math inline">\(k^T_f\)</span>: the tidal response with every Maxwell layer fluidized, which reproduces Spada test 3/2. Deriving <span class="math inline">\(k_s\)</span> from the assumed lithosphere thickness leads to the well-known “lithosphere-thickness paradox” in rotational stability. The observed-flattening value <span class="math inline">\(k_s = 3G(C-A)/(a^5\Omega^2)\)</span> <span class="citation" data-cites="Mitrovica2005">(<a href="#ref-Mitrovica2005" role="doc-biblioref">Mitrovica et al. 2005</a>)</span>, recommended for deep time, is computed as well. It can currently be selected only through the <code>rotation_init</code> API (optional <code>k_s</code> argument), not the namelist.</li>
 <li><strong>Couple through the SLE.</strong> The rotational potential enters the sea-level equation self-consistently (above).</li>
 </ul>
 </section>

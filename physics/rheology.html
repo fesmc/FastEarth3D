@@ -55,7 +55,7 @@ div.csl-indent {
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../physics/sea-level.html" rel="next">
+<link href="../physics/toroidal.html" rel="next">
 <link href="../physics/governing-equations.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
@@ -332,6 +332,10 @@ window.Quarto = {
  <span class="dropdown-text">Maxwell rheology and the memory stress</span></a>
   </li>  
         <li>
+    <a class="dropdown-item" href="../physics/toroidal.html">
+ <span class="dropdown-text">Toroidal flow under lateral viscosity</span></a>
+  </li>  
+        <li>
     <a class="dropdown-item" href="../physics/sea-level.html">
  <span class="dropdown-text">The sea-level equation</span></a>
   </li>  
@@ -459,6 +463,12 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../physics/toroidal.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Toroidal flow under lateral viscosity</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../physics/sea-level.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">The sea-level equation</span></a>
   </div>
@@ -558,7 +568,10 @@ window.Quarto = {
    
   <ul>
   <li><a href="#the-maxwell-body" id="toc-the-maxwell-body" class="nav-link active" data-scroll-target="#the-maxwell-body">The Maxwell body</a></li>
-  <li><a href="#explicit-memory-stress-scheme" id="toc-explicit-memory-stress-scheme" class="nav-link" data-scroll-target="#explicit-memory-stress-scheme">Explicit memory-stress scheme</a></li>
+  <li><a href="#explicit-memory-stress-scheme" id="toc-explicit-memory-stress-scheme" class="nav-link" data-scroll-target="#explicit-memory-stress-scheme">Explicit memory-stress scheme</a>
+  <ul class="collapse">
+  <li><a href="#memory-time-schemes" id="toc-memory-time-schemes" class="nav-link" data-scroll-target="#memory-time-schemes">Memory time schemes</a></li>
+  </ul></li>
   <li><a href="#from-layers-to-the-same-kernel-in-1d-and-3d" id="toc-from-layers-to-the-same-kernel-in-1d-and-3d" class="nav-link" data-scroll-target="#from-layers-to-the-same-kernel-in-1d-and-3d">From layers to the same kernel in 1D and 3D</a></li>
   <li><a href="#stability" id="toc-stability" class="nav-link" data-scroll-target="#stability">Stability</a></li>
   <li><a href="#a-modal-reduction-was-tried" id="toc-a-modal-reduction-was-tried" class="nav-link" data-scroll-target="#a-modal-reduction-was-tried">A modal reduction was tried</a></li>
@@ -617,7 +630,41 @@ M \equiv \frac{\mu\,\Delta t}{\eta}.
 F_{\text{diss}} \;=\; -\!\int \boldsymbol{\tau}^{V,i} : \delta\boldsymbol{\varepsilon}\ \mathrm{d}V
 \qquad\text{(eq. 35).}
 \]</span></p>
-<p>The crucial consequence: <strong>the left-hand-side operator never changes in time.</strong> It is assembled, equilibrated, and LU-factored <em>once</em>, then reused at every step with a fresh right-hand side. Each step costs a back-substitution, not a re-factorization (see <a href="../discretization/solver.html">Solver</a>).</p>
+<p>The crucial consequence: <strong>the left-hand-side operator never changes in time.</strong> It is assembled, equilibrated, and LU-factored <em>once</em>, then reused at every step with a fresh right-hand side. Each step costs a back-substitution, not a re-factorization (see <a href="../discretization/solver.html">Solver</a>). The time step enters only through <span class="math inline">\(M\)</span>, so changing <span class="math inline">\(\Delta t\)</span> is a rescale, never a re-factorization.</p>
+<section id="memory-time-schemes" class="level3">
+<h3 class="anchored" data-anchor-id="memory-time-schemes">Memory time schemes</h3>
+<p>The memory update is selected by <code>scheme</code>. All schemes share the fixed operator; they differ only in how <span class="math inline">\(\boldsymbol{\tau}^{V}\)</span> is advanced over a step.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th><code>scheme</code></th>
+<th>Update</th>
+<th>Order, stability</th>
+<th>Step control</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>"fe"</code> (default)</td>
+<td><span class="math inline">\(\boldsymbol{\tau}^{V,i} = (1-M)\,\boldsymbol{\tau}^{V,i-1} - 2\mu M\,\boldsymbol{\varepsilon}^{i}\)</span></td>
+<td>1st order, conditionally stable</td>
+<td>equal sub-steps with <span class="math inline">\(M \le\)</span> <code>cfl</code></td>
+</tr>
+<tr class="even">
+<td><code>"trap"</code></td>
+<td><span class="math inline">\(\boldsymbol{\tau}^{V,i} = \dfrac{(1-M/2)\,\boldsymbol{\tau}^{V,i-1} - \mu M\,(\boldsymbol{\varepsilon}^{i-1}+\boldsymbol{\varepsilon}^{i})}{1+M/2}\)</span></td>
+<td>2nd order, A-stable (Crank–Nicolson)</td>
+<td>adaptive, step-doubling error estimate</td>
+</tr>
+</tbody>
+</table>
+<p><code>"fe"</code> is the <span class="math inline">\(\omega = 1\)</span> scheme of <span class="citation" data-cites="Martinec2000">Martinec (<a href="#ref-Martinec2000" role="doc-biblioref">2000</a>)</span> and matches how VILMA-v1 marches its memory. <code>"trap"</code> is implicit in the end-of-step strain <span class="math inline">\(\boldsymbol{\varepsilon}^{i}\)</span>, which itself depends on <span class="math inline">\(\boldsymbol{\tau}^{V,i}\)</span>. The commit therefore iterates the step endpoint to a consistent strain–memory pair (up to <code>max_couple_iter</code> passes). The exponential (<code>"etd1"</code>) and backward-Euler (<code>"be"</code>) updates are kept in the single-degree stepper as controls for testing; the field driver advances them as <code>"fe"</code> and <code>"trap"</code> respectively.</p>
 <div class="callout callout-style-default callout-note callout-titled" title="Why explicit, not implicit or normal-mode">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -632,19 +679,27 @@ F_{\text{diss}} \;=\; -\!\int \boldsymbol{\tau}^{V,i} : \delta\boldsymbol{\varep
 </div>
 </div>
 </section>
+</section>
 <section id="from-layers-to-the-same-kernel-in-1d-and-3d" class="level2">
 <h2 class="anchored" data-anchor-id="from-layers-to-the-same-kernel-in-1d-and-3d">From layers to the same kernel in 1D and 3D</h2>
 <p>In the <strong>1D</strong> (radially symmetric) case the memory stress evolves directly on the tensor spherical-harmonic coefficients (Martinec 2000, §9): there is no spatial grid. Per radial element it is stored for the four spheroidal tensor components <span class="math inline">\(\lambda\in\{1,2,5,6\}\)</span> (eq. 109), and the strain coefficients follow from the nodal radial functions <span class="math inline">\(U,V\)</span> via eq. 87–88. The dissipative right-hand side is a two-point radial Gauss quadrature of the spectral double-dot <span class="math inline">\(\sum_\lambda \lVert Z^\lambda\rVert^2\,\tau^{V,\lambda}\,\delta\varepsilon^\lambda\)</span> with the component norms <span class="math inline">\(\{1,\ J/2,\ 2J^2,\ 2J(J-2)\}\)</span>, <span class="math inline">\(J = \ell(\ell+1)\)</span> (eqs. 110, B13).</p>
-<p>With laterally varying viscosity the pointwise product <span class="math inline">\(M(\theta,\varphi)\,\tau\)</span> mixes spheroidal and toroidal stress, so the toroidal components <span class="math inline">\(\lambda\in\{3,4\}\)</span> (norms <span class="math inline">\(J/2\)</span>, <span class="math inline">\(J(J-2)/2\)</span>) are carried as well, and the toroidal displacement <span class="math inline">\(W\)</span> they force feeds back into the spheroidal field.</p>
-<p>In the <strong>3D</strong> (laterally varying viscosity) case, the <em>identical</em> kernel runs, but the memory update <span class="math inline">\(M = \mu\Delta t/\eta\)</span> is evaluated <strong>pointwise on the Gauss–Legendre grid</strong> and transformed back to spectral space each step (pseudo-spectral). The per-element Maxwell routines — <code>strain_coeffs</code>, <code>ve_strain_constants</code>, <code>dissipative_rhs</code>, <code>advance_memory</code> — are shared verbatim between the 1D stepper and the field driver. There is no duplicated algorithm and no separate “3D solver”.</p>
+<p>With laterally varying viscosity the pointwise product <span class="math inline">\(M(\theta,\varphi)\,\tau\)</span> mixes spheroidal and toroidal stress. The toroidal components <span class="math inline">\(\lambda\in\{3,4\}\)</span> (norms <span class="math inline">\(J/2\)</span>, <span class="math inline">\(J(J-2)/2\)</span>) can then be carried as well (<code>l_toroidal</code>), and the toroidal displacement <span class="math inline">\(W\)</span> they force feeds back into the spheroidal field. See <a href="../physics/toroidal.html">Toroidal flow</a>.</p>
+<p>In the <strong>3D</strong> (laterally varying viscosity) case the operator, the strain coefficients and the dissipative right-hand side are unchanged; only the memory advance differs. <span class="math inline">\(M = \mu\Delta t/\eta(\theta,\varphi)\)</span> becomes a field, so for each radial element the memory and strain tensors are synthesized on the Gauss–Legendre grid from their six dyadic components (Martinec 2000, B10–B11), advanced <strong>pointwise</strong>, and analysed back to spectral space (pseudo-spectral). The per-element Maxwell routines (<code>strain_coeffs</code>, <code>ve_strain_constants</code>, <code>dissipative_rhs</code>, <code>advance_memory</code>) are shared verbatim between the 1D stepper and the field driver. There is no duplicated algorithm and no separate “3D solver”.</p>
+<p>Three details matter in practice:</p>
+<ul>
+<li><strong>Only genuinely 3-D elements pay for the grid round trip.</strong> An element is treated as 3-D when its lateral spread of <span class="math inline">\(\log_{10}\eta\)</span> exceeds <code>visc3d_tol</code> (default <span class="math inline">\(10^{-3}\)</span> dex). Every other Maxwell element collapses to its lateral-mean rate and advances on the cheap per-degree spectral path, as in VILMA-v1’s 1-D/3-D layer split. A laterally uniform field therefore flags no element as 3-D and costs exactly the 1D run.</li>
+<li><strong>The update is analysed as an increment.</strong> The grid step is written <span class="math inline">\(\boldsymbol{\tau}^{+} = \boldsymbol{\tau} - M(\boldsymbol{\tau} + 2\mu\boldsymbol{\varepsilon})\)</span>, and only the increment is transformed back. Analysing <span class="math inline">\(\boldsymbol{\tau}^{+}\)</span> itself would put the transform’s round-off (<span class="math inline">\(\sim 10^{-13}\)</span> relative to <span class="math inline">\(|\boldsymbol{\tau}|\)</span>) on a change of size <span class="math inline">\(M|\boldsymbol{\tau}|\)</span>. For the stiffest Maxwell elements (<span class="math inline">\(M\sim10^{-10}\)</span> at <span class="math inline">\(\eta\sim10^{30}\)</span> Pa s) that error is of order one per step.</li>
+<li><strong>Elastic and fluid layers stay memory-free.</strong> A 3-D field modulates only the Maxwell layers; the elastic lithosphere of the earth model remains exactly elastic and laterally uniform, whatever the file prescribes there.</li>
+</ul>
+<p>The lateral field is read as absolute <span class="math inline">\(\log_{10}\eta(\text{lon},\text{lat},r)\)</span> (<code>visc_3d_file</code>, default the <span class="citation" data-cites="Bagge2021">Bagge et al. (<a href="#ref-Bagge2021" role="doc-biblioref">2021</a>)</span> field), bounded by <code>visc_log10_min</code> / <code>visc_log10_max</code>, and optionally perturbed by <code>f_visc_sd</code> standard deviations for uncertainty ensembles.</p>
 </section>
 <section id="stability" class="level2">
 <h2 class="anchored" data-anchor-id="stability">Stability</h2>
-<p>The explicit scheme is conditionally stable: the step is bounded by the shortest Maxwell time present,</p>
+<p>The explicit scheme is conditionally stable: <span class="math inline">\(|1-M| &lt; 1\)</span> bounds the step by the shortest Maxwell time present,</p>
 <p><span class="math display">\[
-\Delta t \;\lesssim\; \frac{2\,\eta_{\min}}{\mu}.
+\Delta t \;&lt;\; \frac{2\,\eta_{\min}}{\mu}.
 \]</span></p>
-<p>In practice a <strong>viscosity floor</strong> (e.g.&nbsp;<span class="math inline">\(\sim 10^{19}\ \mathrm{Pa\,s}\)</span>) caps the fastest relaxation and sets a usable step (VILMA-v1-scale runs use <span class="math inline">\(\Delta t \approx 2.5\)</span> yr; the benchmark cases here use 20 yr). Elastic layers (<span class="math inline">\(M\to 0\)</span>) freeze and carry no memory; fluid layers (<span class="math inline">\(\mu = 0\)</span>) carry no memory either.</p>
+<p>The <code>"fe"</code> stepper keeps a factor-2 margin: it splits each coupling interval into equal sub-steps with <span class="math inline">\(M \le\)</span> <code>cfl</code> (default 1). A guard rolls a sub-step back and halves it if the memory norm grows abnormally; it normally never fires. A <strong>viscosity floor</strong> (<code>visc_log10_min</code>, default <span class="math inline">\(10^{19.5}\)</span> Pa s) caps the fastest relaxation of a 3-D field and so sets a usable step. <code>"trap"</code> is A-stable and chooses its step by accuracy alone. Elastic layers (<span class="math inline">\(M\to 0\)</span>) freeze and carry no memory; fluid layers (<span class="math inline">\(\mu = 0\)</span>) carry no memory either.</p>
 <div class="callout callout-style-default callout-tip callout-titled" title="Where this lives in the code">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -669,6 +724,9 @@ F_{\text{diss}} \;=\; -\!\int \boldsymbol{\tau}^{V,i} : \delta\boldsymbol{\varep
 </section>
 
 <a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Back to top</a><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-Bagge2021" class="csl-entry" role="listitem">
+Bagge, M., V. Klemann, B. Steinberger, M. Latinović, and M. Thomas. 2021. <span>“Glacial-Isostatic Adjustment Models Using Geodynamically Constrained <span>3D</span> Earth Structures.”</span> <em>Geochemistry, Geophysics, Geosystems</em> 22 (11): e2021GC009853. <a href="https://doi.org/10.1029/2021GC009853">https://doi.org/10.1029/2021GC009853</a>.
+</div>
 <div id="ref-Martinec2000" class="csl-entry" role="listitem">
 Martinec, Z. 2000. <span>“Spectral–Finite Element Approach to Three-Dimensional Viscoelastic Relaxation in a Spherical Earth.”</span> <em>Geophysical Journal International</em> 142 (1): 117–41. <a href="https://doi.org/10.1046/j.1365-246x.2000.00138.x">https://doi.org/10.1046/j.1365-246x.2000.00138.x</a>.
 </div>
@@ -1093,8 +1151,8 @@ Martinec, Z. 2000. <span>“Spectral–Finite Element Approach to Three-Dimensio
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../physics/sea-level.html" class="pagination-link" aria-label="The sea-level equation">
-        <span class="nav-page-text">The sea-level equation</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../physics/toroidal.html" class="pagination-link" aria-label="Toroidal flow under lateral viscosity">
+        <span class="nav-page-text">Toroidal flow under lateral viscosity</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

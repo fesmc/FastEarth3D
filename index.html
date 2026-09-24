@@ -331,6 +331,10 @@ window.Quarto = {
  <span class="dropdown-text">Maxwell rheology and the memory stress</span></a>
   </li>  
         <li>
+    <a class="dropdown-item" href="./physics/toroidal.html">
+ <span class="dropdown-text">Toroidal flow under lateral viscosity</span></a>
+  </li>  
+        <li>
     <a class="dropdown-item" href="./physics/sea-level.html">
  <span class="dropdown-text">The sea-level equation</span></a>
   </li>  
@@ -454,6 +458,12 @@ window.Quarto = {
   <div class="sidebar-item-container"> 
   <a href="./physics/rheology.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Maxwell rheology and the memory stress</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./physics/toroidal.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Toroidal flow under lateral viscosity</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -640,7 +650,7 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="what-is-in-these-docs">What is in these docs</h2>
 <ul>
 <li><strong><a href="./getting-started.html">Install &amp; run</a></strong> — building with <code>configme</code>, the <code>&amp;vilma</code> namelist, the drivers, and staging runs with <code>runme</code>.</li>
-<li><strong><a href="./physics/governing-equations.html">Physics</a></strong> — the governing equations (momentum, Poisson, incompressibility), the Maxwell rheology and its memory stress, the sea-level equation, and rotational feedback.</li>
+<li><strong><a href="./physics/governing-equations.html">Physics</a></strong> — the governing equations (momentum, Poisson, incompressibility), the Maxwell rheology and its memory stress, toroidal flow under lateral viscosity, the sea-level equation, and rotational feedback.</li>
 <li><strong><a href="./discretization/spectral.html">Discretization</a></strong> — the spectral reduction, the P1/P0 radial finite-element operator, the explicit time scheme, and the banded direct solver.</li>
 <li><strong><a href="./benchmarks/index.html">Benchmarks</a></strong> — a summary table of validation results, with one page per benchmark (Love numbers, the disc-load response, and the sea-level-equation intercomparison).</li>
 <li><strong><a href="./implementation.html">Implementation</a></strong> — the libraries the model builds on, and the codebases and datasets that informed the validation.</li>
@@ -648,7 +658,7 @@ window.Quarto = {
 </section>
 <section id="status" class="level2">
 <h2 class="anchored" data-anchor-id="status">Status</h2>
-<p>VILMA v2 is under heavy development and not yet ready for scientific production use. The core implemented so far includes the spectral–finite-element solver, the viscoelastic time stepping and response operator, the self-consistent migrating-coastline sea-level equation, rotational feedback (polar motion), and laterally varying (3D) viscosity. It also supports restart and spin-up, online remapping of lon-lat forcing, and a host-coupling API.</p>
+<p>VILMA v2 is under heavy development and not yet ready for scientific production use. The core implemented so far includes the spectral–finite-element solver, the viscoelastic time stepping and response operator, the self-consistent migrating-coastline sea-level equation, rotational feedback (polar motion), and laterally varying (3D) viscosity, including the toroidal flow it drives (optional, off by default). It also supports restart and spin-up, online remapping of lon-lat forcing, and a host-coupling API.</p>
 <p>Validation against the <span class="citation" data-cites="Spada2011">Spada et al. (<a href="#ref-Spada2011" role="doc-biblioref">2011</a>)</span> and <span class="citation" data-cites="Martinec2018">Martinec et al. (<a href="#ref-Martinec2018" role="doc-biblioref">2018</a>)</span> community benchmarks covers the radial solver, the disc-load response, and the sea-level equation. Rotation is checked against the Spada test 3/2. Cross-code validation of the 3D viscosity path is ongoing (see the <a href="./benchmarks/index.html">validation ladder</a>).</p>
 
 

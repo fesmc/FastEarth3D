@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>References – VILMA v2</title>
+<title>Toroidal flow under lateral viscosity – VILMA v2</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -48,28 +48,29 @@ div.csl-indent {
 }</style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<link href="./benchmarks/sea-level.html" rel="prev">
-<script src="site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-b85bc7c33db8c58e0ec93c3465666fed.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-b4fe353c20efd084fc4a7e897873478f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-8125d913983b18cf7b0a744c5d78f6d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-b4fe353c20efd084fc4a7e897873478f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../physics/sea-level.html" rel="next">
+<link href="../physics/rheology.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-b85bc7c33db8c58e0ec93c3465666fed.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-b4fe353c20efd084fc4a7e897873478f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-8125d913983b18cf7b0a744c5d78f6d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-b4fe353c20efd084fc4a7e897873478f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -299,7 +300,7 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="./index.html">
+    <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">VILMA v2</span>
     </a>
   </div>
@@ -310,11 +311,11 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link active" href="../index.html" aria-current="page"> 
 <span class="menu-text">Overview</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./getting-started.html"> 
+    <a class="nav-link" href="../getting-started.html"> 
 <span class="menu-text">Install &amp; run</span></a>
   </li>  
   <li class="nav-item dropdown ">
@@ -323,23 +324,23 @@ window.Quarto = {
     </a>
     <ul class="dropdown-menu" aria-labelledby="nav-menu-physics">    
         <li>
-    <a class="dropdown-item" href="./physics/governing-equations.html">
+    <a class="dropdown-item" href="../physics/governing-equations.html">
  <span class="dropdown-text">Governing equations</span></a>
   </li>  
         <li>
-    <a class="dropdown-item" href="./physics/rheology.html">
+    <a class="dropdown-item" href="../physics/rheology.html">
  <span class="dropdown-text">Maxwell rheology and the memory stress</span></a>
   </li>  
         <li>
-    <a class="dropdown-item" href="./physics/toroidal.html">
+    <a class="dropdown-item" href="../physics/toroidal.html">
  <span class="dropdown-text">Toroidal flow under lateral viscosity</span></a>
   </li>  
         <li>
-    <a class="dropdown-item" href="./physics/sea-level.html">
+    <a class="dropdown-item" href="../physics/sea-level.html">
  <span class="dropdown-text">The sea-level equation</span></a>
   </li>  
         <li>
-    <a class="dropdown-item" href="./physics/rotation.html">
+    <a class="dropdown-item" href="../physics/rotation.html">
  <span class="dropdown-text">Rotational feedback (polar motion)</span></a>
   </li>  
     </ul>
@@ -350,33 +351,33 @@ window.Quarto = {
     </a>
     <ul class="dropdown-menu" aria-labelledby="nav-menu-discretization">    
         <li>
-    <a class="dropdown-item" href="./discretization/spectral.html">
+    <a class="dropdown-item" href="../discretization/spectral.html">
  <span class="dropdown-text">Spectral reduction and the SH transform</span></a>
   </li>  
         <li>
-    <a class="dropdown-item" href="./discretization/radial-fe.html">
+    <a class="dropdown-item" href="../discretization/radial-fe.html">
  <span class="dropdown-text">Radial finite elements and the per-degree operator</span></a>
   </li>  
         <li>
-    <a class="dropdown-item" href="./discretization/time-stepping.html">
+    <a class="dropdown-item" href="../discretization/time-stepping.html">
  <span class="dropdown-text">Time stepping and the field driver</span></a>
   </li>  
         <li>
-    <a class="dropdown-item" href="./discretization/solver.html">
+    <a class="dropdown-item" href="../discretization/solver.html">
  <span class="dropdown-text">The banded direct solver and performance</span></a>
   </li>  
     </ul>
   </li>
   <li class="nav-item">
-    <a class="nav-link" href="./benchmarks/index.html"> 
+    <a class="nav-link" href="../benchmarks/index.html"> 
 <span class="menu-text">Benchmarks</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./implementation.html"> 
+    <a class="nav-link" href="../implementation.html"> 
 <span class="menu-text">Implementation</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./references.html"> 
+    <a class="nav-link" href="../references.html"> 
 <span class="menu-text">References</span></a>
   </li>  
 </ul>
@@ -398,7 +399,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./references.html">References</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../physics/governing-equations.html">Physics</a></li><li class="breadcrumb-item"><a href="../physics/toroidal.html">Toroidal flow under lateral viscosity</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -421,19 +422,19 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./index.html" class="sidebar-item-text sidebar-link">
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">VILMA v2</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./getting-started.html" class="sidebar-item-text sidebar-link">
+  <a href="../getting-started.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Installation and running</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./implementation.html" class="sidebar-item-text sidebar-link">
+  <a href="../implementation.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Implementation and attribution</span></a>
   </div>
 </li>
@@ -450,31 +451,31 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./physics/governing-equations.html" class="sidebar-item-text sidebar-link">
+  <a href="../physics/governing-equations.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Governing equations</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./physics/rheology.html" class="sidebar-item-text sidebar-link">
+  <a href="../physics/rheology.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Maxwell rheology and the memory stress</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./physics/toroidal.html" class="sidebar-item-text sidebar-link">
+  <a href="../physics/toroidal.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Toroidal flow under lateral viscosity</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./physics/sea-level.html" class="sidebar-item-text sidebar-link">
+  <a href="../physics/sea-level.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">The sea-level equation</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./physics/rotation.html" class="sidebar-item-text sidebar-link">
+  <a href="../physics/rotation.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Rotational feedback (polar motion)</span></a>
   </div>
 </li>
@@ -491,25 +492,25 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./discretization/spectral.html" class="sidebar-item-text sidebar-link">
+  <a href="../discretization/spectral.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Spectral reduction and the SH transform</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./discretization/radial-fe.html" class="sidebar-item-text sidebar-link">
+  <a href="../discretization/radial-fe.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Radial finite elements and the per-degree operator</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./discretization/time-stepping.html" class="sidebar-item-text sidebar-link">
+  <a href="../discretization/time-stepping.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Time stepping and the field driver</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./discretization/solver.html" class="sidebar-item-text sidebar-link">
+  <a href="../discretization/solver.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">The banded direct solver and performance</span></a>
   </div>
 </li>
@@ -526,25 +527,25 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./benchmarks/index.html" class="sidebar-item-text sidebar-link">
+  <a href="../benchmarks/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Benchmarks</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./benchmarks/love-numbers.html" class="sidebar-item-text sidebar-link">
+  <a href="../benchmarks/love-numbers.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Benchmark: Love numbers</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./benchmarks/disc.html" class="sidebar-item-text sidebar-link">
+  <a href="../benchmarks/disc.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Benchmark: disc-load response</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./benchmarks/sea-level.html" class="sidebar-item-text sidebar-link">
+  <a href="../benchmarks/sea-level.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Benchmark: the sea-level equation</span></a>
   </div>
 </li>
@@ -552,7 +553,7 @@ window.Quarto = {
   </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./references.html" class="sidebar-item-text sidebar-link active">
+  <a href="../references.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">References</span></a>
   </div>
 </li>
@@ -566,24 +567,22 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#primary-method" id="toc-primary-method" class="nav-link active" data-scroll-target="#primary-method">Primary method</a></li>
-  <li><a href="#benchmarks" id="toc-benchmarks" class="nav-link" data-scroll-target="#benchmarks">Benchmarks</a></li>
-  <li><a href="#vilma-v1-physics-and-coupling" id="toc-vilma-v1-physics-and-coupling" class="nav-link" data-scroll-target="#vilma-v1-physics-and-coupling">VILMA-v1 physics and coupling</a></li>
-  <li><a href="#supporting-theory" id="toc-supporting-theory" class="nav-link" data-scroll-target="#supporting-theory">Supporting theory</a></li>
-  <li><a href="#numerical-libraries" id="toc-numerical-libraries" class="nav-link" data-scroll-target="#numerical-libraries">Numerical libraries</a>
-  <ul class="collapse">
-  <li><a href="#full-bibliography" id="toc-full-bibliography" class="nav-link" data-scroll-target="#full-bibliography">Full bibliography</a></li>
-  </ul></li>
+  <li><a href="#why-lateral-viscosity-drives-toroidal-flow" id="toc-why-lateral-viscosity-drives-toroidal-flow" class="nav-link active" data-scroll-target="#why-lateral-viscosity-drives-toroidal-flow">Why lateral viscosity drives toroidal flow</a></li>
+  <li><a href="#toroidal-strain-and-memory" id="toc-toroidal-strain-and-memory" class="nav-link" data-scroll-target="#toroidal-strain-and-memory">Toroidal strain and memory</a></li>
+  <li><a href="#the-toroidal-operator" id="toc-the-toroidal-operator" class="nav-link" data-scroll-target="#the-toroidal-operator">The toroidal operator</a></li>
+  <li><a href="#coupling-into-the-time-step" id="toc-coupling-into-the-time-step" class="nav-link" data-scroll-target="#coupling-into-the-time-step">Coupling into the time step</a></li>
+  <li><a href="#configuration-and-output" id="toc-configuration-and-output" class="nav-link" data-scroll-target="#configuration-and-output">Configuration and output</a></li>
+  <li><a href="#validation" id="toc-validation" class="nav-link" data-scroll-target="#validation">Validation</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/vilma/blob/main/references.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/vilma/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/vilma/blob/main/physics/toroidal.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/vilma/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 
-<header id="title-block-header" class="quarto-title-block default">
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../physics/governing-equations.html">Physics</a></li><li class="breadcrumb-item"><a href="../physics/toroidal.html">Toroidal flow under lateral viscosity</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">References</h1>
+<h1 class="title">Toroidal flow under lateral viscosity</h1>
 </div>
 
 
@@ -600,98 +599,265 @@ window.Quarto = {
 </header>
 
 
-<section id="primary-method" class="level2">
-<h2 class="anchored" data-anchor-id="primary-method">Primary method</h2>
-<p>The spectral–finite-element, time-domain method and its rotational extension:</p>
+<p>A surface load on a radially symmetric Earth drives only <strong>spheroidal</strong> deformation: radial and consoidal displacement, <span class="math inline">\(U\)</span> and <span class="math inline">\(V\)</span>. Once viscosity varies laterally this is no longer true. The Maxwell relaxation then also drives <strong>toroidal</strong> flow <span class="math inline">\(W\)</span>: horizontal, divergence-free motion with no radial component. That flow feeds back into the spheroidal field. VILMA carries this toroidal degree of freedom in its 3D path, as VILMA-v1 does.</p>
+<div class="callout callout-style-default callout-note callout-titled" title="Status: implemented, off by default">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Status: implemented, off by default
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The toroidal treatment is implemented and unit-tested (see <a href="#validation">Validation</a>). It is switched <strong>off by default</strong> (<code>l_toroidal = .false.</code>): it makes the 3D memory advance more expensive, and its effect on a realistic deglaciation has not yet been quantified against VILMA-v1. With <code>l_toroidal = .false.</code> the model is the spheroidal-only 3D model. Radially symmetric and laterally uniform runs are unaffected either way.</p>
+</div>
+</div>
+<section id="why-lateral-viscosity-drives-toroidal-flow" class="level2">
+<h2 class="anchored" data-anchor-id="why-lateral-viscosity-drives-toroidal-flow">Why lateral viscosity drives toroidal flow</h2>
+<p>The displacement is expanded in vector spherical harmonics (see <a href="../discretization/spectral.html">Spectral reduction</a>),</p>
+<p><span class="math display">\[
+\mathbf{u} = \sum_{jm}\Bigl[\,U_{jm}(r)\,\mathbf{S}^{(-1)}_{jm}
++ V_{jm}(r)\,\mathbf{S}^{(1)}_{jm}
++ W_{jm}(r)\,\mathbf{S}^{(0)}_{jm}\,\Bigr],
+\qquad
+\mathbf{S}^{(0)}_{jm} = \mathbf{e}_r\times\nabla_1 Y_{jm},
+\]</span></p>
+<p>and the strain and memory stress are expanded in the six tensor spherical harmonics <span class="math inline">\(Z^{(\lambda)}_{jm}\)</span>, <span class="math inline">\(\lambda = 1,\dots,6\)</span> (Martinec 2000, App. B). The spheroidal field lives in <span class="math inline">\(\lambda\in\{1,2,5,6\}\)</span> and the toroidal field in <span class="math inline">\(\lambda\in\{3,4\}\)</span>.</p>
+<p>On a radially symmetric Earth the two families are <strong>decoupled</strong>:</p>
 <ul>
-<li><span class="citation" data-cites="Martinec2000">Martinec (<a href="#ref-Martinec2000" role="doc-biblioref">2000</a>)</span> — the spectral–finite-element approach to 3D viscoelastic relaxation in a spherical Earth. <strong>The core method.</strong></li>
-<li><span class="citation" data-cites="MartinecHagedoorn2014">Martinec and Hagedoorn (<a href="#ref-MartinecHagedoorn2014" role="doc-biblioref">2014</a>)</span> — time-domain rotational feedback.</li>
-<li><span class="citation" data-cites="KMM2005">Kendall et al. (<a href="#ref-KMM2005" role="doc-biblioref">2005</a>)</span> — the sea-level equation with moving shorelines (pseudo-spectral fixed point).</li>
+<li>the left-hand-side operator has no term coupling <span class="math inline">\(W\)</span> to <span class="math inline">\(U\)</span>, <span class="math inline">\(V\)</span>, <span class="math inline">\(F\)</span> or <span class="math inline">\(\Pi\)</span> (no pressure, self-gravity or mixed shear contribution);</li>
+<li>the surface forcing has no <span class="math inline">\(\delta W\)</span> term (Martinec 2000, eq. 84), so a load never forces <span class="math inline">\(W\)</span> directly;</li>
+<li>with <span class="math inline">\(M = \mu\Delta t/\eta(r)\)</span> the memory update is diagonal in <span class="math inline">\(\lambda\)</span>, so a spheroidal memory stays spheroidal.</li>
+</ul>
+<p><span class="math inline">\(W\)</span> is therefore identically zero, and the solver needs only the four spheroidal channels. With a laterally varying <span class="math inline">\(\eta(\theta,\varphi)\)</span> the third point fails. The memory update <span class="math inline">\(\boldsymbol{\tau}^{+} = (1-M)\,\boldsymbol{\tau} -
+2\mu M\,\boldsymbol{\varepsilon}\)</span> multiplies the stress by a field <span class="math inline">\(M(\theta,\varphi)\)</span> pointwise. That product mixes all six tensor components. As <span class="citation" data-cites="Martinec2000">Martinec (<a href="#ref-Martinec2000" role="doc-biblioref">2000</a>)</span> notes after eq. (110), lateral viscosity removes both the decoupling and the degeneracy of the spheroidal and toroidal displacements. The loop closes in three steps:</p>
+<ol type="1">
+<li>The spheroidal memory, multiplied by <span class="math inline">\(M(\theta,\varphi)\)</span>, acquires <span class="math inline">\(\lambda = 3,4\)</span> components.</li>
+<li>These force <span class="math inline">\(W\)</span> through the dissipative right-hand side.</li>
+<li>The toroidal strain of <span class="math inline">\(W\)</span>, multiplied again by <span class="math inline">\(M(\theta,\varphi)\)</span>, feeds back into <span class="math inline">\(\lambda \in \{1,2,5,6\}\)</span> and hence into uplift and geoid.</li>
+</ol>
+<p>Perturbation reasoning predicts <span class="math inline">\(W\)</span> at first order in the lateral viscosity contrast and its feedback on uplift at second order, which the tests confirm.</p>
+<div class="callout callout-style-default callout-tip callout-titled" title="When is W exactly zero?">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>When is W exactly zero?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Toroidal flow vanishes for <strong>axisymmetric</strong> configurations (load and viscosity symmetric about a common axis), not for every configuration with a shared mirror plane. Under a reflection the toroidal potential is odd. A <span class="math inline">\(Y_{20}\)</span> load over a <span class="math inline">\(\cos 2\varphi\)</span> viscosity pattern is mirror-symmetric, yet drives <span class="math inline">\(W \propto \sin 2\varphi\)</span>.</p>
+</div>
+</div>
+</section>
+<section id="toroidal-strain-and-memory" class="level2">
+<h2 class="anchored" data-anchor-id="toroidal-strain-and-memory">Toroidal strain and memory</h2>
+<p>For <span class="math inline">\(\mathbf{u} = W(r)\,\mathbf{e}_r\times\nabla_1 Y_{jm}\)</span> the strain is</p>
+<p><span class="math display">\[
+\boldsymbol{\varepsilon} =
+\Bigl(W' - \frac{W}{r}\Bigr) Z^{(3)}_{jm} + \frac{W}{r}\,Z^{(4)}_{jm},
+\]</span></p>
+<p>with the dyadic forms (Martinec 2000, B10–B11, in terms of the angular functions <span class="math inline">\(E,F,G,H\)</span>)</p>
+<p><span class="math display">\[
+Z^{(3)} = -F\,\mathbf{e}_{r\theta} + E\,\mathbf{e}_{r\varphi},
+\qquad
+Z^{(4)} = G\,\mathbf{e}_{\theta\varphi} - H\,(\mathbf{e}_{\theta\theta} - \mathbf{e}_{\varphi\varphi}),
+\]</span></p>
+<p>the toroidal companions of <span class="math inline">\(Z^{(2)}\)</span> and <span class="math inline">\(Z^{(6)}\)</span>. Their norms (B13) are</p>
+<p><span class="math display">\[
+\lVert Z^{(3)}\rVert^2 = \tfrac{J}{2},
+\qquad
+\lVert Z^{(4)}\rVert^2 = \tfrac{1}{2}J(J-2),
+\qquad J = j(j+1).
+\]</span></p>
+<p>On the P1 radial elements, with <span class="math inline">\(W = W^k\psi_k + W^{k+1}\psi_{k+1}\)</span> and <span class="math inline">\(\varepsilon = a/h + b\,\psi_k/r + c\,\psi_{k+1}/r\)</span> (Martinec 2000, eqs. 87–88), the two strain rows the spheroidal kernel omits are</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: center;"><span class="math inline">\(\lambda\)</span></th>
+<th style="text-align: center;"><span class="math inline">\(a\)</span></th>
+<th style="text-align: center;"><span class="math inline">\(b\)</span></th>
+<th style="text-align: center;"><span class="math inline">\(c\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">3</td>
+<td style="text-align: center;"><span class="math inline">\(W^{k+1} - W^k\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(-W^k\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(-W^{k+1}\)</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">4</td>
+<td style="text-align: center;"><span class="math inline">\(0\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(W^k\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(W^{k+1}\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>The strain map is <strong>block-diagonal</strong>: <span class="math inline">\(\lambda = 3,4\)</span> depend only on <span class="math inline">\(W\)</span> and <span class="math inline">\(\lambda \in \{1,2,5,6\}\)</span> only on <span class="math inline">\(U,V\)</span>. The toroidal memory is therefore carried as two extra channels of the same memory arrays (channels 5 and 6), and the spheroidal and toroidal kernels are independent. At degree 1, <span class="math inline">\(Z^{(4)}_{1m}\equiv 0\)</span> (<span class="math inline">\(J = 2\)</span>), so the <span class="math inline">\(\lambda = 4\)</span> slot carries no memory there, as for <span class="math inline">\(\lambda = 6\)</span>.</p>
+</section>
+<section id="the-toroidal-operator" class="level2">
+<h2 class="anchored" data-anchor-id="the-toroidal-operator">The toroidal operator</h2>
+<p>The toroidal part of the shear energy (Martinec 2000, eq. 80) is</p>
+<p><span class="math display">\[
+2\!\int\!\mu\,\Bigl[\lVert Z^{(3)}\rVert^2\,\varepsilon^{3}\,\delta\varepsilon^{3}
++ \lVert Z^{(4)}\rVert^2\,\varepsilon^{4}\,\delta\varepsilon^{4}\Bigr] r^2\,\mathrm{d}r,
+\]</span></p>
+<p>which per element <span class="math inline">\(k\)</span> discretizes to</p>
+<p><span class="math display">\[
+\mu_k\Bigl\{ J\bigl[I^1_{\alpha\beta} - I^3_{\beta\alpha} - I^3_{\alpha\beta} + I^6_{\alpha\beta}\bigr]
++ J(J-2)\,I^6_{\alpha\beta}\Bigr\}\,W^\alpha\,\delta W^\beta,
+\]</span></p>
+<p>using the same Appendix-C integrals as the spheroidal block. No density, gravity or pressure enters. Rather than adding <span class="math inline">\(W\)</span> as a fifth interleaved field to the spheroidal system, VILMA gives it <strong>its own per-degree operator</strong>. That operator is symmetric and tridiagonal, and it is factored once per degree and reused for all orders, loads and steps, like the spheroidal one (see <a href="../discretization/solver.html">Solver</a>). The spheroidal operator is untouched.</p>
+<p>Two conditions make it non-singular:</p>
+<ul>
+<li><strong>Fluid regions.</strong> Where <span class="math inline">\(\mu = 0\)</span> (the inviscid core) there is no shear energy and <span class="math inline">\(W\)</span> has no stiffness. These nodes are pinned, <span class="math inline">\(W = 0\)</span>. This is a Dirichlet condition on a degree of freedom the fluid does not have.</li>
+<li><strong>Degree 1.</strong> At <span class="math inline">\(j = 1\)</span> a rigid rotation, <span class="math inline">\(W \propto r\)</span>, has no strain and is a null mode. It is removed by one KKT border row per solid shell, <span class="math inline">\(\sum_k W^k\!\int\!\psi_k\,r^3\,\mathrm{d}r = 0\)</span>, which states <span class="math inline">\(\int\mathbf{x}\times\mathbf{u}\,\mathrm{d}V = 0\)</span> (no net rotation) for that shell. A structure with a solid inner core has two such shells. This is a gauge: a rigid rotation moves no output.</li>
 </ul>
 </section>
-<section id="benchmarks" class="level2">
-<h2 class="anchored" data-anchor-id="benchmarks">Benchmarks</h2>
-<ul>
-<li><span class="citation" data-cites="Spada2011">Spada et al. (<a href="#ref-Spada2011" role="doc-biblioref">2011</a>)</span> — the GIA-code benchmark (Love numbers, disc-load response, polar motion; Charles University benchmark, earth model M3–L70–V01).</li>
-<li><span class="citation" data-cites="Martinec2018">Martinec et al. (<a href="#ref-Martinec2018" role="doc-biblioref">2018</a>)</span> — the sea-level-equation intercomparison.</li>
-</ul>
+<section id="coupling-into-the-time-step" class="level2">
+<h2 class="anchored" data-anchor-id="coupling-into-the-time-step">Coupling into the time step</h2>
+<p>Because the surface load never forces <span class="math inline">\(W\)</span>, the toroidal field has <strong>no elastic gain</strong>. It is pure relaxation drift. Within the <a href="../discretization/time-stepping.html#the-viscoelastic-field-driver">field driver</a> a step proceeds as follows:</p>
+<ol type="1">
+<li><strong><code>begin_step</code></strong> solves, for every <span class="math inline">\((j,m)\)</span>, the spheroidal drift and the toroidal drift <span class="math inline">\(W\)</span> from the dissipative forcing of the current memory, the latter with the toroidal operator.</li>
+<li>The SLE fixed point calls <code>apply()</code> as usual. <span class="math inline">\(W\)</span> does not enter uplift or geoid directly, so the affine structure is unchanged.</li>
+<li><strong><code>commit_step</code></strong> advances the memory. In each genuinely 3-D element all six dyadic components of memory and strain, spheroidal and toroidal, are synthesized on the Gauss grid and multiplied pointwise by <span class="math inline">\(M(\theta,\varphi)\)</span>. The increment is analysed back into all six channels. This is where the two families exchange stress. Laterally uniform elements advance their toroidal channels on the per-degree spectral path, where they simply relax.</li>
+</ol>
+<p>The toroidal channels are switched on only when some element is genuinely 3-D (its lateral <span class="math inline">\(\log_{10}\eta\)</span> spread exceeds <code>visc3d_tol</code>) and <code>l_toroidal = .true.</code>. The memory arrays then widen from four to six channels (about 50 % more memory state). A radially symmetric or laterally uniform run keeps four channels and pays nothing. Once on, the channels stay on for the rest of the run: a later laterally uniform field no longer drives <span class="math inline">\(W\)</span>, but existing toroidal memory must still relax.</p>
+<p>Restart files record the channel count. A spheroidal (four-channel) restart can be read into a toroidal run, with the toroidal memory starting at zero. Reading a toroidal restart into a spheroidal run is an error, since it would discard memory.</p>
 </section>
-<section id="vilma-v1-physics-and-coupling" class="level2">
-<h2 class="anchored" data-anchor-id="vilma-v1-physics-and-coupling">VILMA-v1 physics and coupling</h2>
-<ul>
-<li><span class="citation" data-cites="Albrecht2024">Albrecht et al. (<a href="#ref-Albrecht2024" role="doc-biblioref">2024</a>)</span> — coupled PISM–VILMA; documents VILMA-v1’s physics.</li>
-<li><span class="citation" data-cites="Bagge2021">Bagge et al. (<a href="#ref-Bagge2021" role="doc-biblioref">2021</a>)</span> — VILMA-v1 with 3D earth structure.</li>
-<li><span class="citation" data-cites="Willeit2022">Willeit et al. (<a href="#ref-Willeit2022" role="doc-biblioref">2022</a>)</span> — the CLIMBER-X Earth system model (the host).</li>
-</ul>
+<section id="configuration-and-output" class="level2">
+<h2 class="anchored" data-anchor-id="configuration-and-output">Configuration and output</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Group</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>l_toroidal</code></td>
+<td><code>&amp;vilma</code></td>
+<td><code>.false.</code></td>
+<td>carry <span class="math inline">\(W\)</span> and <span class="math inline">\(\lambda = 3,4\)</span> once a 3-D element exists</td>
+</tr>
+<tr class="even">
+<td><code>l_visc_3d</code></td>
+<td><code>&amp;vilma</code></td>
+<td><code>.false.</code></td>
+<td>load a lateral viscosity field (required for any toroidal flow)</td>
+</tr>
+<tr class="odd">
+<td><code>visc3d_tol</code></td>
+<td><code>&amp;vilma</code></td>
+<td><span class="math inline">\(10^{-3}\)</span> dex</td>
+<td>lateral spread above which an element is 3-D</td>
+</tr>
+<tr class="even">
+<td><code>file_hor</code></td>
+<td><code>&amp;ctl</code></td>
+<td><code>""</code></td>
+<td>write the surface horizontal displacement</td>
+</tr>
+</tbody>
+</table>
+<p>The horizontal-displacement file holds east/north components on the Gauss grid of <code>file_out</code>: the total (<code>u_east</code>, <code>u_north</code>, spheroidal plus toroidal) and the toroidal part alone (<code>u_east_tor</code>, <code>u_north_tor</code>). The toroidal part is exactly zero whenever no toroidal field is carried.</p>
 </section>
-<section id="supporting-theory" class="level2">
-<h2 class="anchored" data-anchor-id="supporting-theory">Supporting theory</h2>
-<ul>
-<li><span class="citation" data-cites="Farrell1972">Farrell (<a href="#ref-Farrell1972" role="doc-biblioref">1972</a>)</span> — load Love numbers and the deformation of the Earth by surface loads.</li>
-<li><span class="citation" data-cites="Mitrovica2005">Mitrovica et al. (<a href="#ref-Mitrovica2005" role="doc-biblioref">2005</a>)</span> — revised rotational stability theory (fixing <span class="math inline">\(k_f\)</span> from the observed flattening).</li>
-<li><span class="citation" data-cites="Blewitt2003">Blewitt (<a href="#ref-Blewitt2003" role="doc-biblioref">2003</a>)</span> — reference frames, geocenter, and degree-1 surface loading.</li>
-<li><span class="citation" data-cites="Hanyk1999">Hanýk (<a href="#ref-Hanyk1999" role="doc-biblioref">1999</a>)</span> — initial-value (time-domain) viscoelastic relaxation.</li>
-</ul>
+<section id="validation" class="level2">
+<h2 class="anchored" data-anchor-id="validation">Validation</h2>
+<p>No community benchmark exercises toroidal flow: all of them are radially symmetric or axisymmetric. The implementation is instead checked by internal consistency, symmetry and scaling tests:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Test</th>
+<th>Check</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>test_assembly</code></td>
+<td><span class="math inline">\(W\)</span> stiffness equals the energy rebuilt from the strain rows and norms</td>
+<td><span class="math inline">\(2\times10^{-16}\)</span></td>
+</tr>
+<tr class="even">
+<td><code>test_tensor_sh</code></td>
+<td>six channels reproduce an arbitrary symmetric tensor field; channel cross-talk at <code>nlat</code> <span class="math inline">\(= 2\ell_{\max}+2\)</span></td>
+<td><span class="math inline">\(9\times10^{-15}\)</span> (four channels miss 35 %); <span class="math inline">\(\le 8\times10^{-13}\)</span></td>
+</tr>
+<tr class="odd">
+<td><code>test_sht</code></td>
+<td>toroidal synthesis is <span class="math inline">\(\mathbf{e}_r\times\nabla_1 T\)</span> (SHTns’ native field is its negative)</td>
+<td>round-off</td>
+</tr>
+<tr class="even">
+<td><code>test_toroidal</code></td>
+<td><span class="math inline">\(W = 0\)</span> for an axisymmetric configuration</td>
+<td>round-off</td>
+</tr>
+<tr class="odd">
+<td><code>test_toroidal</code></td>
+<td><span class="math inline">\(W\)</span> driven by a <span class="math inline">\(\cos 2\varphi\)</span> viscosity pattern; reflection selection rule</td>
+<td>rule holds to <span class="math inline">\(4\times10^{-16}\)</span></td>
+</tr>
+<tr class="even">
+<td><code>test_toroidal</code></td>
+<td>scaling with contrast <span class="math inline">\(\delta\)</span>: <span class="math inline">\(W \propto \delta\)</span>, uplift feedback <span class="math inline">\(\propto \delta^2\)</span></td>
+<td>slopes 0.987 and 1.986</td>
+</tr>
+<tr class="odd">
+<td><code>test_rotinv</code></td>
+<td>coaxial cap and low-viscosity zone: <span class="math inline">\(W = 0\)</span> on the pole; off the pole <span class="math inline">\(W/U\)</span> at discretization level, falling with resolution</td>
+<td><span class="math inline">\(2.6\times10^{-4}\to1.5\times10^{-6}\)</span> (<span class="math inline">\(\ell_{\max}\)</span> 16 <span class="math inline">\(\to\)</span> 32)</td>
+</tr>
+<tr class="even">
+<td><code>test_restart</code></td>
+<td>restart with toroidal channels; four-channel file into a toroidal run</td>
+<td>bit-for-bit continuation; spheroidal memory exact, toroidal zero</td>
+</tr>
+</tbody>
+</table>
+<p>Every existing 1D and benchmark result is unchanged (bit-identical). The remaining steps are a cross-check of a toroidal-carrying configuration against VILMA-v1 through <code>solver = "v1"</code>, and a measurement of what the toroidal coupling changes in a 3D deglaciation. Until then it stays off by default.</p>
+<div class="callout callout-style-default callout-tip callout-titled" title="Where this lives in the code">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Where this lives in the code
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>vilma_radial_fe</code> (<code>toroidal_operator</code>: assembly, fluid-node pinning, degree-1 rotation borders), <code>vilma_viscoelastic</code> (<code>strain_coeffs_tor</code>, <code>ve_strain_constants_tor</code>, <code>dissipative_rhs_tor</code>, <code>advance_memory_tor</code>), <code>vilma_tensor_sh</code> (<span class="math inline">\(Z^{(3)}\)</span>, <span class="math inline">\(Z^{(4)}\)</span> as channels 5 and 6), <code>vilma_sht</code> (toroidal vector transforms), <code>vilma_response</code> (the <span class="math inline">\(W\)</span> drift, <code>enable_toroidal</code>, the six-channel 3-D advance), and <code>vilma_io</code> (restart channel count, <code>file_hor</code>). The design notes and derivation are in the repository’s <code>doc/design-toroidal.md</code>.</p>
+</div>
+</div>
+
+
+
 </section>
-<section id="numerical-libraries" class="level2">
-<h2 class="anchored" data-anchor-id="numerical-libraries">Numerical libraries</h2>
-<ul>
-<li><span class="citation" data-cites="Schaeffer2013">Schaeffer (<a href="#ref-Schaeffer2013" role="doc-biblioref">2013</a>)</span> — SHTns, efficient spherical-harmonic transforms.</li>
-<li><span class="citation" data-cites="FrigoJohnson2005">Frigo and Johnson (<a href="#ref-FrigoJohnson2005" role="doc-biblioref">2005</a>)</span> — FFTW3.</li>
-</ul>
-<hr>
-<section id="full-bibliography" class="level3">
-<h3 class="anchored" data-anchor-id="full-bibliography">Full bibliography</h3>
-<div id="refs" class="references csl-bib-body hanging-indent" role="list">
-<div id="ref-Albrecht2024" class="csl-entry" role="listitem">
-Albrecht, T., M. Bagge, and V. Klemann. 2024. <span>“Feedback Mechanisms Controlling <span>Antarctic</span> Glacial-Cycle Dynamics Simulated with a Coupled Ice Sheet–Solid Earth Model.”</span> <em>The Cryosphere</em> 18 (9): 4233–55. <a href="https://doi.org/10.5194/tc-18-4233-2024">https://doi.org/10.5194/tc-18-4233-2024</a>.
-</div>
-<div id="ref-Bagge2021" class="csl-entry" role="listitem">
-Bagge, M., V. Klemann, B. Steinberger, M. Latinović, and M. Thomas. 2021. <span>“Glacial-Isostatic Adjustment Models Using Geodynamically Constrained <span>3D</span> Earth Structures.”</span> <em>Geochemistry, Geophysics, Geosystems</em> 22 (11): e2021GC009853. <a href="https://doi.org/10.1029/2021GC009853">https://doi.org/10.1029/2021GC009853</a>.
-</div>
-<div id="ref-Blewitt2003" class="csl-entry" role="listitem">
-Blewitt, G. 2003. <span>“Self-Consistency in Reference Frames, Geocenter Definition, and Surface Loading of the Solid Earth.”</span> <em>Journal of Geophysical Research: Solid Earth</em> 108 (B2): 2103. <a href="https://doi.org/10.1029/2002JB002082">https://doi.org/10.1029/2002JB002082</a>.
-</div>
-<div id="ref-Farrell1972" class="csl-entry" role="listitem">
-Farrell, W. E. 1972. <span>“Deformation of the Earth by Surface Loads.”</span> <em>Reviews of Geophysics</em> 10 (3): 761–97. <a href="https://doi.org/10.1029/RG010i003p00761">https://doi.org/10.1029/RG010i003p00761</a>.
-</div>
-<div id="ref-FrigoJohnson2005" class="csl-entry" role="listitem">
-Frigo, M., and S. G. Johnson. 2005. <span>“The Design and Implementation of <span>FFTW3</span>.”</span> <em>Proceedings of the IEEE</em> 93 (2): 216–31. <a href="https://doi.org/10.1109/JPROC.2004.840301">https://doi.org/10.1109/JPROC.2004.840301</a>.
-</div>
-<div id="ref-Hanyk1999" class="csl-entry" role="listitem">
-Hanýk, L. 1999. <span>“Viscoelastic Response of the Earth: Initial-Value Approach.”</span> PhD thesis, Charles University, Prague.
-</div>
-<div id="ref-KMM2005" class="csl-entry" role="listitem">
-Kendall, R. A., J. X. Mitrovica, and G. A. Milne. 2005. <span>“On Post-Glacial Sea Level – <span>II</span>. Numerical Formulation and Comparative Results on Spherically Symmetric Models.”</span> <em>Geophysical Journal International</em> 161 (3): 679–706. <a href="https://doi.org/10.1111/j.1365-246X.2005.02553.x">https://doi.org/10.1111/j.1365-246X.2005.02553.x</a>.
-</div>
+
+<a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Back to top</a><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
 <div id="ref-Martinec2000" class="csl-entry" role="listitem">
 Martinec, Z. 2000. <span>“Spectral–Finite Element Approach to Three-Dimensional Viscoelastic Relaxation in a Spherical Earth.”</span> <em>Geophysical Journal International</em> 142 (1): 117–41. <a href="https://doi.org/10.1046/j.1365-246x.2000.00138.x">https://doi.org/10.1046/j.1365-246x.2000.00138.x</a>.
 </div>
-<div id="ref-MartinecHagedoorn2014" class="csl-entry" role="listitem">
-Martinec, Z., and J. Hagedoorn. 2014. <span>“The Rotational Feedback on Linear-Momentum Balance in Glacial Isostatic Adjustment.”</span> <em>Geophysical Journal International</em> 199 (3): 1823–46. <a href="https://doi.org/10.1093/gji/ggu369">https://doi.org/10.1093/gji/ggu369</a>.
-</div>
-<div id="ref-Martinec2018" class="csl-entry" role="listitem">
-Martinec, Z., V. Klemann, W. van der Wal, et al. 2018. <span>“A Benchmark Study of Numerical Implementations of the Sea Level Equation in <span>GIA</span> Modelling.”</span> <em>Geophysical Journal International</em> 215 (1): 389–414. <a href="https://doi.org/10.1093/gji/ggy280">https://doi.org/10.1093/gji/ggy280</a>.
-</div>
-<div id="ref-Mitrovica2005" class="csl-entry" role="listitem">
-Mitrovica, J. X., J. Wahr, I. Matsuyama, and A. Paulson. 2005. <span>“The Rotational Stability of an Ice-Age Earth.”</span> <em>Geophysical Journal International</em> 161 (2): 491–506. <a href="https://doi.org/10.1111/j.1365-246X.2005.02609.x">https://doi.org/10.1111/j.1365-246X.2005.02609.x</a>.
-</div>
-<div id="ref-Schaeffer2013" class="csl-entry" role="listitem">
-Schaeffer, N. 2013. <span>“Efficient Spherical Harmonic Transforms Aimed at Pseudospectral Numerical Simulations.”</span> <em>Geochemistry, Geophysics, Geosystems</em> 14 (3): 751–58. <a href="https://doi.org/10.1002/ggge.20071">https://doi.org/10.1002/ggge.20071</a>.
-</div>
-<div id="ref-Spada2011" class="csl-entry" role="listitem">
-Spada, G., V. R. Barletta, V. Klemann, et al. 2011. <span>“A Benchmark Study for Glacial Isostatic Adjustment Codes.”</span> <em>Geophysical Journal International</em> 185 (1): 106–32. <a href="https://doi.org/10.1111/j.1365-246X.2011.04952.x">https://doi.org/10.1111/j.1365-246X.2011.04952.x</a>.
-</div>
-<div id="ref-Willeit2022" class="csl-entry" role="listitem">
-Willeit, M., A. Ganopolski, A. Robinson, and N. R. Edwards. 2022. <span>“The <span>Earth</span> System Model <span>CLIMBER-X</span> V1.0 – Part 1: Climate Model Description and Validation.”</span> <em>Geoscientific Model Development</em> 15 (14): 5905–48. <a href="https://doi.org/10.5194/gmd-15-5905-2022">https://doi.org/10.5194/gmd-15-5905-2022</a>.
-</div>
-</div>
-
-
-</section>
-</section>
-
-<a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Back to top</a></main> <!-- /main -->
+</div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     // Ensure there is a toggle, if there isn't float one in the top right
@@ -1107,11 +1273,14 @@ Willeit, M., A. Ganopolski, A. Robinson, and N. R. Edwards. 2022. <span>“The <
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="./benchmarks/sea-level.html" class="pagination-link" aria-label="Benchmark: the sea-level equation">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Benchmark: the sea-level equation</span>
+      <a href="../physics/rheology.html" class="pagination-link" aria-label="Maxwell rheology and the memory stress">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Maxwell rheology and the memory stress</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
+      <a href="../physics/sea-level.html" class="pagination-link" aria-label="The sea-level equation">
+        <span class="nav-page-text">The sea-level equation</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
   </div>
 </nav>
 </div> <!-- /content -->
@@ -1119,4 +1288,4 @@ Willeit, M., A. Ganopolski, A. Robinson, and N. R. Edwards. 2022. <span>“The <
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/vilma/blob/main/references.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/vilma/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/vilma/blob/main/physics/toroidal.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/vilma/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

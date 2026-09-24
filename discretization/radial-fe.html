@@ -332,6 +332,10 @@ window.Quarto = {
  <span class="dropdown-text">Maxwell rheology and the memory stress</span></a>
   </li>  
         <li>
+    <a class="dropdown-item" href="../physics/toroidal.html">
+ <span class="dropdown-text">Toroidal flow under lateral viscosity</span></a>
+  </li>  
+        <li>
     <a class="dropdown-item" href="../physics/sea-level.html">
  <span class="dropdown-text">The sea-level equation</span></a>
   </li>  
@@ -459,6 +463,12 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../physics/toroidal.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Toroidal flow under lateral viscosity</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../physics/sea-level.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">The sea-level equation</span></a>
   </div>
@@ -562,6 +572,7 @@ window.Quarto = {
   <li><a href="#a-symmetric-operator-and-the-bug-that-hid-in-it" id="toc-a-symmetric-operator-and-the-bug-that-hid-in-it" class="nav-link" data-scroll-target="#a-symmetric-operator-and-the-bug-that-hid-in-it">A symmetric operator — and the bug that hid in it</a></li>
   <li><a href="#boundary-and-regularity-conditions" id="toc-boundary-and-regularity-conditions" class="nav-link" data-scroll-target="#boundary-and-regularity-conditions">Boundary and regularity conditions</a></li>
   <li><a href="#degree-1-the-geocenter-kept-sparse" id="toc-degree-1-the-geocenter-kept-sparse" class="nav-link" data-scroll-target="#degree-1-the-geocenter-kept-sparse">Degree 1: the geocenter, kept sparse</a></li>
+  <li><a href="#the-toroidal-operator" id="toc-the-toroidal-operator" class="nav-link" data-scroll-target="#the-toroidal-operator">The toroidal operator</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/fesmc/vilma/blob/main/discretization/radial-fe.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/vilma/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -680,14 +691,18 @@ window.Quarto = {
 </section>
 <section id="degree-1-the-geocenter-kept-sparse" class="level2">
 <h2 class="anchored" data-anchor-id="degree-1-the-geocenter-kept-sparse">Degree 1: the geocenter, kept sparse</h2>
-<p>Degree 1 carries the rigid-translation null space, removed by <span class="math inline">\(E_{\text{uniq}}\)</span> (eq. 83). That penalty is a rank-1 term whose coefficient is <span class="math inline">\(\sim 10^{16}\times\)</span> the band entries — i.e.&nbsp;it is already a <em>hard constraint</em> <span class="math inline">\(w^{\mathsf T}d = 0\)</span> (the CM/geocenter frame, <span class="citation" data-cites="Blewitt2003">(<a href="#ref-Blewitt2003" role="doc-biblioref">Blewitt 2003</a>)</span>) in all but name. Imposing it as a dense penalty would fill the band; instead it borders the band with <strong>one KKT row/column</strong>:</p>
+<p>Degree 1 carries the rigid-translation null space, removed by <span class="math inline">\(E_{\text{uniq}}\)</span> (eq. 83). That penalty is a rank-1 term whose coefficient is <span class="math inline">\(\sim 10^{16}\times\)</span> the band entries — i.e.&nbsp;it is already a <em>hard constraint</em> <span class="math inline">\(w^{\mathsf T}d = 0\)</span> (zero volume-integrated displacement, a centre-of-figure-like gauge) in all but name. Imposing it as a dense penalty would fill the band; instead it borders the band with <strong>one KKT row/column</strong>:</p>
 <p><span class="math display">\[
 \begin{bmatrix} A_{\text{band}} &amp; w\\ w^{\mathsf T} &amp; 0\end{bmatrix}
 \begin{bmatrix} d\\ \lambda\end{bmatrix}
 =
 \begin{bmatrix} f\\ 0\end{bmatrix}.
 \]</span></p>
-<p>The solve runs at <span class="math inline">\(\text{ndof}+1\)</span> internally but keeps the physical <span class="math inline">\(\text{ndof}\)</span> interface, so the time stepper needs no degree-1 special case. The geocenter is thus the physical degree-1 signal, not a hard-coded <span class="math inline">\(\{h_1,l_1,k_1\}\)</span>.</p>
+<p>The solve runs at <span class="math inline">\(\text{ndof}+1\)</span> internally but keeps the physical <span class="math inline">\(\text{ndof}\)</span> interface, so the time stepper needs no degree-1 special case. The same KKT system also yields the null mode itself (zero physical right-hand side, border value 1). Because a rigid translation carries no strain, the reference frame is a post-solve choice: adding a multiple of the null mode that makes the exterior degree-1 potential vanish, <span class="math inline">\(F_1(a) = 0\)</span>, puts the state in the <strong>CM frame</strong> <span class="citation" data-cites="Blewitt2003">(<a href="#ref-Blewitt2003" role="doc-biblioref">Blewitt 2003</a>)</span> (<code>deg1_frame = "cm"</code>, the default). The geocenter is thus the physical degree-1 signal, not a hard-coded <span class="math inline">\(\{h_1,l_1,k_1\}\)</span>. See <a href="../physics/sea-level.html#reference-frame-and-degree-1">Sea-level equation</a>.</p>
+</section>
+<section id="the-toroidal-operator" class="level2">
+<h2 class="anchored" data-anchor-id="the-toroidal-operator">The toroidal operator</h2>
+<p>When the toroidal field is carried, <span class="math inline">\(W\)</span> has its own per-degree operator rather than a fifth interleaved field: <span class="math inline">\(W\)</span> couples to nothing else on the left-hand side, so the spheroidal band is untouched. It is the <span class="math inline">\(W\)</span> part of the shear energy (eq. 80), assembled from the same <span class="math inline">\(I_1,I_3,I_6\)</span> integrals. It is tridiagonal and symmetric, with fluid-core nodes pinned to <span class="math inline">\(W = 0\)</span> and, at degree 1, one KKT border per solid shell removing the rigid rotation. See <a href="../physics/toroidal.html#the-toroidal-operator">Toroidal flow</a>.</p>
 <div class="callout callout-style-default callout-tip callout-titled" title="Where this lives in the code">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">

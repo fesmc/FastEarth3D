@@ -332,6 +332,10 @@ window.Quarto = {
  <span class="dropdown-text">Maxwell rheology and the memory stress</span></a>
   </li>  
         <li>
+    <a class="dropdown-item" href="../physics/toroidal.html">
+ <span class="dropdown-text">Toroidal flow under lateral viscosity</span></a>
+  </li>  
+        <li>
     <a class="dropdown-item" href="../physics/sea-level.html">
  <span class="dropdown-text">The sea-level equation</span></a>
   </li>  
@@ -455,6 +459,12 @@ window.Quarto = {
   <div class="sidebar-item-container"> 
   <a href="../physics/rheology.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Maxwell rheology and the memory stress</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../physics/toroidal.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Toroidal flow under lateral viscosity</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -611,7 +621,7 @@ window.Quarto = {
 <section id="reference-data-and-metrics" class="level2">
 <h2 class="anchored" data-anchor-id="reference-data-and-metrics">Reference data and metrics</h2>
 <p>The reference is the spatial response at colatitudes <span class="math inline">\(\theta = 0\)</span>:<span class="math inline">\(0.1\)</span>:<span class="math inline">\(20°\)</span> (201 points) and times <span class="math inline">\(t = [0,1,2,5,10,100]\)</span> kyr (column 1, <span class="math inline">\(t=0\)</span>, is the elastic response). Three fields are compared: vertical displacement <span class="math inline">\(u\)</span>, geoid <span class="math inline">\(n\)</span>, and uplift rate <span class="math inline">\(\mathrm{d}u/\mathrm{d}t\)</span>.</p>
-<p>The reference uses a <strong>mixed reference frame</strong>: displacement in a CE-like gauge (<span class="math inline">\(h_1\approx 0\)</span>, geocenter), geoid in the CM frame (<span class="math inline">\(N_1 = 0\)</span>). VILMA reproduces both by referencing the degree-1 geoid to CM (<code>vilma_response</code>).</p>
+<p>The reference uses a <strong>mixed reference frame</strong>: displacement in a CE-like gauge (<span class="math inline">\(h_1\approx 0\)</span>, geocenter), geoid in the CM frame (<span class="math inline">\(N_1 = 0\)</span>). VILMA reproduces it with <code>deg1_frame = "cf"</code>, which keeps the solver’s displacement gauge and references the degree-1 geoid to CM; the default <code>"cm"</code> frame differs from the reference at degree 1 only (see <a href="../physics/sea-level.html#reference-frame-and-degree-1">Sea-level equation</a>).</p>
 <p>All three reference files in this repository (<code>u_*</code>, <code>n_*</code>, <code>dudt_*</code>) are stored in ascending <span class="math inline">\(\theta\)</span> order and match the ordering used by the model, so they can be paired with the <span class="math inline">\(\theta\)</span> grid directly.</p>
 </section>
 <section id="result" class="level2">

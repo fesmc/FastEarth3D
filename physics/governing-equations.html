@@ -332,6 +332,10 @@ window.Quarto = {
  <span class="dropdown-text">Maxwell rheology and the memory stress</span></a>
   </li>  
         <li>
+    <a class="dropdown-item" href="../physics/toroidal.html">
+ <span class="dropdown-text">Toroidal flow under lateral viscosity</span></a>
+  </li>  
+        <li>
     <a class="dropdown-item" href="../physics/sea-level.html">
  <span class="dropdown-text">The sea-level equation</span></a>
   </li>  
@@ -455,6 +459,12 @@ window.Quarto = {
   <div class="sidebar-item-container"> 
   <a href="../physics/rheology.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Maxwell rheology and the memory stress</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../physics/toroidal.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Toroidal flow under lateral viscosity</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -698,7 +708,7 @@ E = E_{\text{press}} + E_{\text{shear}} + E_{\text{grav}} + E_{\text{uniq}},
 <h2 class="anchored" data-anchor-id="conventions-and-constants">Conventions and constants</h2>
 <ul>
 <li><strong>Densities:</strong> the benchmark density set is fixed once, <span class="math inline">\(\rho_{\text{ice}} = 931\)</span>, <span class="math inline">\(\rho_{\text{water}} = 1000\ \mathrm{kg\,m^{-3}}\)</span>; surface gravity <span class="math inline">\(g_0 = 9.815\ \mathrm{m\,s^{-2}}\)</span>. Mass — not volume — is conserved, applying <span class="math inline">\(\rho_{\text{ice}}/\rho_{\text{water}}\)</span> exactly once in each of the flotation criterion, the eustatic conversion, and the sea-level equation.</li>
-<li><strong>Degree 1 is frame-dependent.</strong> The geocenter (degree-1) signal is physical and is <em>not</em> hard-coded; it is solved in the <strong>CM frame</strong> <span class="citation" data-cites="Blewitt2003">(<a href="#ref-Blewitt2003" role="doc-biblioref">Blewitt 2003</a>)</span>. See <a href="../physics/sea-level.html">Sea-level equation</a> and <a href="../discretization/radial-fe.html">Radial finite elements</a>.</li>
+<li><strong>Degree 1 is frame-dependent.</strong> The geocenter (degree-1) signal is physical and is <em>not</em> hard-coded. By default displacement and geoid are both expressed in the <strong>centre-of-mass (CM) frame</strong> <span class="citation" data-cites="Blewitt2003">(<a href="#ref-Blewitt2003" role="doc-biblioref">Blewitt 2003</a>)</span> (<code>deg1_frame = "cm"</code>). See <a href="../physics/sea-level.html">Sea-level equation</a> and <a href="../discretization/radial-fe.html">Radial finite elements</a>.</li>
 </ul>
 <div class="callout callout-style-default callout-tip callout-titled" title="Where this lives in the code">
 <div class="callout-header d-flex align-content-center">

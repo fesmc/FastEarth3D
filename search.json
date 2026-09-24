@@ -112,7 +112,7 @@
     "href": "physics/rotation.html#design-constraints-honoured",
     "title": "Rotational feedback (polar motion)",
     "section": "Design constraints honoured",
-    "text": "Design constraints honoured\n\nDegree-2, tidal Love numbers. The rotational deformation uses tidal (not loading) Love numbers; the centrifugal forcing is purely degree 2.\nThe secular number \\(k_s\\). Computing \\(k_s\\) from the assumed lithosphere thickness leads to the well-known “lithosphere-thickness paradox” in rotational stability; the model can instead pin \\(k_s\\) to the observed hydrostatic flattening (Mitrovica et al. 2005), recommended for deep time.\nCouple through the SLE. The rotational potential enters the sea-level equation self-consistently (above).",
+    "text": "Design constraints honoured\n\nDegree-2, tidal Love numbers. The rotational deformation uses tidal (not loading) Love numbers; the centrifugal forcing is purely degree 2.\nThe secular number \\(k_s\\). By default \\(k_s\\) is the model’s own fluid limit \\(k^T_f\\): the tidal response with every Maxwell layer fluidized, which reproduces Spada test 3/2. Deriving \\(k_s\\) from the assumed lithosphere thickness leads to the well-known “lithosphere-thickness paradox” in rotational stability. The observed-flattening value \\(k_s = 3G(C-A)/(a^5\\Omega^2)\\) (Mitrovica et al. 2005), recommended for deep time, is computed as well. It can currently be selected only through the rotation_init API (optional k_s argument), not the namelist.\nCouple through the SLE. The rotational potential enters the sea-level equation self-consistently (above).",
     "crumbs": [
       "Overview",
       "Physics",
@@ -184,7 +184,7 @@
     "href": "physics/sea-level.html#ocean-function-flotation-and-the-coast",
     "title": "The sea-level equation",
     "section": "Ocean function, flotation, and the coast",
-    "text": "Ocean function, flotation, and the coast\nThe ocean function distinguishes three regimes, each handled explicitly so that no mass is double-counted:\n\nGrounded vs. floating ice. A cell is ocean only where it is below sea level and the ice does not ground: \\(\\rho_{\\text{ice}}\\,I &lt; -\\rho_{\\text{water}}\\,\\text{topo}\\). Only grounded ice loads the bed and changes the ocean-water budget; floating ice is already carried by the ocean term.\nTwo ocean-geometry modes. A fixed ocean (Martinec SLE1) holds \\(C = O^{(0)} = (\\text{topo}_0 &lt; 0)\\) for the whole run; the migrating coastline (SLE2) updates \\(C\\) every outer iteration.\nSub-grid (sloping-coast) loading. The binary load \\(\\rho_{\\text{water}}\\,C\\!\\cdot\\!S\\) puts the full sea-level change wherever \\(C=1\\), giving a sharp shoreline. The optional sub-grid mode instead loads the actual water-column change \\(s = C\\!\\cdot\\!S - \\zeta^{(0)}(C - C_0)\\), which tapers smoothly to zero as a newly flooded cell fills from its own bed (Martinec 2018, §2.2, eqs. 15–19). This is a local correction — one extra field term and one integral — yet it collapses the cap-edge grounding-line residuals in the migrating benchmark cases to the \\(\\sim 1\\%\\) level.\n\n\n\n\n\n\n\nNoteWhy the affine trick makes the VE driver tractable\n\n\n\nThe viscoelastic response at a fixed time is affine in the current load: \\(u_{\\ell m} = g_u(\\ell)\\,\\sigma_{\\ell m} + \\text{drift}_{\\ell m}\\), where the drift comes from the frozen past-relaxation memory. So the SLE fixed point can call apply() as many times as it likes within a step without corrupting the Maxwell state. A begin_step freezes the drift (one memory-forcing solve per coefficient); commit_step advances the memory once, with the converged load. This is what lets a viscoelastic Earth sit inside an iterative SLE solver cheaply.",
+    "text": "Ocean function, flotation, and the coast\nThe ocean function distinguishes three regimes, each handled explicitly so that no mass is double-counted:\n\nGrounded vs. floating ice. A cell is ocean only where it is below sea level and the ice does not ground: \\(\\rho_{\\text{ice}}\\,I &lt; -\\rho_{\\text{water}}\\,\\text{topo}\\). Only grounded ice loads the bed and changes the ocean-water budget; floating ice is already carried by the ocean term. The grounded-ice increment is therefore the difference of the two grounded columns, each masked by its own ocean function, \\(\\Delta I_g = I\\,(1-C) - I_0\\,(1-C_0)\\). Masking the raw increment by the current \\(C\\) alone, \\((I-I_0)(1-C)\\), would drop the whole column of marine-grounded reference ice from the melt source when its cell floods.\nTwo ocean-geometry modes. A fixed ocean (Martinec SLE1) holds \\(C = O^{(0)} = (\\text{topo}_0 &lt; 0)\\) for the whole run; the migrating coastline (SLE2) updates \\(C\\) every outer iteration.\nSub-grid (sloping-coast) loading. The binary load \\(\\rho_{\\text{water}}\\,C\\!\\cdot\\!S\\) puts the full sea-level change wherever \\(C=1\\), giving a sharp shoreline. The optional sub-grid mode instead loads the actual water-column change \\(s = C\\!\\cdot\\!S - \\zeta^{(0)}(C - C_0)\\), which tapers smoothly to zero as a newly flooded cell fills from its own bed (Martinec 2018, §2.2, eqs. 15–19). This is a local correction — one extra field term and one integral — yet it collapses the cap-edge grounding-line residuals in the migrating benchmark cases to the \\(\\sim 1\\%\\) level.\n\n\n\n\n\n\n\nNoteWhy the affine trick makes the VE driver tractable\n\n\n\nThe viscoelastic response at a fixed time is affine in the current load: \\(u_{\\ell m} = g_u(\\ell)\\,\\sigma_{\\ell m} + \\text{drift}_{\\ell m}\\), where the drift comes from the frozen past-relaxation memory. So the SLE fixed point can call apply() as many times as it likes within a step without corrupting the Maxwell state. A begin_step freezes the drift (one memory-forcing solve per coefficient); commit_step advances the memory once, with the converged load. This is what lets a viscoelastic Earth sit inside an iterative SLE solver cheaply.",
     "crumbs": [
       "Overview",
       "Physics",
@@ -196,7 +196,7 @@
     "href": "physics/sea-level.html#reference-frame-and-degree-1",
     "title": "The sea-level equation",
     "section": "Reference frame and degree 1",
-    "text": "Reference frame and degree 1\nThe geocenter (degree-1) terms are physical and frame-dependent. VILMA solves degree 1 in the CM frame (Blewitt 2003) via a rigid-translation constraint, so the displacement degree-1 (and hence the uplift) is self-consistent with the geoid. The Spada-2011 disc benchmark uses a mixed convention — displacement in a CE-like gauge (\\(h_1\\approx 0\\)), geoid in the CM frame (\\(N_1 = 0\\)) — which VILMA reproduces by referencing the degree-1 geoid to CM. See the disc benchmark.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nvilma_response defines the response-operator interface and its three implementations; vilma_sle is the fixed-point SLE solver (ocean function, flotation, migration, sub-grid load, mass-conserving \\(\\Delta\\phi\\)); vilma_field builds analytic ice caps and basin topographies for the benchmarks. Validation is in Sea-level equation.",
+    "text": "Reference frame and degree 1\nThe geocenter (degree-1) terms are physical and frame-dependent. The radial solve fixes the rigid-translation null space with a gauge (zero volume-integrated displacement, a centre-of-figure-like frame; see Radial finite elements). Since a rigid translation carries no strain, the frame can then be changed after the solve by adding a multiple of the null mode. deg1_frame selects the frame:\n\n\n\n\n\n\n\n\n\ndeg1_frame\nDisplacement\nGeoid\nUse\n\n\n\n\n\"cm\" (default)\nCM frame: the solid Earth translates (geocenter motion)\nCM (\\(F_1(a) = 0\\), i.e. \\(k_1=-1\\))\nreal-Earth runs; as VILMA-v1\n\n\n\"cf\"\nsolver gauge, no net translation\nCM (\\(N_1 = 0\\))\nSpada disc benchmark\n\n\n\nIn \"cm\" the CM condition is imposed once, on the solved state, so displacement and geoid refer to the same frame and the relative sea level carries the degree-1 fingerprint of geocenter motion (Blewitt 2003). This reduces the disc residual against VILMA-v1 about fivefold. \"cf\" is the mixed convention of the Spada (2011) disc benchmark, displacement in a CE-like gauge (\\(h_1\\approx 0\\)) and geoid in CM (\\(N_1 = 0\\)), under which rsl has no degree-1 part. Degrees \\(\\ge 2\\) are identical in both frames. See the disc benchmark.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nvilma_response defines the response-operator interface and its three implementations; vilma_sle is the fixed-point SLE solver (ocean function, flotation, migration, sub-grid load, mass-conserving \\(\\Delta\\phi\\)); vilma_field builds analytic ice caps and basin topographies for the benchmarks. Validation is in Sea-level equation.",
     "crumbs": [
       "Overview",
       "Physics",
@@ -204,177 +204,483 @@
     ]
   },
   {
-    "objectID": "discretization/spectral.html",
-    "href": "discretization/spectral.html",
-    "title": "Spectral reduction and the SH transform",
+    "objectID": "getting-started.html",
+    "href": "getting-started.html",
+    "title": "Installation and running",
     "section": "",
-    "text": "Horizontally, every field is expanded in spherical harmonics; the angular dependence is handled analytically and each degree decouples. This page covers the spectral reduction of the field equations and the transform kernel that moves between grid and spectral space.",
+    "text": "WarningUnder heavy development\n\n\n\nVILMA v2 is not yet ready for use in a scientific production capacity. If you want to use VILMA for now, please contact Volker Klemann at GFZ.\nThis page covers getting VILMA v2 built and running a forced simulation. The build is driven by configme (one source of machine/compiler truth) and runs are staged by runme (single simulations and ensembles, locally or on SLURM).",
     "crumbs": [
       "Overview",
-      "Discretization",
-      "Spectral reduction and the SH transform"
+      "Getting started",
+      "Installation and running"
     ]
   },
   {
-    "objectID": "discretization/spectral.html#vector-spherical-harmonic-expansion",
-    "href": "discretization/spectral.html#vector-spherical-harmonic-expansion",
-    "title": "Spectral reduction and the SH transform",
-    "section": "Vector spherical-harmonic expansion",
-    "text": "Vector spherical-harmonic expansion\nThe displacement, potential, and pressure are expanded as (Martinec 2000, eqs. 55–57)\n\\[\n\\mathbf{u} = \\sum_{j\\ge 1}\\Bigl[\\,U_{jm}(r)\\,\\mathbf{S}^{(-1)}_{jm}\n+ V_{jm}(r)\\,\\mathbf{S}^{(1)}_{jm}\n+ W_{jm}(r)\\,\\mathbf{S}^{(0)}_{jm}\\,\\Bigr],\n\\qquad\n\\varphi_1 = \\sum_{j\\ge 0} F_{jm}(r)\\,Y_{jm},\n\\quad\n\\Pi = \\sum_{j\\ge 0}\\Pi_{jm}(r)\\,Y_{jm},\n\\]\nwhere \\(\\mathbf{S}^{(-1)},\\mathbf{S}^{(1)},\\mathbf{S}^{(0)}\\) are the spheroidal (radial, consoidal) and toroidal vector harmonics. Two simplifications follow from the physics:\n\nNo degree 0 in \\(\\mathbf{u}\\) — incompressibility forbids the radial breathing mode.\nThe toroidal block decouples — \\(W\\) couples to nothing on the left-hand side (no pressure, self-gravity or \\(U,V\\) shear terms), so a surface load on a radially symmetric Earth never excites it. Laterally varying viscosity does, through the memory stress (Martinec 2000, after eq. 110); \\(W\\) is then solved by its own tridiagonal per-degree system alongside the spheroidal one. The divergence reduces to \\(\\operatorname{div}\\mathbf{u} = \\sum (U' + 2U/r - J\\,V/r)\\,Y_{jm}\\), \\(J=j(j+1)\\) (eq. 58).\n\nEach degree \\(j\\) then reduces to an independent 1D radial problem in \\(\\{U_{jm},V_{jm},F_{jm},\\Pi_{jm}\\}\\) — the central economy of the method. The order \\(m\\) enters only through the (real) load coefficients, so the operator is assembled and factored once per degree and reused across all \\(m\\).",
+    "objectID": "getting-started.html#dependencies",
+    "href": "getting-started.html#dependencies",
+    "title": "Installation and running",
+    "section": "Dependencies",
+    "text": "Dependencies\nVILMA needs only a small, well-established stack:\n\n\n\nDependency\nProvides\nSource\n\n\n\n\nfesm-utils (branch coords-dev)\nFFTW, SHTns, the fesmutils helper library (precision, ncio, namelists), and the coords module used by the remapper\ncloned/linked by configme\n\n\nnetCDF (C + Fortran)\nrestart and output I/O\nsystem package (Homebrew, modules, …)\n\n\n\nThe coords-dev branch is pinned in .configme/manifest.toml, so the checkout self-describes the exact ref it needs.",
     "crumbs": [
       "Overview",
-      "Discretization",
-      "Spectral reduction and the SH transform"
+      "Getting started",
+      "Installation and running"
     ]
   },
   {
-    "objectID": "discretization/spectral.html#real-orthonormal-harmonics",
-    "href": "discretization/spectral.html#real-orthonormal-harmonics",
-    "title": "Spectral reduction and the SH transform",
-    "section": "Real, orthonormal harmonics",
-    "text": "Real, orthonormal harmonics\nVILMA uses fully normalized real spherical harmonics with no Condon–Shortley phase, on a Gauss–Legendre latitude grid with a \\(\\phi\\)-contiguous layout; spectral arrays store \\(m \\ge 0\\). This convention (SHT_ORTHONORMAL, SHT_NO_CS_PHASE) is pinned across the whole code so that quadrature (\\(\\int\\!\\mathrm{d}\\Omega\\)), the orthonormality of \\(Y_{10}\\), and round-trip transforms all hold to machine precision.",
+    "objectID": "getting-started.html#install-with-configme",
+    "href": "getting-started.html#install-with-configme",
+    "title": "Installation and running",
+    "section": "Install with configme",
+    "text": "Install with configme\nconfigme clones (or reuses) the dependencies, generates the machine/compiler Makefile fragment, and links everything together:\nconfigme install vilma\nIt resolves the machine and compiler from flags, your ~/.configme/config.toml, hostname detection, or a prompt. To be explicit, or to reuse an existing fesm-utils checkout instead of cloning:\n# pick machine + compiler explicitly\nconfigme install vilma -m macbook -c gfortran\n\n# symlink an on-disk fesm-utils rather than cloning it\nconfigme install vilma --link fesm-utils=/abs/path/to/fesm-utils\nSupported machines include awi_albedo, chinook, dkrz_levante, linux, macbook, pik_hpc2024; compilers gfortran, ifort, ifx. Run configme list for the current set and configme status to see what is present versus pending. If you only need to (re)generate the Makefile for an already-present checkout, configme config vilma does that without cloning.",
     "crumbs": [
       "Overview",
-      "Discretization",
-      "Spectral reduction and the SH transform"
+      "Getting started",
+      "Installation and running"
     ]
   },
   {
-    "objectID": "discretization/spectral.html#the-transform-kernel-shtns-fftw",
-    "href": "discretization/spectral.html#the-transform-kernel-shtns-fftw",
-    "title": "Spectral reduction and the SH transform",
-    "section": "The transform kernel (SHTns + FFTW)",
-    "text": "The transform kernel (SHTns + FFTW)\nThe grid\\(\\leftrightarrow\\)spectral transform is the workhorse of a pseudo-spectral method — it is called many times per time step — so it is built on SHTns (Schaeffer 2013), a high-performance spherical-harmonic transform library, which in turn uses FFTW (Frigo and Johnson 2005) for the longitudinal FFTs. VILMA wraps SHTns in a thin Fortran module (vilma_sht) that exposes:\n\nforward / inverse scalar transforms (analysis and synthesis);\nquadrature on the sphere, \\(\\int f\\,\\mathrm{d}\\Omega\\);\narbitrary-point evaluation of a spectral field (used to sample the benchmark profiles at exact colatitudes/longitudes), via SHTns’ point-evaluation routine;\nspheroidal (horizontal-gradient) evaluation — the surface gradient field \\((\\partial_\\theta,\\ (\\sin\\theta)^{-1}\\partial_\\phi)\\) — used for the horizontal displacement output. SHTns’ spheroidal synthesis is the direct surface gradient (no \\(\\ell(\\ell+1)\\) factor), which matches the analytic case-A horizontal response.\n\nThe round-trip transform, quadrature, normalization, and point/gradient evaluation are validated to \\(\\sim 10^{-15}\\) in test_sht and test_field.\n\n\n\n\n\n\nNoteWhy a library, and which convention\n\n\n\nRe-implementing a fast, accurate, well-tested Legendre transform is a project in itself; SHTns is the de-facto standard for pseudo-spectral geodynamo/GIA work and is many times faster than a naive transform at the resolutions of interest (SH degree \\(\\sim 170\\), grid \\(1024\\times 2048\\) at VILMA-v1 resolution). The one non-negotiable is pinning the normalization and phase convention everywhere, so that Love numbers, quadrature, and benchmark comparisons all use the same \\(Y_{jm}\\).",
+    "objectID": "getting-started.html#build",
+    "href": "getting-started.html#build",
+    "title": "Installation and running",
+    "section": "Build",
+    "text": "Build\nconfigme writes the compiler fragment into the Makefile; building is then plain make:\nmake vilma        # -&gt; bin/vilma.x        (standalone forced-run driver)\nmake vilma_mkref  # -&gt; bin/vilma_mkref.x  (build a Gauss-grid reference state)\nmake vilma_remap  # -&gt; bin/vilma_remap.x  (offline lon-lat -&gt; Gauss remap)\nmake check            # build + run the test suite\nBuild switches: debug = 0|1|2 (optimized / checks / profile) and openmp = 0|1 (default 1). The threaded degree loop is what makes production resolutions fast — build openmp=1 (see Solver).",
     "crumbs": [
       "Overview",
-      "Discretization",
-      "Spectral reduction and the SH transform"
+      "Getting started",
+      "Installation and running"
     ]
   },
   {
-    "objectID": "discretization/spectral.html#resolution",
-    "href": "discretization/spectral.html#resolution",
-    "title": "Spectral reduction and the SH transform",
-    "section": "Resolution",
-    "text": "Resolution\nThe reference VILMA-v1-scale configuration is SH degree 170 with a \\(1024\\times 2048\\) SLE grid. The benchmark cases here run at degree 32–128; the Love-number and disc benchmarks synthesize spatial profiles by summing the per-degree response against Legendre polynomials. All spherical-harmonic transforms stay inside this model — a host such as CLIMBER-X exchanges only grid-space ice thickness and bedrock/sea-level fields.",
+    "objectID": "getting-started.html#configuration-vilma-and-ctl",
+    "href": "getting-started.html#configuration-vilma-and-ctl",
+    "title": "Installation and running",
+    "section": "Configuration: &vilma and &ctl",
+    "text": "Configuration: &vilma and &ctl\nA run configuration has two namelist groups:\n\n&vilma: the model’s physics and numerics. This is the record a host model fills in memory.\n&ctl: the standalone run itself: forcing, reference and output files, the time window, i_eq, online remapping and the restart path. A host model never reads it.\n\nThe complete, documented &vilma defaults are in input/vilma_defaults.nml and are loaded automatically. A run configuration such as vilma.nml (the default) or examples/deglac_lgm.nml carries the full &ctl group plus only the &vilma parameters it overrides (the yelmo defaults_file convention):\n./bin/vilma.x examples/deglac_lgm.nml    # default: vilma.nml\nA few conventions worth knowing:\n\nTime fields (dt_*, time_*) are given in years in the namelist and converted to SI seconds on load; everything else is SI.\nEarth structure is chosen by earth: a named built-in (\"M3-L70-V01\", or \"PREM\", which fills \\(\\rho,\\mu\\) from shell averages of incompressible PREM on the given layer geometry) or \"custom\" to assemble from the surface-first layer arrays.\nResponse solver is chosen by earth_response: \"ve\" (full viscoelastic, default), \"elastic\", or \"null\".\nMemory scheme is chosen by scheme: \"fe\" (explicit, default) or \"trap\" (2nd-order, adaptive); see Rheology.\nDegree-1 frame is chosen by deg1_frame: \"cm\" (default) or \"cf\"; see Sea-level equation.\nReference state / spin-up is controlled by i_eq (&ctl), equil_time_max, equil_rate_tol (LGM-memory spin-up cap, relaxing to bed-stationary equilibrium), pre_spinup_1d (run a cheap 1-D pre-equilibration first), and restart_in_file (&ctl; resume full state, interpolated up if lower-resolution).\n3-D viscosity is enabled with l_visc_3d = .true. and a lateral log10(eta) field (visc_3d_file); visc3d_tol sets which elements are treated as genuinely 3-D.\nRotational feedback (rotation) is on by default for real-Earth runs; set rotation = .false. for the non-rotating community benchmarks.\nBackend is chosen by solver: \"v2\" (this model, default) or \"v1\", the VILMA-v1 library behind the same driver, forcing and output for like-for-like comparison (requires a build with vilma_v1=1).",
     "crumbs": [
       "Overview",
-      "Discretization",
-      "Spectral reduction and the SH transform"
+      "Getting started",
+      "Installation and running"
     ]
   },
   {
-    "objectID": "discretization/solver.html",
-    "href": "discretization/solver.html",
-    "title": "The banded direct solver and performance",
+    "objectID": "getting-started.html#the-drivers",
+    "href": "getting-started.html#the-drivers",
+    "title": "Installation and running",
+    "section": "The drivers",
+    "text": "The drivers\n\n\n\n\n\n\n\nExecutable\nRole\n\n\n\n\nbin/vilma.x\nreads a reference state + an ice-thickness forcing h_ice(lon,lat,time), marches the model across the forcing (online lon-lat → Gauss remap by default), and writes the diagnostic surface fields (rsl, z_bed, h_ice, ocean function) to file_out, and optionally the horizontal surface displacement to file_hor\n\n\nbin/vilma_mkref.x\ngenerates the canonical Gauss-grid present-day reference (e.g. RTopo) used by i_eq = 1; other resolutions remap it online (cached)\n\n\nbin/vilma_remap.x\noffline conservative lon-lat → Gauss remap, to preprocess a forcing onto the model grid (remap_input = .false.)\n\n\n\nA complete worked configuration — an LGM → present-day deglaciation forced by the Tarasov ice/bed reconstruction — is in examples/deglac_lgm.nml.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Installation and running"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#running-with-runme",
+    "href": "getting-started.html#running-with-runme",
+    "title": "Installation and running",
+    "section": "Running with runme",
+    "text": "Running with runme\nrunme stages a clean run directory (linking in data and input, copying the namelist, recording the parameters), then runs or submits it. The executable aliases match the drivers: main → vilma.x, mkref → vilma_mkref.x, remap → vilma_remap.x.\n# single local run, 8 OpenMP threads, overriding a few parameters\nrunme -o runs/deglac -e main --omp 8 -r \\\n      -p vilma.lmax=128 vilma.earth_response=ve ctl.file_out=out.nc\nHow a run is launched is set by two flags:\n\n-r run the executable;\n-s prepare a SLURM submit script (and submit it, with -r);\n-s -r prepare and submit on HPC; -s alone stages the script to inspect; omitting both stages the run directory only.\n\nA comma list, range, or distribution in -p turns a parameter into an ensemble dimension (-p vilma.lmax=64,128), with -a naming the member directories from their parameter values. SLURM settings (cluster, account, threads) live in .runme/config.toml; bootstrap it with runme config init and inspect what runme reads with runme info.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Installation and running"
+    ]
+  },
+  {
+    "objectID": "getting-started.html#embedding-in-a-host-model",
+    "href": "getting-started.html#embedding-in-a-host-model",
+    "title": "Installation and running",
+    "section": "Embedding in a host model",
+    "text": "Embedding in a host model\nThe CLIMBER-X coupling path uses the same code behind a single use vilma. The contract is intentionally narrow — the host passes ice thickness in and receives relative sea level and bedrock out, on its own grid. The model owns its Gauss grid and the host↔︎Gauss remap (built from the parameter record), and keeps all spherical-harmonic work inside (see Implementation):\nuse vilma\ntype(solid_earth) :: se\ncall vilma_par_load(se%par, \"vilma.nml\")             ! configuration lives in se%par\ncall solid_earth_init(se, z_bed_eq, h_ice_eq, grid=host_grid)  ! builds the Gauss grid + remap\ncall solid_earth_spinup(se, h_ice_lgm)                ! optional LGM-memory spin-up\ndo\n   call solid_earth_update(se, h_ice, dt_yr)          ! advance dt_yr [years]\n   ! ... read se%rsl, se%z_bed on the host grid (se%gg%* on the Gauss grid) ...\nend do\ncall solid_earth_finalize(se)                         ! frees the grid too\ngrid (a coords lon-lat grid) is optional: omit it when the fields are already on the model’s Gauss grid. The full prognostic state (the Maxwell memory, the integrator state, and the model clock) is persisted on restart, so a coupled run resumes bit-for-bit; the host-grid outputs are re-derived on read.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "Installation and running"
+    ]
+  },
+  {
+    "objectID": "discretization/time-stepping.html",
+    "href": "discretization/time-stepping.html",
+    "title": "Time stepping and the field driver",
     "section": "",
-    "text": "The per-degree saddle-point system is small, banded, and reused unchanged across all orders \\(m\\), all loads, and every time step. VILMA therefore solves it with a dependency-free, re-entrant, pivoted banded LU — factor once, solve many times — which is both faster and structurally simpler than the iterative solver used in early versions.",
+    "text": "The viscoelastic evolution is an explicit march in time built directly on the elastic operator. This page covers how a step is taken, how the memory state is carried, and how the field-level driver feeds the sea-level equation without corrupting that state.",
     "crumbs": [
       "Overview",
       "Discretization",
-      "The banded direct solver and performance"
+      "Time stepping and the field driver"
     ]
   },
   {
-    "objectID": "discretization/solver.html#why-a-banded-direct-solve-fits",
-    "href": "discretization/solver.html#why-a-banded-direct-solve-fits",
-    "title": "The banded direct solver and performance",
-    "section": "Why a banded direct solve fits",
-    "text": "Why a banded direct solve fits\nLaid out node-interleaved as \\([U\\ V\\ F\\mid\\Pi]\\), the operator has a half-bandwidth of \\(\\sim 6\\). Its entries span \\(\\sim 20\\) orders of magnitude (\\(\\mu r^2/h\\) versus the pressure couplings versus \\(1/4\\pi G\\)), so it is first geometric-mean row/column equilibrated. Two facts then make a direct band solve ideal:\n\nThe operator depends on degree only through \\(J = j(j+1)\\), so it is assembled and factored once per degree and reused for all \\(m\\), all loads, and all time steps. A step costs only a band back-substitution.\nIt is indefinite (zero pressure block), so partial pivoting is required; the vilma_band LU pivots within the band.\n\nDegree 1 carries the dense KKT border (the rigid-mode constraint), giving that one degree a near-full bandwidth — it factors as a dense LU through the same code path. The result is \\(\\sim 20\\ \\mu\\mathrm{s}\\) per solve, versus \\(\\sim 700\\\n\\mu\\mathrm{s}\\) for the earlier iterative (GMRES+ILU) solver, with no preconditioner fill to evict from cache.",
+    "objectID": "discretization/time-stepping.html#one-step",
+    "href": "discretization/time-stepping.html#one-step",
+    "title": "Time stepping and the field driver",
+    "section": "One step",
+    "text": "One step\nThe \\(\\omega=1\\) Maxwell scheme (see Rheology) keeps the left-hand operator fixed and updates only the right-hand side. A step at degree \\(j\\) is:\n\nForm the dissipative forcing \\(-\\int\\boldsymbol{\\tau}^{V,i-1}:\\delta\\boldsymbol{\\varepsilon}\\) from the previous memory stress (a two-point radial Gauss quadrature of the spectral double-dot over the four spheroidal tensor components).\nAdd the surface-load right-hand side for the current load.\nBack-substitute through the once-factored operator (no re-factorization).\nUpdate the memory stress \\(\\boldsymbol{\\tau}^{V,i} = (1-M)\\boldsymbol{\\tau}^{V,i-1} - 2\\mu M\\,\\boldsymbol{\\varepsilon}^{i}\\) from the new strain.\n\nElastic layers (\\(M\\to 0\\)) freeze; fluid layers (\\(\\mu=0\\)) carry no memory. The 1D validation test_relax shows a held load relaxing monotonically from the elastic Love number to the fluid limit \\(-(2j+1)/3\\), with \\(t_{\\text{relax}}\\propto\\eta\\) and convergence under step refinement.\nThis explicit update is conditionally stable: the step is capped by the shortest Maxwell time, so a short dynamical \\(\\Delta t\\) is sub-cycled within the coupling interval. The vilma_timestep controller sizes the sub-steps according to the memory scheme (see Rheology):\n\n\"fe\" (default): the 1st-order update has no embedded error signal, so \\(\\Delta t\\) is set a priori by the stability ceiling \\(M = \\mu\\Delta t/\\eta \\le\\) cfl, and the interval is split into equal sub-steps.\n\"trap\": each candidate step is taken once at \\(\\Delta t\\) and once as two \\(\\Delta t/2\\) halves; their difference estimates the local error of the memory (rtol, atol). A rejected step is rolled back and retried smaller; an accepted one keeps the fine result and lets \\(\\Delta t\\) grow (grow_max, bounded by dt_min/dt_max).\n\nThe ice load is interpolated linearly between the interval endpoints.",
     "crumbs": [
       "Overview",
       "Discretization",
-      "The banded direct solver and performance"
+      "Time stepping and the field driver"
     ]
   },
   {
-    "objectID": "discretization/solver.html#no-external-linear-algebra-dependency",
-    "href": "discretization/solver.html#no-external-linear-algebra-dependency",
-    "title": "The banded direct solver and performance",
-    "section": "No external linear-algebra dependency",
-    "text": "No external linear-algebra dependency\nvilma_band is hand-rolled and dependency-free: it pulls in no LAPACK and no LIS. This is a deliberate design choice driven by linking into a larger, OpenMP-parallel host:\n\n\n\n\n\n\nNoteWhy LIS (and LAPACK) were removed\n\n\n\nAn earlier version used the LIS iterative-solver library. Linking LIS into an OpenMP host (CLIMBER-X) would pull in lis-omp, nesting OpenMP regions, and concurrent LIS solves are not re-entrant (global solver state). The hand-rolled band LU has no global state, so it is re-entrant and the per-degree loop parallelizes cleanly with OpenMP. With LIS gone there is no serial-vs-OpenMP variant to reconcile. The project also avoids LAPACK for the same dependency-minimization reason — the band solver is small and fully tested (test_band against a dense reference).",
+    "objectID": "discretization/time-stepping.html#the-viscoelastic-field-driver",
+    "href": "discretization/time-stepping.html#the-viscoelastic-field-driver",
+    "title": "Time stepping and the field driver",
+    "section": "The viscoelastic field driver",
+    "text": "The viscoelastic field driver\nThe SLE needs a field load whose every coefficient \\((\\ell,m)\\) has its own independent load history — the ice and ocean evolve differently everywhere. The ve_response driver provides this while remaining safe to call from inside an iterative solver, using the affine structure of the response at fixed time:\n\\[\nu_{\\ell m} \\;=\\; g_u(\\ell)\\,\\sigma_{\\ell m} \\;+\\; \\text{drift}_{\\ell m},\n\\]\nwhere \\(g_u(\\ell)\\) is the instantaneous (elastic) gain and \\(\\text{drift}_{\\ell m}\\) comes from the frozen past-relaxation memory. The step is bracketed:\n\nbegin_step freezes the drift — one memory-forcing solve per coefficient, done once at the start of the step;\napply() is then a cheap affine evaluation the SLE fixed point may call repeatedly;\ncommit_step advances the Maxwell memory once, with the converged load.\n\nWith scheme = \"trap\", commit_step iterates the step endpoint (re-solving the drift against the trial \\(\\boldsymbol{\\tau}^{V,i}\\)) until the surface drift stops changing, since the trapezoidal update needs the end-of-step strain.\nEach complex \\((\\ell,m)\\) history is stored as two real histories (real/imaginary), since the operator and \\(M=\\mu\\Delta t/\\eta\\) are real. The per-element Maxwell kernel is shared verbatim with the 1D stepper — test_ve_response confirms the field driver’s first step equals elastic_response exactly, and that a held degree-2 field reproduces the 1D ve_degree history to \\(\\sim 10^{-13}\\).",
     "crumbs": [
       "Overview",
       "Discretization",
-      "The banded direct solver and performance"
+      "Time stepping and the field driver"
     ]
   },
   {
-    "objectID": "discretization/solver.html#performance-of-the-sle-driver",
-    "href": "discretization/solver.html#performance-of-the-sle-driver",
-    "title": "The banded direct solver and performance",
-    "section": "Performance of the SLE driver",
-    "text": "Performance of the SLE driver\nThe cost driver for a coupled run is ve_response%begin_step, which performs two real per-degree solves for every \\((\\ell,m)\\) each step (\\(\\mathcal{O}(n_{\\ell m})\\) solves). Four changes — all exact (results unchanged) except the threshold-controlled skip — brought this from impractical to routine:\n\n\n\n\n\n\n\nChange\nEffect\n\n\n\n\nBanded LU replaces GMRES+ILU on the per-degree solve\n\\(\\sim 35\\times\\) per solve; cache-light\n\n\nDegree-grouped storage of per-\\((\\ell,m)\\) memory/drift (slot \\(k\\))\ncontiguous + operator reuse\n\n\nSkip-negligible coefficients (memory \\(&lt; \\texttt{skip\\_tol}\\times\\max\\))\n\\(\\sim 2\\times\\) for a localized cap\n\n\nOpenMP over the degree loop (safe via the re-entrant LU)\n\\(\\sim 5.4\\times\\) at 8 threads\n\n\n\nNet effect on begin_step:\n\n\n\nResolution\nOriginal (LIS)\nBand LU, 1 thread\nBand LU, 8 threads\n\n\n\n\n\\(\\ell_{\\max}=64\\)\n\\(7.9\\) s/step\n\\(84\\) ms/step\n—\n\n\n\\(\\ell_{\\max}=128\\)\n(hours/run)\n\\(310\\) ms/step\n\\(58\\) ms/step\n\n\n\nThe full sea-level benchmark (\\(\\ell_{\\max}=128\\), \\(\\sim 750\\) steps) thus runs in minutes rather than hours, which is what makes the Martinec (2018) SLE cases feasible as routine validation. At VILMA-v1 resolution (SH degree 170) the same machinery applies.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nvilma_band (pivoted banded LU + equilibration), vilma_radial_fe (assembly, factorization, reuse), vilma_response (skip_tol, degree-grouped slots, OpenMP loop). Build with make openmp=1 for the threaded degree loop (serial dependencies + -fopenmp).",
+    "objectID": "discretization/time-stepping.html#memory-storage-and-restart",
+    "href": "discretization/time-stepping.html#memory-storage-and-restart",
+    "title": "Time stepping and the field driver",
+    "section": "Memory storage and restart",
+    "text": "Memory storage and restart\nThe per-\\((\\ell,m)\\) memory and drift are stored in degree-grouped slot order (an \\(\\ell m \\leftrightarrow k\\) map), so the inner loop is contiguous and per-degree, allowing operator reuse without scattering the (large) memory arrays. The only prognostic state carried across a restart is the viscoelastic memory (the Maxwell stress \\(\\boldsymbol{\\tau}\\), four spheroidal channels or six with the toroidal field) plus the integrator state and the model time. Reference fields (equilibrium bedrock, reference ice/topo) are static and validated on read. test_restart confirms a checkpoint-restart reproduces an uninterrupted run bit-for-bit. A lower-resolution restart is interpolated up to the model grid (degree-grouped spectral block copy), so a run can be spun up cheaply at coarse resolution and continued at fine resolution.",
     "crumbs": [
       "Overview",
       "Discretization",
-      "The banded direct solver and performance"
+      "Time stepping and the field driver"
     ]
   },
   {
-    "objectID": "references.html",
-    "href": "references.html",
-    "title": "References",
+    "objectID": "discretization/time-stepping.html#coupling-cadence",
+    "href": "discretization/time-stepping.html#coupling-cadence",
+    "title": "Time stepping and the field driver",
+    "section": "Coupling cadence",
+    "text": "Coupling cadence\nFor host coupling (CLIMBER-X), the model sub-cycles its short dynamical step \\(\\Delta t\\) within a longer coupling interval: ice thickness is held across the interval, the SLE is solved each \\(\\Delta t\\), and the bedrock \\(z_{\\text{bed}} = z_{\\text{bed,eq}} - \\text{rsl}\\) is returned at the coupling cadence. The reference state and its datum are chosen by i_eq (e.g. a present-day RTopo reference, or an equilibrium configuration); a non-equilibrium start (a held LGM load) is brought into balance by a spin-up (solid_earth_spinup) that relaxes the held load to bed-stationary equilibrium (rate below equil_rate_tol) — capped by equil_time_max — with an optional cheap 1-D pre-equilibration (pre_spinup_1d) before switching the transient to the 3-D path.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nvilma_viscoelastic (1D stepper + shared kernel), vilma_response (ve_response field driver, begin_step/commit_step), vilma_io (netCDF restart), and vilma_coupling (host init/update contract). The cost of begin_step is the main performance driver and is addressed in Solver.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Time stepping and the field driver"
+    ]
+  },
+  {
+    "objectID": "discretization/radial-fe.html",
+    "href": "discretization/radial-fe.html",
+    "title": "Radial finite elements and the per-degree operator",
     "section": "",
-    "text": "The spectral–finite-element, time-domain method and its rotational extension:\n\nMartinec (2000) — the spectral–finite-element approach to 3D viscoelastic relaxation in a spherical Earth. The core method.\nMartinec and Hagedoorn (2014) — time-domain rotational feedback.\nKendall et al. (2005) — the sea-level equation with moving shorelines (pseudo-spectral fixed point).",
+    "text": "After the spectral reduction, each spherical-harmonic degree \\(j\\) is an independent 1D radial boundary-value problem. VILMA discretizes it with finite elements in radius, assembling the symmetric saddle-point operator that is the Hessian of the energy functional.",
     "crumbs": [
       "Overview",
-      "References"
+      "Discretization",
+      "Radial finite elements and the per-degree operator"
     ]
   },
   {
-    "objectID": "references.html#primary-method",
-    "href": "references.html#primary-method",
-    "title": "References",
+    "objectID": "discretization/radial-fe.html#mesh-and-bases",
+    "href": "discretization/radial-fe.html#mesh-and-bases",
+    "title": "Radial finite elements and the per-degree operator",
+    "section": "Mesh and bases",
+    "text": "Mesh and bases\nThe mesh spans the whole sphere \\(\\langle 0, a\\rangle\\) — the inviscid core is meshed too — with piecewise-constant \\(\\rho_k,\\mu_k\\) per element. The benchmark M3–L70–V01 model uses 218 nodes (VEGA 5/10/40 km radial spacing). Two finite-element bases are used (Martinec 2000, §6):\n\nP1 “tent” functions \\(\\psi_k(r)\\) for the nodal fields: \\(U,V,F = \\sum_k [\\,\\cdot\\,]_k\\,\\psi_k\\) (continuous, one value per node).\nP0 (piecewise-constant) functions \\(\\xi_k(r)\\) for the pressure: \\(\\Pi = \\sum_k \\Pi_k\\,\\xi_k\\) (one value per element).\n\nThis P1(U,V,F) / P0(\\(\\Pi\\)) pairing is the inf–sup-stable choice for the incompressible saddle-point problem: the pressure enforces \\(\\operatorname{div}\\mathbf{u}=0\\) weakly through its coupling block.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Radial finite elements and the per-degree operator"
+    ]
+  },
+  {
+    "objectID": "discretization/radial-fe.html#element-bilinear-forms",
+    "href": "discretization/radial-fe.html#element-bilinear-forms",
+    "title": "Radial finite elements and the per-degree operator",
+    "section": "Element bilinear forms",
+    "text": "Element bilinear forms\nThe element matrices are built from the closed-form radial integrals of Martinec’s Appendix C (the \\(I_1\\ldots I_7\\), \\(K_1\\ldots K_3\\) families), implemented and unit-tested in vilma_radial_integrals:\n\n\n\n\n\n\n\n\n\nBlock\nEquation\nIntegrals\nCouples\n\n\n\n\nPressure / incompressibility \\(\\delta E_{\\text{press}}\\)\neq. 82\n\\(K_1,K_2\\)\n\\(\\Pi \\leftrightarrow (U' + 2U/r - JV/r)\\)\n\n\nShear stiffness \\(\\delta E_{\\text{shear}}\\)\neq. 80\n\\(I_1,I_3,I_6\\) (\\(\\times\\mu_k\\))\n\\(U,V\\)\n\n\nSelf-gravity \\(\\delta E_{\\text{grav}}\\)\neq. 81\n\\(I_2,I_4,I_5,I_7\\), \\(\\tfrac{1}{4\\pi G}\\)\n\\(U,V,F\\)\n\n\nRigid-mode penalty \\(\\delta E_{\\text{uniq}}\\)\neq. 83\n\\(K_3\\)\n\\(U,V\\) at \\(j=1\\)\n\n\n\nThe singular \\(I_7\\) (the \\(1/r\\) term carrying \\(R_k\\)) is skipped in the innermost element where \\(R_1 = 0\\), avoiding a \\(0\\cdot\\infty\\); the \\(r^2\\) weighting handles regularity at the centre so no explicit centre boundary condition is needed.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Radial finite elements and the per-degree operator"
+    ]
+  },
+  {
+    "objectID": "discretization/radial-fe.html#a-symmetric-operator-and-the-bug-that-hid-in-it",
+    "href": "discretization/radial-fe.html#a-symmetric-operator-and-the-bug-that-hid-in-it",
+    "title": "Radial finite elements and the per-degree operator",
+    "section": "A symmetric operator — and the bug that hid in it",
+    "text": "A symmetric operator — and the bug that hid in it\nLaid out node-interleaved as \\([U\\ V\\ F\\mid\\Pi]\\), the per-degree system is\n\\[\n\\begin{bmatrix} A & B^{\\mathsf T}\\\\ B & 0\\end{bmatrix}\n\\begin{bmatrix} d\\\\ \\Pi\\end{bmatrix}\n=\n\\begin{bmatrix} f\\\\ 0\\end{bmatrix},\n\\]\nwith \\(A\\) the shear+gravity stiffness and \\(B\\) the incompressibility coupling. The whole operator is symmetric — it is the second variation (Hessian) of the energy functional \\(E\\), hence self-transpose by construction. In particular the self-gravity \\(U\\!\\leftrightarrow\\! F\\) coupling is a transpose pair: the potential-gradient body force \\(\\int\\rho_0(\\mathrm{d}F/\\mathrm{d}r)\\,\\delta U\\,r^2\\) and the Poisson source \\(\\int\\rho_0 U(\\mathrm{d}\\,\\delta F/\\mathrm{d}r)\\,r^2\\) discretize to \\(I^2_{\\beta\\alpha}\\) and \\(I^2_{\\alpha\\beta}\\) respectively.\n\n\n\n\n\n\nWarningTypo in Martinec (2000), eq. (81)\n\n\n\nThe discretized self-gravity block written out in Martinec (2000) eq. (81) appears to contain a typo: it gives the \\(U\\)–\\(F\\) coupling as \\(I^2_{\\alpha\\beta}\\) where the symmetric partner \\(I^2_{\\beta\\alpha}\\) is required. Because the full operator is the Hessian of the energy functional \\(E\\), it must be symmetric; the corresponding term in the continuous form (eq. 65) makes this clear on term-by-term inspection. Using eq. (81) as written breaks the operator symmetry and softens the elastic low-degree Love numbers markedly — \\(h_e(2)\\) was \\(\\sim 47\\%\\) below the benchmark in our own tests, while every analytic limit and the fluid limit still passed. Anyone implementing this block should take eq. (65) as the arbiter, use \\(I^2_{\\beta\\alpha}\\) for the \\(U\\)–\\(F\\) coupling, and assert \\(\\lVert A - A^{\\mathsf T}\\rVert = 0\\) on the assembled matrix.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Radial finite elements and the per-degree operator"
+    ]
+  },
+  {
+    "objectID": "discretization/radial-fe.html#boundary-and-regularity-conditions",
+    "href": "discretization/radial-fe.html#boundary-and-regularity-conditions",
+    "title": "Radial finite elements and the per-degree operator",
+    "section": "Boundary and regularity conditions",
+    "text": "Boundary and regularity conditions\n\nSurface — the exterior potential match (\\(\\varphi_1\\propto r^{-(j+1)}\\) outside) adds a \\((j+1)F(a)\\) term on the \\(F\\!-\\!F\\) diagonal at the surface node; the load enters as the right-hand side \\(-a^2\\sigma\\,g_0(a)\\) on \\(U(a)\\) and \\(-a^2\\sigma\\) on \\(F(a)\\) (eq. 84).\nCentre \\(r=0\\) — no explicit BC (meshed through, \\(r^2\\) weighting + \\(R_1=0\\)).\nCore–mantle boundary — none imposed; free-slip emerges from \\(\\mu=0\\) in the meshed core.\nDensity-jump interfaces — natural conditions of the weak form.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Radial finite elements and the per-degree operator"
+    ]
+  },
+  {
+    "objectID": "discretization/radial-fe.html#degree-1-the-geocenter-kept-sparse",
+    "href": "discretization/radial-fe.html#degree-1-the-geocenter-kept-sparse",
+    "title": "Radial finite elements and the per-degree operator",
+    "section": "Degree 1: the geocenter, kept sparse",
+    "text": "Degree 1: the geocenter, kept sparse\nDegree 1 carries the rigid-translation null space, removed by \\(E_{\\text{uniq}}\\) (eq. 83). That penalty is a rank-1 term whose coefficient is \\(\\sim 10^{16}\\times\\) the band entries — i.e. it is already a hard constraint \\(w^{\\mathsf T}d = 0\\) (zero volume-integrated displacement, a centre-of-figure-like gauge) in all but name. Imposing it as a dense penalty would fill the band; instead it borders the band with one KKT row/column:\n\\[\n\\begin{bmatrix} A_{\\text{band}} & w\\\\ w^{\\mathsf T} & 0\\end{bmatrix}\n\\begin{bmatrix} d\\\\ \\lambda\\end{bmatrix}\n=\n\\begin{bmatrix} f\\\\ 0\\end{bmatrix}.\n\\]\nThe solve runs at \\(\\text{ndof}+1\\) internally but keeps the physical \\(\\text{ndof}\\) interface, so the time stepper needs no degree-1 special case. The same KKT system also yields the null mode itself (zero physical right-hand side, border value 1). Because a rigid translation carries no strain, the reference frame is a post-solve choice: adding a multiple of the null mode that makes the exterior degree-1 potential vanish, \\(F_1(a) = 0\\), puts the state in the CM frame (Blewitt 2003) (deg1_frame = \"cm\", the default). The geocenter is thus the physical degree-1 signal, not a hard-coded \\(\\{h_1,l_1,k_1\\}\\). See Sea-level equation.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Radial finite elements and the per-degree operator"
+    ]
+  },
+  {
+    "objectID": "discretization/radial-fe.html#the-toroidal-operator",
+    "href": "discretization/radial-fe.html#the-toroidal-operator",
+    "title": "Radial finite elements and the per-degree operator",
+    "section": "The toroidal operator",
+    "text": "The toroidal operator\nWhen the toroidal field is carried, \\(W\\) has its own per-degree operator rather than a fifth interleaved field: \\(W\\) couples to nothing else on the left-hand side, so the spheroidal band is untouched. It is the \\(W\\) part of the shear energy (eq. 80), assembled from the same \\(I_1,I_3,I_6\\) integrals. It is tridiagonal and symmetric, with fluid-core nodes pinned to \\(W = 0\\) and, at degree 1, one KKT border per solid shell removing the rigid rotation. See Toroidal flow.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nvilma_radial_fe assembles build_dense_operator (the reference dense operator, with the dense \\(E_{\\text{uniq}}\\) penalty for cross-checking) and the banded operator used in production; vilma_radial_integrals holds the Appendix-C element integrals. Love numbers are extracted by loading_love — see Love numbers. Validated by test_assembly, test_love.",
+    "crumbs": [
+      "Overview",
+      "Discretization",
+      "Radial finite elements and the per-degree operator"
+    ]
+  },
+  {
+    "objectID": "benchmarks/disc.html",
+    "href": "benchmarks/disc.html",
+    "title": "Benchmark: disc-load response",
     "section": "",
-    "text": "The spectral–finite-element, time-domain method and its rotational extension:\n\nMartinec (2000) — the spectral–finite-element approach to 3D viscoelastic relaxation in a spherical Earth. The core method.\nMartinec and Hagedoorn (2014) — time-domain rotational feedback.\nKendall et al. (2005) — the sea-level equation with moving shorelines (pseudo-spectral fixed point).",
+    "text": "Reference: Spada et al. (2011), disc-load test, earth model M3–L70–V01 (Spada et al. 2011). Test: test_benchmark_disc (in make check). Status: ✅ displacement \\(\\sim 1\\%\\) near-field; geoid \\(\\sim 1\\%\\) for \\(\\ell\\ge 2\\); transient to \\(\\sim 0.5\\%\\).\nThis benchmark integrates the per-degree response over a spatial load and adds the time relaxation, testing the spatial synthesis and the Maxwell stepper together against a spatial reference.",
     "crumbs": [
       "Overview",
-      "References"
+      "Benchmarks",
+      "Benchmark: disc-load response"
     ]
   },
   {
-    "objectID": "references.html#benchmarks",
-    "href": "references.html#benchmarks",
-    "title": "References",
-    "section": "Benchmarks",
-    "text": "Benchmarks\n\nSpada et al. (2011) — the GIA-code benchmark (Love numbers, disc-load response, polar motion; Charles University benchmark, earth model M3–L70–V01).\nMartinec et al. (2018) — the sea-level-equation intercomparison.",
+    "objectID": "benchmarks/disc.html#load-and-setup",
+    "href": "benchmarks/disc.html#load-and-setup",
+    "title": "Benchmark: disc-load response",
+    "section": "Load and setup",
+    "text": "Load and setup\n\nA 10° radius disc of 1000 m ice (\\(\\rho_{\\text{ice}} = 931\\\n\\mathrm{kg\\,m^{-3}}\\)) on elevated bedrock — no ocean load.\nEarth model M3–L70–V01 (as for the Love numbers).\nThe disc is expanded in Legendre coefficients \\(\\sigma_n = \\tfrac{\\sigma_0}{2}\\,[P_{n-1}-P_{n+1}]\\) and the spatial response is synthesized as \\(u(\\theta) = \\sum_n U_n(a)\\,\\sigma_n\\,P_n(\\cos\\theta)\\).",
     "crumbs": [
       "Overview",
-      "References"
+      "Benchmarks",
+      "Benchmark: disc-load response"
     ]
   },
   {
-    "objectID": "references.html#vilma-v1-physics-and-coupling",
-    "href": "references.html#vilma-v1-physics-and-coupling",
-    "title": "References",
-    "section": "VILMA-v1 physics and coupling",
-    "text": "VILMA-v1 physics and coupling\n\nAlbrecht et al. (2024) — coupled PISM–VILMA; documents VILMA-v1’s physics.\nBagge et al. (2021) — VILMA-v1 with 3D earth structure.\nWilleit et al. (2022) — the CLIMBER-X Earth system model (the host).",
+    "objectID": "benchmarks/disc.html#reference-data-and-metrics",
+    "href": "benchmarks/disc.html#reference-data-and-metrics",
+    "title": "Benchmark: disc-load response",
+    "section": "Reference data and metrics",
+    "text": "Reference data and metrics\nThe reference is the spatial response at colatitudes \\(\\theta = 0\\):\\(0.1\\):\\(20°\\) (201 points) and times \\(t = [0,1,2,5,10,100]\\) kyr (column 1, \\(t=0\\), is the elastic response). Three fields are compared: vertical displacement \\(u\\), geoid \\(n\\), and uplift rate \\(\\mathrm{d}u/\\mathrm{d}t\\).\nThe reference uses a mixed reference frame: displacement in a CE-like gauge (\\(h_1\\approx 0\\), geocenter), geoid in the CM frame (\\(N_1 = 0\\)). VILMA reproduces it with deg1_frame = \"cf\", which keeps the solver’s displacement gauge and references the degree-1 geoid to CM; the default \"cm\" frame differs from the reference at degree 1 only (see Sea-level equation).\nAll three reference files in this repository (u_*, n_*, dudt_*) are stored in ascending \\(\\theta\\) order and match the ordering used by the model, so they can be paired with the \\(\\theta\\) grid directly.",
     "crumbs": [
       "Overview",
-      "References"
+      "Benchmarks",
+      "Benchmark: disc-load response"
     ]
   },
   {
-    "objectID": "references.html#supporting-theory",
-    "href": "references.html#supporting-theory",
-    "title": "References",
-    "section": "Supporting theory",
-    "text": "Supporting theory\n\nFarrell (1972) — load Love numbers and the deformation of the Earth by surface loads.\nMitrovica et al. (2005) — revised rotational stability theory (fixing \\(k_f\\) from the observed flattening).\nBlewitt (2003) — reference frames, geocenter, and degree-1 surface loading.\nHanýk (1999) — initial-value (time-domain) viscoelastic relaxation.",
+    "objectID": "benchmarks/disc.html#result",
+    "href": "benchmarks/disc.html#result",
+    "title": "Benchmark: disc-load response",
+    "section": "Result",
+    "text": "Result\n\nElastic uplift (\\(t=0\\)): centre \\(-19.81\\) m vs. reference \\(-20.57\\) m (\\(3.7\\%\\), dominated by the Gibbs ripple at the sharp 10° disc edge); the profile is \\(&lt;2\\%\\) across \\(\\theta=1\\)–\\(9°\\).\nViscoelastic transient: the centre uplift matches to \\(\\sim 0.5\\%\\) at \\(t=0,1,2,5,10\\) kyr (ratio 0.997–1.005).\nGeoid: matches to \\(\\sim 1\\%\\) for degrees \\(\\ge 2\\) (centre 32.57 vs. 33.05; far field 2.88 vs. 2.92).\nThe far-field forebulge (\\(\\theta\\gtrsim 12°\\)) is small-amplitude and low-degree-truncation sensitive, so it shows larger relative differences.",
     "crumbs": [
       "Overview",
-      "References"
+      "Benchmarks",
+      "Benchmark: disc-load response"
     ]
   },
   {
-    "objectID": "references.html#numerical-libraries",
-    "href": "references.html#numerical-libraries",
-    "title": "References",
-    "section": "Numerical libraries",
-    "text": "Numerical libraries\n\nSchaeffer (2013) — SHTns, efficient spherical-harmonic transforms.\nFrigo and Johnson (2005) — FFTW3.\n\n\n\nFull bibliography\n\n\nAlbrecht, T., M. Bagge, and V. Klemann. 2024. “Feedback Mechanisms Controlling Antarctic Glacial-Cycle Dynamics Simulated with a Coupled Ice Sheet–Solid Earth Model.” The Cryosphere 18 (9): 4233–55. https://doi.org/10.5194/tc-18-4233-2024.\n\n\nBagge, M., V. Klemann, B. Steinberger, M. Latinović, and M. Thomas. 2021. “Glacial-Isostatic Adjustment Models Using Geodynamically Constrained 3D Earth Structures.” Geochemistry, Geophysics, Geosystems 22 (11): e2021GC009853. https://doi.org/10.1029/2021GC009853.\n\n\nBlewitt, G. 2003. “Self-Consistency in Reference Frames, Geocenter Definition, and Surface Loading of the Solid Earth.” Journal of Geophysical Research: Solid Earth 108 (B2): 2103. https://doi.org/10.1029/2002JB002082.\n\n\nFarrell, W. E. 1972. “Deformation of the Earth by Surface Loads.” Reviews of Geophysics 10 (3): 761–97. https://doi.org/10.1029/RG010i003p00761.\n\n\nFrigo, M., and S. G. Johnson. 2005. “The Design and Implementation of FFTW3.” Proceedings of the IEEE 93 (2): 216–31. https://doi.org/10.1109/JPROC.2004.840301.\n\n\nHanýk, L. 1999. “Viscoelastic Response of the Earth: Initial-Value Approach.” PhD thesis, Charles University, Prague.\n\n\nKendall, R. A., J. X. Mitrovica, and G. A. Milne. 2005. “On Post-Glacial Sea Level – II. Numerical Formulation and Comparative Results on Spherically Symmetric Models.” Geophysical Journal International 161 (3): 679–706. https://doi.org/10.1111/j.1365-246X.2005.02553.x.\n\n\nMartinec, Z. 2000. “Spectral–Finite Element Approach to Three-Dimensional Viscoelastic Relaxation in a Spherical Earth.” Geophysical Journal International 142 (1): 117–41. https://doi.org/10.1046/j.1365-246x.2000.00138.x.\n\n\nMartinec, Z., and J. Hagedoorn. 2014. “The Rotational Feedback on Linear-Momentum Balance in Glacial Isostatic Adjustment.” Geophysical Journal International 199 (3): 1823–46. https://doi.org/10.1093/gji/ggu369.\n\n\nMartinec, Z., V. Klemann, W. van der Wal, et al. 2018. “A Benchmark Study of Numerical Implementations of the Sea Level Equation in GIA Modelling.” Geophysical Journal International 215 (1): 389–414. https://doi.org/10.1093/gji/ggy280.\n\n\nMitrovica, J. X., J. Wahr, I. Matsuyama, and A. Paulson. 2005. “The Rotational Stability of an Ice-Age Earth.” Geophysical Journal International 161 (2): 491–506. https://doi.org/10.1111/j.1365-246X.2005.02609.x.\n\n\nSchaeffer, N. 2013. “Efficient Spherical Harmonic Transforms Aimed at Pseudospectral Numerical Simulations.” Geochemistry, Geophysics, Geosystems 14 (3): 751–58. https://doi.org/10.1002/ggge.20071.\n\n\nSpada, G., V. R. Barletta, V. Klemann, et al. 2011. “A Benchmark Study for Glacial Isostatic Adjustment Codes.” Geophysical Journal International 185 (1): 106–32. https://doi.org/10.1111/j.1365-246X.2011.04952.x.\n\n\nWilleit, M., A. Ganopolski, A. Robinson, and N. R. Edwards. 2022. “The Earth System Model CLIMBER-X V1.0 – Part 1: Climate Model Description and Validation.” Geoscientific Model Development 15 (14): 5905–48. https://doi.org/10.5194/gmd-15-5905-2022.",
+    "objectID": "benchmarks/disc.html#figures",
+    "href": "benchmarks/disc.html#figures",
+    "title": "Benchmark: disc-load response",
+    "section": "Figures",
+    "text": "Figures\nFigures to be added: \\(u(\\theta)\\) at \\(t=0,1,2,5,10,100\\) kyr; geoid \\(n(\\theta)\\); centre uplift time series; VILMA vs. Spada disc reference.",
     "crumbs": [
       "Overview",
-      "References"
+      "Benchmarks",
+      "Benchmark: disc-load response"
+    ]
+  },
+  {
+    "objectID": "benchmarks/disc.html#provenance",
+    "href": "benchmarks/disc.html#provenance",
+    "title": "Benchmark: disc-load response",
+    "section": "Provenance",
+    "text": "Provenance\nReference: data/benchmarks/disc_spada2011/{u,n,dudt}_disc.txt, from the isostasy_data repository [J. Jereczek], model_outputs/Spada-2011/, originating in the Spada et al. (2011) benchmark. Full details in data/benchmarks/PROVENANCE.md.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: disc-load response"
+    ]
+  },
+  {
+    "objectID": "benchmarks/sea-level.html",
+    "href": "benchmarks/sea-level.html",
+    "title": "Benchmark: the sea-level equation",
+    "section": "",
+    "text": "Reference: Martinec et al. (2018), the SLE intercomparison (Martinec et al. 2018), cases A and C2/D3/E2/F1 (SBK reference curves). Tests: test_benchmark_martinec (case A, in make check) and test_benchmark_sle (the SLE cases, standalone). Status: ✅ all cases within inter-code scatter.\nThis is the capstone benchmark: the full self-consistent, migrating-coastline sea-level equation driven by the viscoelastic response — the same benchmark VILMA-v1 itself passed. It exercises the ocean function, mass conservation, coastline migration, grounded-ice flotation, and the sub-grid sloping coast all together.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: the sea-level equation"
+    ]
+  },
+  {
+    "objectID": "benchmarks/sea-level.html#benchmark-structure",
+    "href": "benchmarks/sea-level.html#benchmark-structure",
+    "title": "Benchmark: the sea-level equation",
+    "section": "Benchmark structure",
+    "text": "Benchmark structure\nThe authority for the case definitions is Martinec et al. (2018), Table 4 (not the differing case labels in third-party reimplementations). The paper defines five cases from a small set of building blocks:\n\nIce (square-root cap \\(h(\\psi) = h_0\\sqrt{(\\cos\\psi-\\cos\\alpha)/(1-\\cos\\alpha)}\\), \\(\\alpha=10°\\)): L0 pole/1500 m; L1 colat 25°/lon 75°, 1500 m; L2 same centre, 500 m.\nBasin (\\(\\zeta^{(0)} = b_{\\max} - b_0\\,e^{-\\psi^2/2\\sigma^2}\\), \\(\\sigma=26°\\)): B0 none; B1 colat 100°/lon 320°, shallow (760/1200); B2 colat 35°/lon 25°, deep (3800/6000, 2200 m at centre).\nTime: T0 Heaviside (load held, \\(t_f = 10\\) kyr); T1 linear growth over 10 kyr then held to 15 kyr.\nOcean: SLE0 none; SLE1 fixed geometry \\(O^{(0)}\\); SLE2 time-varying (migrating coastline).\nDensities \\(\\rho_{\\text{ice}}/\\rho_{\\text{water}} = 931/1000\\ \\mathrm{kg\\,m^{-3}}\\), \\(g_0 = 9.815\\ \\mathrm{m\\,s^{-2}}\\).\n\nThe vendored SBK reference files use a labelling offset by one letter from the paper (SBK letter = paper letter + 1):\n\n\n\n\n\n\n\n\n\n\n\nSBK\npaper\nocean\nice\ntime\nbasin\n\n\n\n\nA\nA\nSLE0 (none)\nL0 (1500 m)\nT0\nB0 (none)\n\n\nC2\nB\nSLE1 fixed\nL1 (1500 m)\nT0\nB1 (shallow)\n\n\nD3\nC\nSLE1 fixed\nL2 (500 m)\nT1\nB2 (deep)\n\n\nE2\nD\nSLE2 migrate\nL2 (500 m)\nT1\nB2 (deep)\n\n\nF1\nE\nSLE2 migrate\nL2 (500 m)\nT1\nB2* (paleo-topo prescribed)",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: the sea-level equation"
+    ]
+  },
+  {
+    "objectID": "benchmarks/sea-level.html#case-a-pure-viscoelastic-loading",
+    "href": "benchmarks/sea-level.html#case-a-pure-viscoelastic-loading",
+    "title": "Benchmark: the sea-level equation",
+    "section": "Case A — pure viscoelastic loading",
+    "text": "Case A — pure viscoelastic loading\nThe simplest case: a spherical cap, Heaviside loading, 10 kyr relaxation, no ocean, with degrees \\(n=0,1\\) dropped — a pure viscoelastic cap response. VILMA matches Martinec (2018) fig. 10 to 0.52 % (uplift) / 0.69 % (horizontal) / 1.94 % (geoid) (peak-normalized). This is the first horizontal-displacement benchmark and confirms the spheroidal \\(V\\) field (test_benchmark_martinec).",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: the sea-level equation"
+    ]
+  },
+  {
+    "objectID": "benchmarks/sea-level.html#sle-cases-c2-d3-e2-f1",
+    "href": "benchmarks/sea-level.html#sle-cases-c2-d3-e2-f1",
+    "title": "Benchmark: the sea-level equation",
+    "section": "SLE cases — C2, D3, E2, F1",
+    "text": "SLE cases — C2, D3, E2, F1\nThese run the full SLE with the time-varying load. The reference files give seven columns: longitude/colatitude, vertical displacement, the two horizontal components, the gravitational potential increment, the sea-surface variation, and the SLE result, sampled along circles of constant longitude/latitude (figs. 10–13).\nMass is conserved to \\(\\sim 10^{-16}\\) per step by construction in every case. Key findings from working through the cases:\n\nFixed vs. migrating ocean is the dominant control for C2/D3. C2 and D3 are fixed-ocean (SLE1) cases; running them with a migrating coastline drains the shallow/fixed basin roughly twice too far (C2 esl \\(-272\\) → \\(-126\\) m vs. data \\(-120\\); D3 \\(-50\\) → \\(-25.7\\) vs. \\(-25.5\\)). Honouring the fixed-ocean mode is what makes them match.\nGrounded-ice masking matters. The SLE load must apply only over grounded ice (\\(\\rho_{\\text{ice}}\\,\\Delta I\\,(1-C)\\)); floating ice over the deep basin is carried by the ocean term, and the ocean-water budget counts only grounded ice. Getting this wrong produced \\(\\sim 70\\) m of spurious flank subsidence.\nThe sub-grid sloping coast collapses the cap-edge grounding-line residual. In E2, switching the binary coastline for the sub-grid water-column load takes the worst local errors from \\(\\sim 14\\)–\\(42\\%\\) down to \\(\\sim 1\\%\\) (esl \\(-30.28\\) vs. data \\(-30.0\\)), because the SBK reference is itself a sub-grid coast.\n\n\nRepresentative agreement\n\n\n\n\n\n\n\n\n\n\n\nCase\nuplift\ngeoid\nsea-surface\nSLE\nnotes\n\n\n\n\nA\n0.52 %\n1.94 %\n—\n—\nhorizontal 0.69 %; no ocean\n\n\nC2\n\\(\\le 2.5\\%\\)\n\\(\\le 7\\%\\)\n\\(5\\%\\)\n\\(7\\%\\)\nfixed ocean; horiz \\(\\le 28\\%\\) on symmetry axis\n\n\nD3\n\\(\\le 7\\%\\)\n\\(\\le 7\\%\\)\n\\(\\le 7\\%\\)\n\\(\\le 7\\%\\)\nbest SLE case (all \\(\\le 7\\%\\))\n\n\nE2\n\\(\\sim 0.7\\%\\)*\n\\(\\sim 1\\%\\)*\n\\(\\sim 1\\%\\)*\n\\(\\sim 1\\%\\)*\n*with sub-grid coast\n\n\nF1\nwithin scatter\nwithin scatter\nwithin scatter\nwithin scatter\nE2 + paleo-topo spin-up\n\n\n\nHorizontal-displacement error is normalized by the peak vector magnitude \\(|(v_\\theta,v_\\phi)|\\) rather than per-component, since a profile through a symmetry axis nulls one component.\n\n\n\n\n\n\nNoteAn inter-code comparison, not an analytic one\n\n\n\nThe SBK reference is one code’s (giapy’s) output, so these tolerances are assessed against the documented inter-code scatter of the Martinec (2018) intercomparison, not against a closed-form solution. The residual few-metre eustatic offsets and the cap-edge grounding-line differences are within that scatter; where a definitional choice (binary vs. sub-grid coast) is involved, matching the reference’s choice removes the discrepancy.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: the sea-level equation"
+    ]
+  },
+  {
+    "objectID": "benchmarks/sea-level.html#figures",
+    "href": "benchmarks/sea-level.html#figures",
+    "title": "Benchmark: the sea-level equation",
+    "section": "Figures",
+    "text": "Figures\nFigures to be added: per-case profiles (figs. 10–13) of uplift, horizontal displacement, geoid/potential, sea-surface, and the SLE result, VILMA vs. the SBK reference; the eustatic-sea-level time series.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: the sea-level equation"
+    ]
+  },
+  {
+    "objectID": "benchmarks/sea-level.html#provenance",
+    "href": "benchmarks/sea-level.html#provenance",
+    "title": "Benchmark: the sea-level equation",
+    "section": "Provenance",
+    "text": "Provenance\nReference: data/benchmarks/sle_martinec2018/*_SBK.dat, from the giapy package (tests/sbk_benchmark_data.tar.gz, MIT), originating in the Martinec et al. (2018) intercomparison. The case ↔︎ paper mapping and column definitions are in data/benchmarks/PROVENANCE.md.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmark: the sea-level equation"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "VILMA v2",
+    "section": "",
+    "text": "WarningUnder heavy development\n\n\n\nVILMA v2 is not yet ready for use in a scientific production capacity. If you want to use VILMA for now, please contact Volker Klemann at GFZ.\nVILMA v2 is a fast, open-source 3D solid-Earth model: a self-gravitating, incompressible, Maxwell-viscoelastic sphere coupled to a self-consistent sea-level equation with migrating coastlines. It is designed as an open-source alternative to VILMA-v1 inside the CLIMBER-X Earth system model (Willeit et al. 2022), and more generally as a reusable glacial isostatic adjustment (GIA) engine for ice-sheet and sea-level work.\nThe numerical method follows the spectral–finite-element, time-domain approach of Martinec (2000): spherical harmonics horizontally, finite elements radially, and an explicit memory-stress integration of the Maxwell rheology in time. The solver is 3D-ready from the start — laterally varying viscosity costs nothing extra — and is validated first in 1D against the published GIA community benchmarks (Spada et al. 2011; Martinec et al. 2018).",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "VILMA v2"
+    ]
+  },
+  {
+    "objectID": "index.html#why-this-method",
+    "href": "index.html#why-this-method",
+    "title": "VILMA v2",
+    "section": "Why this method",
+    "text": "Why this method\nThe structural advantage of this approach is that, with an explicit Maxwell time scheme, the stiffness solve has no angular coupling. Each spherical-harmonic degree \\(\\ell\\) decouples into an independent, small, banded radial system. This makes the solver embarrassingly parallel and cheap, and lateral (3D) viscosity is free: it never couples the harmonics in the solve, entering only through the explicitly-known memory stress. That memory stress is evaluated pointwise on the Gauss–Legendre grid and transformed back to spectral space each step, a pseudo-spectral treatment. The 1D and 3D code paths are therefore the same solver.\n\n\n\n\n\n\n\n\n\n\nMethod family\nExamples\n3D viscosity\nSpeed\nFit for purpose\n\n\n\n\nNormal-mode + Love numbers + SLE\nSELEN, TABOO, ALMA3\nno (1D only)\nfast (1D)\ndead end for 3D\n\n\nTime-domain spectral–FE\nVILMA-v1 (Martinec 2000)\nyes\nfast\nchosen\n\n\nFull 3D FE/FV\nCitcomSVE, ASPECT, Elmer\nyes\nslow, heavy\ntoo complex",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "VILMA v2"
+    ]
+  },
+  {
+    "objectID": "index.html#what-is-in-these-docs",
+    "href": "index.html#what-is-in-these-docs",
+    "title": "VILMA v2",
+    "section": "What is in these docs",
+    "text": "What is in these docs\n\nInstall & run — building with configme, the &vilma namelist, the drivers, and staging runs with runme.\nPhysics — the governing equations (momentum, Poisson, incompressibility), the Maxwell rheology and its memory stress, toroidal flow under lateral viscosity, the sea-level equation, and rotational feedback.\nDiscretization — the spectral reduction, the P1/P0 radial finite-element operator, the explicit time scheme, and the banded direct solver.\nBenchmarks — a summary table of validation results, with one page per benchmark (Love numbers, the disc-load response, and the sea-level-equation intercomparison).\nImplementation — the libraries the model builds on, and the codebases and datasets that informed the validation.",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "VILMA v2"
+    ]
+  },
+  {
+    "objectID": "index.html#status",
+    "href": "index.html#status",
+    "title": "VILMA v2",
+    "section": "Status",
+    "text": "Status\nVILMA v2 is under heavy development and not yet ready for scientific production use. The core implemented so far includes the spectral–finite-element solver, the viscoelastic time stepping and response operator, the self-consistent migrating-coastline sea-level equation, rotational feedback (polar motion), and laterally varying (3D) viscosity, including the toroidal flow it drives (optional, off by default). It also supports restart and spin-up, online remapping of lon-lat forcing, and a host-coupling API.\nValidation against the Spada et al. (2011) and Martinec et al. (2018) community benchmarks covers the radial solver, the disc-load response, and the sea-level equation. Rotation is checked against the Spada test 3/2. Cross-code validation of the 3D viscosity path is ongoing (see the validation ladder).",
+    "crumbs": [
+      "Overview",
+      "Getting started",
+      "VILMA v2"
+    ]
+  },
+  {
+    "objectID": "benchmarks/index.html",
+    "href": "benchmarks/index.html",
+    "title": "Benchmarks",
+    "section": "",
+    "text": "VILMA is validated against the published GIA community benchmarks — the Charles University / Spada et al. (2011) intercomparison (Spada et al. 2011) and the sea-level-equation intercomparison of Martinec et al. (2018) (Martinec et al. 2018). Validation proceeds along a ladder: each rung is an independent benchmark that exercises one more piece of physics, so a failure localizes to the rung just added.\nThe reference datasets are vendored in the repository under data/benchmarks/ with full provenance and licensing in data/benchmarks/PROVENANCE.md. None of it is VILMA output; it is external reference data, so the validation tests are self-contained.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmarks"
+    ]
+  },
+  {
+    "objectID": "benchmarks/index.html#summary-results",
+    "href": "benchmarks/index.html#summary-results",
+    "title": "Benchmarks",
+    "section": "Summary results",
+    "text": "Summary results\n\n\n\n#\nBenchmark\nPhysics exercised\nReference\nStatus\nAgreement\n\n\n\n\n1\nSH transform round-trip\nspectral kernel\n— (analytic)\n✅\n\\(\\sim 10^{-15}\\)\n\n\n2\nLove numbers \\(h,\\ell,k\\)\nelastic + fluid radial solve, self-gravity\nM3–L70–V01 table (Spada et al. 2011)\n✅\n\\(\\sim 0.1\\%\\), all degrees 2–256\n\n\n3\nDisc-load response\ndeformation + geoid, time relaxation\nSpada disc test (Spada et al. 2011)\n✅\n\\(u\\) \\(\\sim 1\\%\\) near-field; geoid \\(\\sim 1\\%\\) (\\(\\ell\\ge2\\))\n\n\n4\nSea-level equation\nmigrating-coastline SLE, flotation, sub-grid\nMartinec 2018 cases A/C2/D3/E2/F1 (Martinec et al. 2018)\n✅\nwithin inter-code scatter (esl \\(\\lesssim 5\\) m; D3 \\(\\sim 0.2\\) m)\n\n\n5\nRotation / polar motion\nrotational feedback (TPW)\nSpada test 3/2 (Spada et al. 2011)\n✅\npolar motion vs Spada 3/2; on by default\n\n\n6\n3D (lateral viscosity)\nlaterally varying \\(\\eta\\), toroidal flow\nRESP_VE tensor-SH path\n🔧\ncode path implemented + tested; cross-code validation ongoing\n\n\n\nLegend: ✅ implemented and validated · 🔧 implemented, validation ongoing · ⏳ planned. “Agreement” quotes the representative relative error against the reference; see each page for the full breakdown.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmarks"
+    ]
+  },
+  {
+    "objectID": "benchmarks/index.html#how-to-read-the-rungs",
+    "href": "benchmarks/index.html#how-to-read-the-rungs",
+    "title": "Benchmarks",
+    "section": "How to read the rungs",
+    "text": "How to read the rungs\n\nRungs 1–2 isolate the linear-algebra and radial physics: the transform, then the per-degree elastic and fluid Love numbers. The fluid limit is an analytic anchor (\\(h_j\\to-(2j+1)/3\\), \\(k_j\\to-1\\)); the elastic numbers are the stringent test, and they exposed the \\(U\\)–\\(F\\) symmetry bug.\nRung 3 integrates the per-degree response over a spatial load (the disc) and adds the time relaxation, testing the spatial synthesis and the Maxwell stepper together against a spatial reference.\nRung 4 turns on the full self-consistent sea-level equation — ocean function, mass conservation, coastline migration, flotation, and the sub-grid sloping coast — against the dedicated SLE intercomparison. This is the benchmark VILMA-v1 itself passed.\nRung 5 (rotation) is implemented and coupled into the SLE, with the Liouville polar-motion solve checked against Spada test 3/2. It is on by default for real-Earth runs (off for the non-rotating benchmarks). Rung 6 (laterally varying viscosity) is implemented in the full viscoelastic solver and exercised by unit tests, with cross-code validation ongoing. No community benchmark exercises the toroidal field; it is checked by internal consistency, symmetry and scaling tests (see Toroidal flow).\n\n\n\n\n\n\n\nNoteAnalytic vs. inter-code benchmarks\n\n\n\nRungs 2–3 are effectively analytic (normal-mode Love numbers and their spatial synthesis), so tight tolerances (\\(\\sim 0.1\\)–\\(1\\%\\)) are meaningful. Rung 4 is a numerical inter-comparison — the reference (giapy’s SBK curves) is itself one code’s output, not a closed-form solution — so agreement is assessed against the documented inter-code scatter rather than an exact match.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmarks"
+    ]
+  },
+  {
+    "objectID": "benchmarks/index.html#per-benchmark-pages",
+    "href": "benchmarks/index.html#per-benchmark-pages",
+    "title": "Benchmarks",
+    "section": "Per-benchmark pages",
+    "text": "Per-benchmark pages\nThe pages below give the model setup, the comparison metrics, and a place for figures (to be added as the benchmark figures are generated):\n\nLove numbers — elastic and fluid \\(h,\\ell,k\\) for M3–L70–V01.\nDisc-load response — vertical displacement, geoid, and uplift rate for the 10° disc.\nSea-level equation — the five Martinec et al. (2018) cases.",
+    "crumbs": [
+      "Overview",
+      "Benchmarks",
+      "Benchmarks"
     ]
   },
   {
@@ -462,471 +768,261 @@
     ]
   },
   {
-    "objectID": "benchmarks/index.html",
-    "href": "benchmarks/index.html",
-    "title": "Benchmarks",
+    "objectID": "references.html",
+    "href": "references.html",
+    "title": "References",
     "section": "",
-    "text": "VILMA is validated against the published GIA community benchmarks — the Charles University / Spada et al. (2011) intercomparison (Spada et al. 2011) and the sea-level-equation intercomparison of Martinec et al. (2018) (Martinec et al. 2018). Validation proceeds along a ladder: each rung is an independent benchmark that exercises one more piece of physics, so a failure localizes to the rung just added.\nThe reference datasets are vendored in the repository under data/benchmarks/ with full provenance and licensing in data/benchmarks/PROVENANCE.md. None of it is VILMA output; it is external reference data, so the validation tests are self-contained.",
+    "text": "The spectral–finite-element, time-domain method and its rotational extension:\n\nMartinec (2000) — the spectral–finite-element approach to 3D viscoelastic relaxation in a spherical Earth. The core method.\nMartinec and Hagedoorn (2014) — time-domain rotational feedback.\nKendall et al. (2005) — the sea-level equation with moving shorelines (pseudo-spectral fixed point).",
     "crumbs": [
       "Overview",
-      "Benchmarks",
-      "Benchmarks"
+      "References"
     ]
   },
   {
-    "objectID": "benchmarks/index.html#summary-results",
-    "href": "benchmarks/index.html#summary-results",
-    "title": "Benchmarks",
-    "section": "Summary results",
-    "text": "Summary results\n\n\n\n#\nBenchmark\nPhysics exercised\nReference\nStatus\nAgreement\n\n\n\n\n1\nSH transform round-trip\nspectral kernel\n— (analytic)\n✅\n\\(\\sim 10^{-15}\\)\n\n\n2\nLove numbers \\(h,\\ell,k\\)\nelastic + fluid radial solve, self-gravity\nM3–L70–V01 table (Spada et al. 2011)\n✅\n\\(\\sim 0.1\\%\\), all degrees 2–256\n\n\n3\nDisc-load response\ndeformation + geoid, time relaxation\nSpada disc test (Spada et al. 2011)\n✅\n\\(u\\) \\(\\sim 1\\%\\) near-field; geoid \\(\\sim 1\\%\\) (\\(\\ell\\ge2\\))\n\n\n4\nSea-level equation\nmigrating-coastline SLE, flotation, sub-grid\nMartinec 2018 cases A/C2/D3/E2/F1 (Martinec et al. 2018)\n✅\nwithin inter-code scatter (esl \\(\\lesssim 5\\) m; D3 \\(\\sim 0.2\\) m)\n\n\n5\nRotation / polar motion\nrotational feedback (TPW)\nSpada test 3/2 (Spada et al. 2011)\n✅\npolar motion vs Spada 3/2; on by default\n\n\n6\n3D (lateral viscosity)\nlaterally varying \\(\\eta\\)\nRESP_VE tensor-SH path\n🔧\ncode path implemented + tested; cross-code validation ongoing\n\n\n\nLegend: ✅ implemented and validated · 🔧 implemented, validation ongoing · ⏳ planned. “Agreement” quotes the representative relative error against the reference; see each page for the full breakdown.",
-    "crumbs": [
-      "Overview",
-      "Benchmarks",
-      "Benchmarks"
-    ]
-  },
-  {
-    "objectID": "benchmarks/index.html#how-to-read-the-rungs",
-    "href": "benchmarks/index.html#how-to-read-the-rungs",
-    "title": "Benchmarks",
-    "section": "How to read the rungs",
-    "text": "How to read the rungs\n\nRungs 1–2 isolate the linear-algebra and radial physics: the transform, then the per-degree elastic and fluid Love numbers. The fluid limit is an analytic anchor (\\(h_j\\to-(2j+1)/3\\), \\(k_j\\to-1\\)); the elastic numbers are the stringent test, and they exposed the \\(U\\)–\\(F\\) symmetry bug.\nRung 3 integrates the per-degree response over a spatial load (the disc) and adds the time relaxation, testing the spatial synthesis and the Maxwell stepper together against a spatial reference.\nRung 4 turns on the full self-consistent sea-level equation — ocean function, mass conservation, coastline migration, flotation, and the sub-grid sloping coast — against the dedicated SLE intercomparison. This is the benchmark VILMA-v1 itself passed.\nRung 5 (rotation) is implemented and coupled into the SLE, with the Liouville polar-motion solve checked against Spada test 3/2. It is on by default for real-Earth runs (off for the non-rotating benchmarks). Rung 6 (laterally varying viscosity) is implemented in the full viscoelastic solver and exercised by unit tests, with cross-code validation ongoing.\n\n\n\n\n\n\n\nNoteAnalytic vs. inter-code benchmarks\n\n\n\nRungs 2–3 are effectively analytic (normal-mode Love numbers and their spatial synthesis), so tight tolerances (\\(\\sim 0.1\\)–\\(1\\%\\)) are meaningful. Rung 4 is a numerical inter-comparison — the reference (giapy’s SBK curves) is itself one code’s output, not a closed-form solution — so agreement is assessed against the documented inter-code scatter rather than an exact match.",
-    "crumbs": [
-      "Overview",
-      "Benchmarks",
-      "Benchmarks"
-    ]
-  },
-  {
-    "objectID": "benchmarks/index.html#per-benchmark-pages",
-    "href": "benchmarks/index.html#per-benchmark-pages",
-    "title": "Benchmarks",
-    "section": "Per-benchmark pages",
-    "text": "Per-benchmark pages\nThe pages below give the model setup, the comparison metrics, and a place for figures (to be added as the benchmark figures are generated):\n\nLove numbers — elastic and fluid \\(h,\\ell,k\\) for M3–L70–V01.\nDisc-load response — vertical displacement, geoid, and uplift rate for the 10° disc.\nSea-level equation — the five Martinec et al. (2018) cases.",
-    "crumbs": [
-      "Overview",
-      "Benchmarks",
-      "Benchmarks"
-    ]
-  },
-  {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "VILMA v2",
+    "objectID": "references.html#primary-method",
+    "href": "references.html#primary-method",
+    "title": "References",
     "section": "",
-    "text": "WarningUnder heavy development\n\n\n\nVILMA v2 is not yet ready for use in a scientific production capacity. If you want to use VILMA for now, please contact Volker Klemann at GFZ.\nVILMA v2 is a fast, open-source 3D solid-Earth model: a self-gravitating, incompressible, Maxwell-viscoelastic sphere coupled to a self-consistent sea-level equation with migrating coastlines. It is designed as an open-source alternative to VILMA-v1 inside the CLIMBER-X Earth system model (Willeit et al. 2022), and more generally as a reusable glacial isostatic adjustment (GIA) engine for ice-sheet and sea-level work.\nThe numerical method follows the spectral–finite-element, time-domain approach of Martinec (2000): spherical harmonics horizontally, finite elements radially, and an explicit memory-stress integration of the Maxwell rheology in time. The solver is 3D-ready from the start — laterally varying viscosity costs nothing extra — and is validated first in 1D against the published GIA community benchmarks (Spada et al. 2011; Martinec et al. 2018).",
+    "text": "The spectral–finite-element, time-domain method and its rotational extension:\n\nMartinec (2000) — the spectral–finite-element approach to 3D viscoelastic relaxation in a spherical Earth. The core method.\nMartinec and Hagedoorn (2014) — time-domain rotational feedback.\nKendall et al. (2005) — the sea-level equation with moving shorelines (pseudo-spectral fixed point).",
     "crumbs": [
       "Overview",
-      "Getting started",
-      "VILMA v2"
+      "References"
     ]
   },
   {
-    "objectID": "index.html#why-this-method",
-    "href": "index.html#why-this-method",
-    "title": "VILMA v2",
-    "section": "Why this method",
-    "text": "Why this method\nThe structural advantage of this approach is that, with an explicit Maxwell time scheme, the stiffness solve has no angular coupling. Each spherical-harmonic degree \\(\\ell\\) decouples into an independent, small, banded radial system. This makes the solver embarrassingly parallel and cheap, and lateral (3D) viscosity is free: it never couples the harmonics in the solve, entering only through the explicitly-known memory stress. That memory stress is evaluated pointwise on the Gauss–Legendre grid and transformed back to spectral space each step, a pseudo-spectral treatment. The 1D and 3D code paths are therefore the same solver.\n\n\n\n\n\n\n\n\n\n\nMethod family\nExamples\n3D viscosity\nSpeed\nFit for purpose\n\n\n\n\nNormal-mode + Love numbers + SLE\nSELEN, TABOO, ALMA3\nno (1D only)\nfast (1D)\ndead end for 3D\n\n\nTime-domain spectral–FE\nVILMA-v1 (Martinec 2000)\nyes\nfast\nchosen\n\n\nFull 3D FE/FV\nCitcomSVE, ASPECT, Elmer\nyes\nslow, heavy\ntoo complex",
+    "objectID": "references.html#benchmarks",
+    "href": "references.html#benchmarks",
+    "title": "References",
+    "section": "Benchmarks",
+    "text": "Benchmarks\n\nSpada et al. (2011) — the GIA-code benchmark (Love numbers, disc-load response, polar motion; Charles University benchmark, earth model M3–L70–V01).\nMartinec et al. (2018) — the sea-level-equation intercomparison.",
     "crumbs": [
       "Overview",
-      "Getting started",
-      "VILMA v2"
+      "References"
     ]
   },
   {
-    "objectID": "index.html#what-is-in-these-docs",
-    "href": "index.html#what-is-in-these-docs",
-    "title": "VILMA v2",
-    "section": "What is in these docs",
-    "text": "What is in these docs\n\nInstall & run — building with configme, the &vilma namelist, the drivers, and staging runs with runme.\nPhysics — the governing equations (momentum, Poisson, incompressibility), the Maxwell rheology and its memory stress, the sea-level equation, and rotational feedback.\nDiscretization — the spectral reduction, the P1/P0 radial finite-element operator, the explicit time scheme, and the banded direct solver.\nBenchmarks — a summary table of validation results, with one page per benchmark (Love numbers, the disc-load response, and the sea-level-equation intercomparison).\nImplementation — the libraries the model builds on, and the codebases and datasets that informed the validation.",
+    "objectID": "references.html#vilma-v1-physics-and-coupling",
+    "href": "references.html#vilma-v1-physics-and-coupling",
+    "title": "References",
+    "section": "VILMA-v1 physics and coupling",
+    "text": "VILMA-v1 physics and coupling\n\nAlbrecht et al. (2024) — coupled PISM–VILMA; documents VILMA-v1’s physics.\nBagge et al. (2021) — VILMA-v1 with 3D earth structure.\nWilleit et al. (2022) — the CLIMBER-X Earth system model (the host).",
     "crumbs": [
       "Overview",
-      "Getting started",
-      "VILMA v2"
+      "References"
     ]
   },
   {
-    "objectID": "index.html#status",
-    "href": "index.html#status",
-    "title": "VILMA v2",
-    "section": "Status",
-    "text": "Status\nVILMA v2 is under heavy development and not yet ready for scientific production use. The core implemented so far includes the spectral–finite-element solver, the viscoelastic time stepping and response operator, the self-consistent migrating-coastline sea-level equation, rotational feedback (polar motion), and laterally varying (3D) viscosity. It also supports restart and spin-up, online remapping of lon-lat forcing, and a host-coupling API.\nValidation against the Spada et al. (2011) and Martinec et al. (2018) community benchmarks covers the radial solver, the disc-load response, and the sea-level equation. Rotation is checked against the Spada test 3/2. Cross-code validation of the 3D viscosity path is ongoing (see the validation ladder).",
+    "objectID": "references.html#supporting-theory",
+    "href": "references.html#supporting-theory",
+    "title": "References",
+    "section": "Supporting theory",
+    "text": "Supporting theory\n\nFarrell (1972) — load Love numbers and the deformation of the Earth by surface loads.\nMitrovica et al. (2005) — revised rotational stability theory (fixing \\(k_f\\) from the observed flattening).\nBlewitt (2003) — reference frames, geocenter, and degree-1 surface loading.\nHanýk (1999) — initial-value (time-domain) viscoelastic relaxation.",
     "crumbs": [
       "Overview",
-      "Getting started",
-      "VILMA v2"
+      "References"
     ]
   },
   {
-    "objectID": "benchmarks/sea-level.html",
-    "href": "benchmarks/sea-level.html",
-    "title": "Benchmark: the sea-level equation",
+    "objectID": "references.html#numerical-libraries",
+    "href": "references.html#numerical-libraries",
+    "title": "References",
+    "section": "Numerical libraries",
+    "text": "Numerical libraries\n\nSchaeffer (2013) — SHTns, efficient spherical-harmonic transforms.\nFrigo and Johnson (2005) — FFTW3.\n\n\n\nFull bibliography\n\n\nAlbrecht, T., M. Bagge, and V. Klemann. 2024. “Feedback Mechanisms Controlling Antarctic Glacial-Cycle Dynamics Simulated with a Coupled Ice Sheet–Solid Earth Model.” The Cryosphere 18 (9): 4233–55. https://doi.org/10.5194/tc-18-4233-2024.\n\n\nBagge, M., V. Klemann, B. Steinberger, M. Latinović, and M. Thomas. 2021. “Glacial-Isostatic Adjustment Models Using Geodynamically Constrained 3D Earth Structures.” Geochemistry, Geophysics, Geosystems 22 (11): e2021GC009853. https://doi.org/10.1029/2021GC009853.\n\n\nBlewitt, G. 2003. “Self-Consistency in Reference Frames, Geocenter Definition, and Surface Loading of the Solid Earth.” Journal of Geophysical Research: Solid Earth 108 (B2): 2103. https://doi.org/10.1029/2002JB002082.\n\n\nFarrell, W. E. 1972. “Deformation of the Earth by Surface Loads.” Reviews of Geophysics 10 (3): 761–97. https://doi.org/10.1029/RG010i003p00761.\n\n\nFrigo, M., and S. G. Johnson. 2005. “The Design and Implementation of FFTW3.” Proceedings of the IEEE 93 (2): 216–31. https://doi.org/10.1109/JPROC.2004.840301.\n\n\nHanýk, L. 1999. “Viscoelastic Response of the Earth: Initial-Value Approach.” PhD thesis, Charles University, Prague.\n\n\nKendall, R. A., J. X. Mitrovica, and G. A. Milne. 2005. “On Post-Glacial Sea Level – II. Numerical Formulation and Comparative Results on Spherically Symmetric Models.” Geophysical Journal International 161 (3): 679–706. https://doi.org/10.1111/j.1365-246X.2005.02553.x.\n\n\nMartinec, Z. 2000. “Spectral–Finite Element Approach to Three-Dimensional Viscoelastic Relaxation in a Spherical Earth.” Geophysical Journal International 142 (1): 117–41. https://doi.org/10.1046/j.1365-246x.2000.00138.x.\n\n\nMartinec, Z., and J. Hagedoorn. 2014. “The Rotational Feedback on Linear-Momentum Balance in Glacial Isostatic Adjustment.” Geophysical Journal International 199 (3): 1823–46. https://doi.org/10.1093/gji/ggu369.\n\n\nMartinec, Z., V. Klemann, W. van der Wal, et al. 2018. “A Benchmark Study of Numerical Implementations of the Sea Level Equation in GIA Modelling.” Geophysical Journal International 215 (1): 389–414. https://doi.org/10.1093/gji/ggy280.\n\n\nMitrovica, J. X., J. Wahr, I. Matsuyama, and A. Paulson. 2005. “The Rotational Stability of an Ice-Age Earth.” Geophysical Journal International 161 (2): 491–506. https://doi.org/10.1111/j.1365-246X.2005.02609.x.\n\n\nSchaeffer, N. 2013. “Efficient Spherical Harmonic Transforms Aimed at Pseudospectral Numerical Simulations.” Geochemistry, Geophysics, Geosystems 14 (3): 751–58. https://doi.org/10.1002/ggge.20071.\n\n\nSpada, G., V. R. Barletta, V. Klemann, et al. 2011. “A Benchmark Study for Glacial Isostatic Adjustment Codes.” Geophysical Journal International 185 (1): 106–32. https://doi.org/10.1111/j.1365-246X.2011.04952.x.\n\n\nWilleit, M., A. Ganopolski, A. Robinson, and N. R. Edwards. 2022. “The Earth System Model CLIMBER-X V1.0 – Part 1: Climate Model Description and Validation.” Geoscientific Model Development 15 (14): 5905–48. https://doi.org/10.5194/gmd-15-5905-2022.",
+    "crumbs": [
+      "Overview",
+      "References"
+    ]
+  },
+  {
+    "objectID": "discretization/solver.html",
+    "href": "discretization/solver.html",
+    "title": "The banded direct solver and performance",
     "section": "",
-    "text": "Reference: Martinec et al. (2018), the SLE intercomparison (Martinec et al. 2018), cases A and C2/D3/E2/F1 (SBK reference curves). Tests: test_benchmark_martinec (case A, in make check) and test_benchmark_sle (the SLE cases, standalone). Status: ✅ all cases within inter-code scatter.\nThis is the capstone benchmark: the full self-consistent, migrating-coastline sea-level equation driven by the viscoelastic response — the same benchmark VILMA-v1 itself passed. It exercises the ocean function, mass conservation, coastline migration, grounded-ice flotation, and the sub-grid sloping coast all together.",
+    "text": "The per-degree saddle-point system is small, banded, and reused unchanged across all orders \\(m\\), all loads, and every time step. VILMA therefore solves it with a dependency-free, re-entrant, pivoted banded LU — factor once, solve many times — which is both faster and structurally simpler than the iterative solver used in early versions.",
     "crumbs": [
       "Overview",
-      "Benchmarks",
-      "Benchmark: the sea-level equation"
+      "Discretization",
+      "The banded direct solver and performance"
     ]
   },
   {
-    "objectID": "benchmarks/sea-level.html#benchmark-structure",
-    "href": "benchmarks/sea-level.html#benchmark-structure",
-    "title": "Benchmark: the sea-level equation",
-    "section": "Benchmark structure",
-    "text": "Benchmark structure\nThe authority for the case definitions is Martinec et al. (2018), Table 4 (not the differing case labels in third-party reimplementations). The paper defines five cases from a small set of building blocks:\n\nIce (square-root cap \\(h(\\psi) = h_0\\sqrt{(\\cos\\psi-\\cos\\alpha)/(1-\\cos\\alpha)}\\), \\(\\alpha=10°\\)): L0 pole/1500 m; L1 colat 25°/lon 75°, 1500 m; L2 same centre, 500 m.\nBasin (\\(\\zeta^{(0)} = b_{\\max} - b_0\\,e^{-\\psi^2/2\\sigma^2}\\), \\(\\sigma=26°\\)): B0 none; B1 colat 100°/lon 320°, shallow (760/1200); B2 colat 35°/lon 25°, deep (3800/6000, 2200 m at centre).\nTime: T0 Heaviside (load held, \\(t_f = 10\\) kyr); T1 linear growth over 10 kyr then held to 15 kyr.\nOcean: SLE0 none; SLE1 fixed geometry \\(O^{(0)}\\); SLE2 time-varying (migrating coastline).\nDensities \\(\\rho_{\\text{ice}}/\\rho_{\\text{water}} = 931/1000\\ \\mathrm{kg\\,m^{-3}}\\), \\(g_0 = 9.815\\ \\mathrm{m\\,s^{-2}}\\).\n\nThe vendored SBK reference files use a labelling offset by one letter from the paper (SBK letter = paper letter + 1):\n\n\n\n\n\n\n\n\n\n\n\nSBK\npaper\nocean\nice\ntime\nbasin\n\n\n\n\nA\nA\nSLE0 (none)\nL0 (1500 m)\nT0\nB0 (none)\n\n\nC2\nB\nSLE1 fixed\nL1 (1500 m)\nT0\nB1 (shallow)\n\n\nD3\nC\nSLE1 fixed\nL2 (500 m)\nT1\nB2 (deep)\n\n\nE2\nD\nSLE2 migrate\nL2 (500 m)\nT1\nB2 (deep)\n\n\nF1\nE\nSLE2 migrate\nL2 (500 m)\nT1\nB2* (paleo-topo prescribed)",
+    "objectID": "discretization/solver.html#why-a-banded-direct-solve-fits",
+    "href": "discretization/solver.html#why-a-banded-direct-solve-fits",
+    "title": "The banded direct solver and performance",
+    "section": "Why a banded direct solve fits",
+    "text": "Why a banded direct solve fits\nLaid out node-interleaved as \\([U\\ V\\ F\\mid\\Pi]\\), the operator has a half-bandwidth of \\(\\sim 6\\). Its entries span \\(\\sim 20\\) orders of magnitude (\\(\\mu r^2/h\\) versus the pressure couplings versus \\(1/4\\pi G\\)), so it is first geometric-mean row/column equilibrated. Two facts then make a direct band solve ideal:\n\nThe operator depends on degree only through \\(J = j(j+1)\\), so it is assembled and factored once per degree and reused for all \\(m\\), all loads, and all time steps. A step costs only a band back-substitution.\nIt is indefinite (zero pressure block), so partial pivoting is required; the vilma_band LU pivots within the band.\n\nDegree 1 carries the dense KKT border (the rigid-mode constraint), giving that one degree a near-full bandwidth — it factors as a dense LU through the same code path. The result is \\(\\sim 20\\ \\mu\\mathrm{s}\\) per solve, versus \\(\\sim 700\\\n\\mu\\mathrm{s}\\) for the earlier iterative (GMRES+ILU) solver, with no preconditioner fill to evict from cache.",
     "crumbs": [
       "Overview",
-      "Benchmarks",
-      "Benchmark: the sea-level equation"
+      "Discretization",
+      "The banded direct solver and performance"
     ]
   },
   {
-    "objectID": "benchmarks/sea-level.html#case-a-pure-viscoelastic-loading",
-    "href": "benchmarks/sea-level.html#case-a-pure-viscoelastic-loading",
-    "title": "Benchmark: the sea-level equation",
-    "section": "Case A — pure viscoelastic loading",
-    "text": "Case A — pure viscoelastic loading\nThe simplest case: a spherical cap, Heaviside loading, 10 kyr relaxation, no ocean, with degrees \\(n=0,1\\) dropped — a pure viscoelastic cap response. VILMA matches Martinec (2018) fig. 10 to 0.52 % (uplift) / 0.69 % (horizontal) / 1.94 % (geoid) (peak-normalized). This is the first horizontal-displacement benchmark and confirms the spheroidal \\(V\\) field (test_benchmark_martinec).",
+    "objectID": "discretization/solver.html#no-external-linear-algebra-dependency",
+    "href": "discretization/solver.html#no-external-linear-algebra-dependency",
+    "title": "The banded direct solver and performance",
+    "section": "No external linear-algebra dependency",
+    "text": "No external linear-algebra dependency\nvilma_band is hand-rolled and dependency-free: it pulls in no LAPACK and no LIS. This is a deliberate design choice driven by linking into a larger, OpenMP-parallel host:\n\n\n\n\n\n\nNoteWhy LIS (and LAPACK) were removed\n\n\n\nAn earlier version used the LIS iterative-solver library. Linking LIS into an OpenMP host (CLIMBER-X) would pull in lis-omp, nesting OpenMP regions, and concurrent LIS solves are not re-entrant (global solver state). The hand-rolled band LU has no global state, so it is re-entrant and the per-degree loop parallelizes cleanly with OpenMP. With LIS gone there is no serial-vs-OpenMP variant to reconcile. The project also avoids LAPACK for the same dependency-minimization reason — the band solver is small and fully tested (test_band against a dense reference).",
     "crumbs": [
       "Overview",
-      "Benchmarks",
-      "Benchmark: the sea-level equation"
+      "Discretization",
+      "The banded direct solver and performance"
     ]
   },
   {
-    "objectID": "benchmarks/sea-level.html#sle-cases-c2-d3-e2-f1",
-    "href": "benchmarks/sea-level.html#sle-cases-c2-d3-e2-f1",
-    "title": "Benchmark: the sea-level equation",
-    "section": "SLE cases — C2, D3, E2, F1",
-    "text": "SLE cases — C2, D3, E2, F1\nThese run the full SLE with the time-varying load. The reference files give seven columns: longitude/colatitude, vertical displacement, the two horizontal components, the gravitational potential increment, the sea-surface variation, and the SLE result, sampled along circles of constant longitude/latitude (figs. 10–13).\nMass is conserved to \\(\\sim 10^{-16}\\) per step by construction in every case. Key findings from working through the cases:\n\nFixed vs. migrating ocean is the dominant control for C2/D3. C2 and D3 are fixed-ocean (SLE1) cases; running them with a migrating coastline drains the shallow/fixed basin roughly twice too far (C2 esl \\(-272\\) → \\(-126\\) m vs. data \\(-120\\); D3 \\(-50\\) → \\(-25.7\\) vs. \\(-25.5\\)). Honouring the fixed-ocean mode is what makes them match.\nGrounded-ice masking matters. The SLE load must apply only over grounded ice (\\(\\rho_{\\text{ice}}\\,\\Delta I\\,(1-C)\\)); floating ice over the deep basin is carried by the ocean term, and the ocean-water budget counts only grounded ice. Getting this wrong produced \\(\\sim 70\\) m of spurious flank subsidence.\nThe sub-grid sloping coast collapses the cap-edge grounding-line residual. In E2, switching the binary coastline for the sub-grid water-column load takes the worst local errors from \\(\\sim 14\\)–\\(42\\%\\) down to \\(\\sim 1\\%\\) (esl \\(-30.28\\) vs. data \\(-30.0\\)), because the SBK reference is itself a sub-grid coast.\n\n\nRepresentative agreement\n\n\n\n\n\n\n\n\n\n\n\nCase\nuplift\ngeoid\nsea-surface\nSLE\nnotes\n\n\n\n\nA\n0.52 %\n1.94 %\n—\n—\nhorizontal 0.69 %; no ocean\n\n\nC2\n\\(\\le 2.5\\%\\)\n\\(\\le 7\\%\\)\n\\(5\\%\\)\n\\(7\\%\\)\nfixed ocean; horiz \\(\\le 28\\%\\) on symmetry axis\n\n\nD3\n\\(\\le 7\\%\\)\n\\(\\le 7\\%\\)\n\\(\\le 7\\%\\)\n\\(\\le 7\\%\\)\nbest SLE case (all \\(\\le 7\\%\\))\n\n\nE2\n\\(\\sim 0.7\\%\\)*\n\\(\\sim 1\\%\\)*\n\\(\\sim 1\\%\\)*\n\\(\\sim 1\\%\\)*\n*with sub-grid coast\n\n\nF1\nwithin scatter\nwithin scatter\nwithin scatter\nwithin scatter\nE2 + paleo-topo spin-up\n\n\n\nHorizontal-displacement error is normalized by the peak vector magnitude \\(|(v_\\theta,v_\\phi)|\\) rather than per-component, since a profile through a symmetry axis nulls one component.\n\n\n\n\n\n\nNoteAn inter-code comparison, not an analytic one\n\n\n\nThe SBK reference is one code’s (giapy’s) output, so these tolerances are assessed against the documented inter-code scatter of the Martinec (2018) intercomparison, not against a closed-form solution. The residual few-metre eustatic offsets and the cap-edge grounding-line differences are within that scatter; where a definitional choice (binary vs. sub-grid coast) is involved, matching the reference’s choice removes the discrepancy.",
+    "objectID": "discretization/solver.html#performance-of-the-sle-driver",
+    "href": "discretization/solver.html#performance-of-the-sle-driver",
+    "title": "The banded direct solver and performance",
+    "section": "Performance of the SLE driver",
+    "text": "Performance of the SLE driver\nThe cost driver for a coupled run is ve_response%begin_step, which performs two real per-degree solves for every \\((\\ell,m)\\) each step (\\(\\mathcal{O}(n_{\\ell m})\\) solves). Four changes — all exact (results unchanged) except the threshold-controlled skip — brought this from impractical to routine:\n\n\n\n\n\n\n\nChange\nEffect\n\n\n\n\nBanded LU replaces GMRES+ILU on the per-degree solve\n\\(\\sim 35\\times\\) per solve; cache-light\n\n\nDegree-grouped storage of per-\\((\\ell,m)\\) memory/drift (slot \\(k\\))\ncontiguous + operator reuse\n\n\nSkip-negligible coefficients (memory \\(&lt; \\texttt{skip\\_tol}\\times\\max\\))\n\\(\\sim 2\\times\\) for a localized cap\n\n\nOpenMP over the degree loop (safe via the re-entrant LU)\n\\(\\sim 5.4\\times\\) at 8 threads\n\n\n\nNet effect on begin_step:\n\n\n\nResolution\nOriginal (LIS)\nBand LU, 1 thread\nBand LU, 8 threads\n\n\n\n\n\\(\\ell_{\\max}=64\\)\n\\(7.9\\) s/step\n\\(84\\) ms/step\n—\n\n\n\\(\\ell_{\\max}=128\\)\n(hours/run)\n\\(310\\) ms/step\n\\(58\\) ms/step\n\n\n\nThe full sea-level benchmark (\\(\\ell_{\\max}=128\\), \\(\\sim 750\\) steps) thus runs in minutes rather than hours, which is what makes the Martinec (2018) SLE cases feasible as routine validation. At VILMA-v1 resolution (SH degree 170) the same machinery applies.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nvilma_band (pivoted banded LU + equilibration), vilma_radial_fe (assembly, factorization, reuse), vilma_response (skip_tol, degree-grouped slots, OpenMP loop). Build with make openmp=1 for the threaded degree loop (serial dependencies + -fopenmp).",
     "crumbs": [
       "Overview",
-      "Benchmarks",
-      "Benchmark: the sea-level equation"
+      "Discretization",
+      "The banded direct solver and performance"
     ]
   },
   {
-    "objectID": "benchmarks/sea-level.html#figures",
-    "href": "benchmarks/sea-level.html#figures",
-    "title": "Benchmark: the sea-level equation",
-    "section": "Figures",
-    "text": "Figures\nFigures to be added: per-case profiles (figs. 10–13) of uplift, horizontal displacement, geoid/potential, sea-surface, and the SLE result, VILMA vs. the SBK reference; the eustatic-sea-level time series.",
-    "crumbs": [
-      "Overview",
-      "Benchmarks",
-      "Benchmark: the sea-level equation"
-    ]
-  },
-  {
-    "objectID": "benchmarks/sea-level.html#provenance",
-    "href": "benchmarks/sea-level.html#provenance",
-    "title": "Benchmark: the sea-level equation",
-    "section": "Provenance",
-    "text": "Provenance\nReference: data/benchmarks/sle_martinec2018/*_SBK.dat, from the giapy package (tests/sbk_benchmark_data.tar.gz, MIT), originating in the Martinec et al. (2018) intercomparison. The case ↔︎ paper mapping and column definitions are in data/benchmarks/PROVENANCE.md.",
-    "crumbs": [
-      "Overview",
-      "Benchmarks",
-      "Benchmark: the sea-level equation"
-    ]
-  },
-  {
-    "objectID": "benchmarks/disc.html",
-    "href": "benchmarks/disc.html",
-    "title": "Benchmark: disc-load response",
+    "objectID": "discretization/spectral.html",
+    "href": "discretization/spectral.html",
+    "title": "Spectral reduction and the SH transform",
     "section": "",
-    "text": "Reference: Spada et al. (2011), disc-load test, earth model M3–L70–V01 (Spada et al. 2011). Test: test_benchmark_disc (in make check). Status: ✅ displacement \\(\\sim 1\\%\\) near-field; geoid \\(\\sim 1\\%\\) for \\(\\ell\\ge 2\\); transient to \\(\\sim 0.5\\%\\).\nThis benchmark integrates the per-degree response over a spatial load and adds the time relaxation, testing the spatial synthesis and the Maxwell stepper together against a spatial reference.",
+    "text": "Horizontally, every field is expanded in spherical harmonics; the angular dependence is handled analytically and each degree decouples. This page covers the spectral reduction of the field equations and the transform kernel that moves between grid and spectral space.",
     "crumbs": [
       "Overview",
-      "Benchmarks",
-      "Benchmark: disc-load response"
+      "Discretization",
+      "Spectral reduction and the SH transform"
     ]
   },
   {
-    "objectID": "benchmarks/disc.html#load-and-setup",
-    "href": "benchmarks/disc.html#load-and-setup",
-    "title": "Benchmark: disc-load response",
-    "section": "Load and setup",
-    "text": "Load and setup\n\nA 10° radius disc of 1000 m ice (\\(\\rho_{\\text{ice}} = 931\\\n\\mathrm{kg\\,m^{-3}}\\)) on elevated bedrock — no ocean load.\nEarth model M3–L70–V01 (as for the Love numbers).\nThe disc is expanded in Legendre coefficients \\(\\sigma_n = \\tfrac{\\sigma_0}{2}\\,[P_{n-1}-P_{n+1}]\\) and the spatial response is synthesized as \\(u(\\theta) = \\sum_n U_n(a)\\,\\sigma_n\\,P_n(\\cos\\theta)\\).",
+    "objectID": "discretization/spectral.html#vector-spherical-harmonic-expansion",
+    "href": "discretization/spectral.html#vector-spherical-harmonic-expansion",
+    "title": "Spectral reduction and the SH transform",
+    "section": "Vector spherical-harmonic expansion",
+    "text": "Vector spherical-harmonic expansion\nThe displacement, potential, and pressure are expanded as (Martinec 2000, eqs. 55–57)\n\\[\n\\mathbf{u} = \\sum_{j\\ge 1}\\Bigl[\\,U_{jm}(r)\\,\\mathbf{S}^{(-1)}_{jm}\n+ V_{jm}(r)\\,\\mathbf{S}^{(1)}_{jm}\n+ W_{jm}(r)\\,\\mathbf{S}^{(0)}_{jm}\\,\\Bigr],\n\\qquad\n\\varphi_1 = \\sum_{j\\ge 0} F_{jm}(r)\\,Y_{jm},\n\\quad\n\\Pi = \\sum_{j\\ge 0}\\Pi_{jm}(r)\\,Y_{jm},\n\\]\nwhere \\(\\mathbf{S}^{(-1)},\\mathbf{S}^{(1)},\\mathbf{S}^{(0)}\\) are the spheroidal (radial, consoidal) and toroidal vector harmonics. Two simplifications follow from the physics:\n\nNo degree 0 in \\(\\mathbf{u}\\) — incompressibility forbids the radial breathing mode.\nThe toroidal block decouples: \\(W\\) couples to nothing on the left-hand side (no pressure, self-gravity or \\(U,V\\) shear terms), so a surface load on a radially symmetric Earth never excites it. Laterally varying viscosity does, through the memory stress (Martinec 2000, after eq. 110); \\(W\\) is then solved by its own tridiagonal per-degree system alongside the spheroidal one (see Toroidal flow). The divergence reduces to \\(\\operatorname{div}\\mathbf{u} = \\sum (U' + 2U/r - J\\,V/r)\\,Y_{jm}\\), \\(J=j(j+1)\\) (eq. 58).\n\nEach degree \\(j\\) then reduces to an independent 1D radial problem in \\(\\{U_{jm},V_{jm},F_{jm},\\Pi_{jm}\\}\\) — the central economy of the method. The order \\(m\\) enters only through the (real) load coefficients, so the operator is assembled and factored once per degree and reused across all \\(m\\).",
     "crumbs": [
       "Overview",
-      "Benchmarks",
-      "Benchmark: disc-load response"
+      "Discretization",
+      "Spectral reduction and the SH transform"
     ]
   },
   {
-    "objectID": "benchmarks/disc.html#reference-data-and-metrics",
-    "href": "benchmarks/disc.html#reference-data-and-metrics",
-    "title": "Benchmark: disc-load response",
-    "section": "Reference data and metrics",
-    "text": "Reference data and metrics\nThe reference is the spatial response at colatitudes \\(\\theta = 0\\):\\(0.1\\):\\(20°\\) (201 points) and times \\(t = [0,1,2,5,10,100]\\) kyr (column 1, \\(t=0\\), is the elastic response). Three fields are compared: vertical displacement \\(u\\), geoid \\(n\\), and uplift rate \\(\\mathrm{d}u/\\mathrm{d}t\\).\nThe reference uses a mixed reference frame: displacement in a CE-like gauge (\\(h_1\\approx 0\\), geocenter), geoid in the CM frame (\\(N_1 = 0\\)). VILMA reproduces both by referencing the degree-1 geoid to CM (vilma_response).\nAll three reference files in this repository (u_*, n_*, dudt_*) are stored in ascending \\(\\theta\\) order and match the ordering used by the model, so they can be paired with the \\(\\theta\\) grid directly.",
+    "objectID": "discretization/spectral.html#real-orthonormal-harmonics",
+    "href": "discretization/spectral.html#real-orthonormal-harmonics",
+    "title": "Spectral reduction and the SH transform",
+    "section": "Real, orthonormal harmonics",
+    "text": "Real, orthonormal harmonics\nVILMA uses fully normalized real spherical harmonics with no Condon–Shortley phase, on a Gauss–Legendre latitude grid with a \\(\\phi\\)-contiguous layout; spectral arrays store \\(m \\ge 0\\). This convention (SHT_ORTHONORMAL, SHT_NO_CS_PHASE) is pinned across the whole code so that quadrature (\\(\\int\\!\\mathrm{d}\\Omega\\)), the orthonormality of \\(Y_{10}\\), and round-trip transforms all hold to machine precision.",
     "crumbs": [
       "Overview",
-      "Benchmarks",
-      "Benchmark: disc-load response"
+      "Discretization",
+      "Spectral reduction and the SH transform"
     ]
   },
   {
-    "objectID": "benchmarks/disc.html#result",
-    "href": "benchmarks/disc.html#result",
-    "title": "Benchmark: disc-load response",
-    "section": "Result",
-    "text": "Result\n\nElastic uplift (\\(t=0\\)): centre \\(-19.81\\) m vs. reference \\(-20.57\\) m (\\(3.7\\%\\), dominated by the Gibbs ripple at the sharp 10° disc edge); the profile is \\(&lt;2\\%\\) across \\(\\theta=1\\)–\\(9°\\).\nViscoelastic transient: the centre uplift matches to \\(\\sim 0.5\\%\\) at \\(t=0,1,2,5,10\\) kyr (ratio 0.997–1.005).\nGeoid: matches to \\(\\sim 1\\%\\) for degrees \\(\\ge 2\\) (centre 32.57 vs. 33.05; far field 2.88 vs. 2.92).\nThe far-field forebulge (\\(\\theta\\gtrsim 12°\\)) is small-amplitude and low-degree-truncation sensitive, so it shows larger relative differences.",
+    "objectID": "discretization/spectral.html#the-transform-kernel-shtns-fftw",
+    "href": "discretization/spectral.html#the-transform-kernel-shtns-fftw",
+    "title": "Spectral reduction and the SH transform",
+    "section": "The transform kernel (SHTns + FFTW)",
+    "text": "The transform kernel (SHTns + FFTW)\nThe grid\\(\\leftrightarrow\\)spectral transform is the workhorse of a pseudo-spectral method — it is called many times per time step — so it is built on SHTns (Schaeffer 2013), a high-performance spherical-harmonic transform library, which in turn uses FFTW (Frigo and Johnson 2005) for the longitudinal FFTs. VILMA wraps SHTns in a thin Fortran module (vilma_sht) that exposes:\n\nforward / inverse scalar transforms (analysis and synthesis);\nquadrature on the sphere, \\(\\int f\\,\\mathrm{d}\\Omega\\);\narbitrary-point evaluation of a spectral field (used to sample the benchmark profiles at exact colatitudes/longitudes), via SHTns’ point-evaluation routine;\nspheroidal (horizontal-gradient) evaluation — the surface gradient field \\((\\partial_\\theta,\\ (\\sin\\theta)^{-1}\\partial_\\phi)\\) — used for the horizontal displacement output. SHTns’ spheroidal synthesis is the direct surface gradient (no \\(\\ell(\\ell+1)\\) factor), which matches the analytic case-A horizontal response;\ntoroidal synthesis and joint spheroidal–toroidal analysis, the \\(\\mathbf{e}_r\\times\\nabla_1\\) field used for \\(W\\) and the toroidal part of the horizontal displacement. SHTns’ native toroidal field has the opposite sign; the wrapper returns \\(\\mathbf{e}_r\\times\\nabla_1 T\\), pinned in test_sht.\n\nThe round-trip transform, quadrature, normalization, and point/gradient evaluation are validated to \\(\\sim 10^{-15}\\) in test_sht and test_field.\n\n\n\n\n\n\nNoteWhy a library, and which convention\n\n\n\nRe-implementing a fast, accurate, well-tested Legendre transform is a project in itself; SHTns is the de-facto standard for pseudo-spectral geodynamo/GIA work and is many times faster than a naive transform at the resolutions of interest (SH degree \\(\\sim 170\\), grid \\(1024\\times 2048\\) at VILMA-v1 resolution). The one non-negotiable is pinning the normalization and phase convention everywhere, so that Love numbers, quadrature, and benchmark comparisons all use the same \\(Y_{jm}\\).",
     "crumbs": [
       "Overview",
-      "Benchmarks",
-      "Benchmark: disc-load response"
+      "Discretization",
+      "Spectral reduction and the SH transform"
     ]
   },
   {
-    "objectID": "benchmarks/disc.html#figures",
-    "href": "benchmarks/disc.html#figures",
-    "title": "Benchmark: disc-load response",
-    "section": "Figures",
-    "text": "Figures\nFigures to be added: \\(u(\\theta)\\) at \\(t=0,1,2,5,10,100\\) kyr; geoid \\(n(\\theta)\\); centre uplift time series; VILMA vs. Spada disc reference.",
+    "objectID": "discretization/spectral.html#resolution",
+    "href": "discretization/spectral.html#resolution",
+    "title": "Spectral reduction and the SH transform",
+    "section": "Resolution",
+    "text": "Resolution\nThe reference VILMA-v1-scale configuration is SH degree 170 with a \\(1024\\times 2048\\) SLE grid. The benchmark cases here run at degree 32–128; the Love-number and disc benchmarks synthesize spatial profiles by summing the per-degree response against Legendre polynomials. All spherical-harmonic transforms stay inside this model — a host such as CLIMBER-X exchanges only grid-space ice thickness and bedrock/sea-level fields.",
     "crumbs": [
       "Overview",
-      "Benchmarks",
-      "Benchmark: disc-load response"
+      "Discretization",
+      "Spectral reduction and the SH transform"
     ]
   },
   {
-    "objectID": "benchmarks/disc.html#provenance",
-    "href": "benchmarks/disc.html#provenance",
-    "title": "Benchmark: disc-load response",
-    "section": "Provenance",
-    "text": "Provenance\nReference: data/benchmarks/disc_spada2011/{u,n,dudt}_disc.txt, from the isostasy_data repository [J. Jereczek], model_outputs/Spada-2011/, originating in the Spada et al. (2011) benchmark. Full details in data/benchmarks/PROVENANCE.md.",
-    "crumbs": [
-      "Overview",
-      "Benchmarks",
-      "Benchmark: disc-load response"
-    ]
-  },
-  {
-    "objectID": "discretization/radial-fe.html",
-    "href": "discretization/radial-fe.html",
-    "title": "Radial finite elements and the per-degree operator",
+    "objectID": "physics/toroidal.html",
+    "href": "physics/toroidal.html",
+    "title": "Toroidal flow under lateral viscosity",
     "section": "",
-    "text": "After the spectral reduction, each spherical-harmonic degree \\(j\\) is an independent 1D radial boundary-value problem. VILMA discretizes it with finite elements in radius, assembling the symmetric saddle-point operator that is the Hessian of the energy functional.",
+    "text": "A surface load on a radially symmetric Earth drives only spheroidal deformation: radial and consoidal displacement, \\(U\\) and \\(V\\). Once viscosity varies laterally this is no longer true. The Maxwell relaxation then also drives toroidal flow \\(W\\): horizontal, divergence-free motion with no radial component. That flow feeds back into the spheroidal field. VILMA carries this toroidal degree of freedom in its 3D path, as VILMA-v1 does.",
     "crumbs": [
       "Overview",
-      "Discretization",
-      "Radial finite elements and the per-degree operator"
+      "Physics",
+      "Toroidal flow under lateral viscosity"
     ]
   },
   {
-    "objectID": "discretization/radial-fe.html#mesh-and-bases",
-    "href": "discretization/radial-fe.html#mesh-and-bases",
-    "title": "Radial finite elements and the per-degree operator",
-    "section": "Mesh and bases",
-    "text": "Mesh and bases\nThe mesh spans the whole sphere \\(\\langle 0, a\\rangle\\) — the inviscid core is meshed too — with piecewise-constant \\(\\rho_k,\\mu_k\\) per element. The benchmark M3–L70–V01 model uses 218 nodes (VEGA 5/10/40 km radial spacing). Two finite-element bases are used (Martinec 2000, §6):\n\nP1 “tent” functions \\(\\psi_k(r)\\) for the nodal fields: \\(U,V,F = \\sum_k [\\,\\cdot\\,]_k\\,\\psi_k\\) (continuous, one value per node).\nP0 (piecewise-constant) functions \\(\\xi_k(r)\\) for the pressure: \\(\\Pi = \\sum_k \\Pi_k\\,\\xi_k\\) (one value per element).\n\nThis P1(U,V,F) / P0(\\(\\Pi\\)) pairing is the inf–sup-stable choice for the incompressible saddle-point problem: the pressure enforces \\(\\operatorname{div}\\mathbf{u}=0\\) weakly through its coupling block.",
+    "objectID": "physics/toroidal.html#why-lateral-viscosity-drives-toroidal-flow",
+    "href": "physics/toroidal.html#why-lateral-viscosity-drives-toroidal-flow",
+    "title": "Toroidal flow under lateral viscosity",
+    "section": "Why lateral viscosity drives toroidal flow",
+    "text": "Why lateral viscosity drives toroidal flow\nThe displacement is expanded in vector spherical harmonics (see Spectral reduction),\n\\[\n\\mathbf{u} = \\sum_{jm}\\Bigl[\\,U_{jm}(r)\\,\\mathbf{S}^{(-1)}_{jm}\n+ V_{jm}(r)\\,\\mathbf{S}^{(1)}_{jm}\n+ W_{jm}(r)\\,\\mathbf{S}^{(0)}_{jm}\\,\\Bigr],\n\\qquad\n\\mathbf{S}^{(0)}_{jm} = \\mathbf{e}_r\\times\\nabla_1 Y_{jm},\n\\]\nand the strain and memory stress are expanded in the six tensor spherical harmonics \\(Z^{(\\lambda)}_{jm}\\), \\(\\lambda = 1,\\dots,6\\) (Martinec 2000, App. B). The spheroidal field lives in \\(\\lambda\\in\\{1,2,5,6\\}\\) and the toroidal field in \\(\\lambda\\in\\{3,4\\}\\).\nOn a radially symmetric Earth the two families are decoupled:\n\nthe left-hand-side operator has no term coupling \\(W\\) to \\(U\\), \\(V\\), \\(F\\) or \\(\\Pi\\) (no pressure, self-gravity or mixed shear contribution);\nthe surface forcing has no \\(\\delta W\\) term (Martinec 2000, eq. 84), so a load never forces \\(W\\) directly;\nwith \\(M = \\mu\\Delta t/\\eta(r)\\) the memory update is diagonal in \\(\\lambda\\), so a spheroidal memory stays spheroidal.\n\n\\(W\\) is therefore identically zero, and the solver needs only the four spheroidal channels. With a laterally varying \\(\\eta(\\theta,\\varphi)\\) the third point fails. The memory update \\(\\boldsymbol{\\tau}^{+} = (1-M)\\,\\boldsymbol{\\tau} -\n2\\mu M\\,\\boldsymbol{\\varepsilon}\\) multiplies the stress by a field \\(M(\\theta,\\varphi)\\) pointwise. That product mixes all six tensor components. As Martinec (2000) notes after eq. (110), lateral viscosity removes both the decoupling and the degeneracy of the spheroidal and toroidal displacements. The loop closes in three steps:\n\nThe spheroidal memory, multiplied by \\(M(\\theta,\\varphi)\\), acquires \\(\\lambda = 3,4\\) components.\nThese force \\(W\\) through the dissipative right-hand side.\nThe toroidal strain of \\(W\\), multiplied again by \\(M(\\theta,\\varphi)\\), feeds back into \\(\\lambda \\in \\{1,2,5,6\\}\\) and hence into uplift and geoid.\n\nPerturbation reasoning predicts \\(W\\) at first order in the lateral viscosity contrast and its feedback on uplift at second order, which the tests confirm.\n\n\n\n\n\n\nTipWhen is W exactly zero?\n\n\n\nToroidal flow vanishes for axisymmetric configurations (load and viscosity symmetric about a common axis), not for every configuration with a shared mirror plane. Under a reflection the toroidal potential is odd. A \\(Y_{20}\\) load over a \\(\\cos 2\\varphi\\) viscosity pattern is mirror-symmetric, yet drives \\(W \\propto \\sin 2\\varphi\\).",
     "crumbs": [
       "Overview",
-      "Discretization",
-      "Radial finite elements and the per-degree operator"
+      "Physics",
+      "Toroidal flow under lateral viscosity"
     ]
   },
   {
-    "objectID": "discretization/radial-fe.html#element-bilinear-forms",
-    "href": "discretization/radial-fe.html#element-bilinear-forms",
-    "title": "Radial finite elements and the per-degree operator",
-    "section": "Element bilinear forms",
-    "text": "Element bilinear forms\nThe element matrices are built from the closed-form radial integrals of Martinec’s Appendix C (the \\(I_1\\ldots I_7\\), \\(K_1\\ldots K_3\\) families), implemented and unit-tested in vilma_radial_integrals:\n\n\n\n\n\n\n\n\n\nBlock\nEquation\nIntegrals\nCouples\n\n\n\n\nPressure / incompressibility \\(\\delta E_{\\text{press}}\\)\neq. 82\n\\(K_1,K_2\\)\n\\(\\Pi \\leftrightarrow (U' + 2U/r - JV/r)\\)\n\n\nShear stiffness \\(\\delta E_{\\text{shear}}\\)\neq. 80\n\\(I_1,I_3,I_6\\) (\\(\\times\\mu_k\\))\n\\(U,V\\)\n\n\nSelf-gravity \\(\\delta E_{\\text{grav}}\\)\neq. 81\n\\(I_2,I_4,I_5,I_7\\), \\(\\tfrac{1}{4\\pi G}\\)\n\\(U,V,F\\)\n\n\nRigid-mode penalty \\(\\delta E_{\\text{uniq}}\\)\neq. 83\n\\(K_3\\)\n\\(U,V\\) at \\(j=1\\)\n\n\n\nThe singular \\(I_7\\) (the \\(1/r\\) term carrying \\(R_k\\)) is skipped in the innermost element where \\(R_1 = 0\\), avoiding a \\(0\\cdot\\infty\\); the \\(r^2\\) weighting handles regularity at the centre so no explicit centre boundary condition is needed.",
+    "objectID": "physics/toroidal.html#toroidal-strain-and-memory",
+    "href": "physics/toroidal.html#toroidal-strain-and-memory",
+    "title": "Toroidal flow under lateral viscosity",
+    "section": "Toroidal strain and memory",
+    "text": "Toroidal strain and memory\nFor \\(\\mathbf{u} = W(r)\\,\\mathbf{e}_r\\times\\nabla_1 Y_{jm}\\) the strain is\n\\[\n\\boldsymbol{\\varepsilon} =\n\\Bigl(W' - \\frac{W}{r}\\Bigr) Z^{(3)}_{jm} + \\frac{W}{r}\\,Z^{(4)}_{jm},\n\\]\nwith the dyadic forms (Martinec 2000, B10–B11, in terms of the angular functions \\(E,F,G,H\\))\n\\[\nZ^{(3)} = -F\\,\\mathbf{e}_{r\\theta} + E\\,\\mathbf{e}_{r\\varphi},\n\\qquad\nZ^{(4)} = G\\,\\mathbf{e}_{\\theta\\varphi} - H\\,(\\mathbf{e}_{\\theta\\theta} - \\mathbf{e}_{\\varphi\\varphi}),\n\\]\nthe toroidal companions of \\(Z^{(2)}\\) and \\(Z^{(6)}\\). Their norms (B13) are\n\\[\n\\lVert Z^{(3)}\\rVert^2 = \\tfrac{J}{2},\n\\qquad\n\\lVert Z^{(4)}\\rVert^2 = \\tfrac{1}{2}J(J-2),\n\\qquad J = j(j+1).\n\\]\nOn the P1 radial elements, with \\(W = W^k\\psi_k + W^{k+1}\\psi_{k+1}\\) and \\(\\varepsilon = a/h + b\\,\\psi_k/r + c\\,\\psi_{k+1}/r\\) (Martinec 2000, eqs. 87–88), the two strain rows the spheroidal kernel omits are\n\n\n\n\\(\\lambda\\)\n\\(a\\)\n\\(b\\)\n\\(c\\)\n\n\n\n\n3\n\\(W^{k+1} - W^k\\)\n\\(-W^k\\)\n\\(-W^{k+1}\\)\n\n\n4\n\\(0\\)\n\\(W^k\\)\n\\(W^{k+1}\\)\n\n\n\nThe strain map is block-diagonal: \\(\\lambda = 3,4\\) depend only on \\(W\\) and \\(\\lambda \\in \\{1,2,5,6\\}\\) only on \\(U,V\\). The toroidal memory is therefore carried as two extra channels of the same memory arrays (channels 5 and 6), and the spheroidal and toroidal kernels are independent. At degree 1, \\(Z^{(4)}_{1m}\\equiv 0\\) (\\(J = 2\\)), so the \\(\\lambda = 4\\) slot carries no memory there, as for \\(\\lambda = 6\\).",
     "crumbs": [
       "Overview",
-      "Discretization",
-      "Radial finite elements and the per-degree operator"
+      "Physics",
+      "Toroidal flow under lateral viscosity"
     ]
   },
   {
-    "objectID": "discretization/radial-fe.html#a-symmetric-operator-and-the-bug-that-hid-in-it",
-    "href": "discretization/radial-fe.html#a-symmetric-operator-and-the-bug-that-hid-in-it",
-    "title": "Radial finite elements and the per-degree operator",
-    "section": "A symmetric operator — and the bug that hid in it",
-    "text": "A symmetric operator — and the bug that hid in it\nLaid out node-interleaved as \\([U\\ V\\ F\\mid\\Pi]\\), the per-degree system is\n\\[\n\\begin{bmatrix} A & B^{\\mathsf T}\\\\ B & 0\\end{bmatrix}\n\\begin{bmatrix} d\\\\ \\Pi\\end{bmatrix}\n=\n\\begin{bmatrix} f\\\\ 0\\end{bmatrix},\n\\]\nwith \\(A\\) the shear+gravity stiffness and \\(B\\) the incompressibility coupling. The whole operator is symmetric — it is the second variation (Hessian) of the energy functional \\(E\\), hence self-transpose by construction. In particular the self-gravity \\(U\\!\\leftrightarrow\\! F\\) coupling is a transpose pair: the potential-gradient body force \\(\\int\\rho_0(\\mathrm{d}F/\\mathrm{d}r)\\,\\delta U\\,r^2\\) and the Poisson source \\(\\int\\rho_0 U(\\mathrm{d}\\,\\delta F/\\mathrm{d}r)\\,r^2\\) discretize to \\(I^2_{\\beta\\alpha}\\) and \\(I^2_{\\alpha\\beta}\\) respectively.\n\n\n\n\n\n\nWarningTypo in Martinec (2000), eq. (81)\n\n\n\nThe discretized self-gravity block written out in Martinec (2000) eq. (81) appears to contain a typo: it gives the \\(U\\)–\\(F\\) coupling as \\(I^2_{\\alpha\\beta}\\) where the symmetric partner \\(I^2_{\\beta\\alpha}\\) is required. Because the full operator is the Hessian of the energy functional \\(E\\), it must be symmetric; the corresponding term in the continuous form (eq. 65) makes this clear on term-by-term inspection. Using eq. (81) as written breaks the operator symmetry and softens the elastic low-degree Love numbers markedly — \\(h_e(2)\\) was \\(\\sim 47\\%\\) below the benchmark in our own tests, while every analytic limit and the fluid limit still passed. Anyone implementing this block should take eq. (65) as the arbiter, use \\(I^2_{\\beta\\alpha}\\) for the \\(U\\)–\\(F\\) coupling, and assert \\(\\lVert A - A^{\\mathsf T}\\rVert = 0\\) on the assembled matrix.",
+    "objectID": "physics/toroidal.html#the-toroidal-operator",
+    "href": "physics/toroidal.html#the-toroidal-operator",
+    "title": "Toroidal flow under lateral viscosity",
+    "section": "The toroidal operator",
+    "text": "The toroidal operator\nThe toroidal part of the shear energy (Martinec 2000, eq. 80) is\n\\[\n2\\!\\int\\!\\mu\\,\\Bigl[\\lVert Z^{(3)}\\rVert^2\\,\\varepsilon^{3}\\,\\delta\\varepsilon^{3}\n+ \\lVert Z^{(4)}\\rVert^2\\,\\varepsilon^{4}\\,\\delta\\varepsilon^{4}\\Bigr] r^2\\,\\mathrm{d}r,\n\\]\nwhich per element \\(k\\) discretizes to\n\\[\n\\mu_k\\Bigl\\{ J\\bigl[I^1_{\\alpha\\beta} - I^3_{\\beta\\alpha} - I^3_{\\alpha\\beta} + I^6_{\\alpha\\beta}\\bigr]\n+ J(J-2)\\,I^6_{\\alpha\\beta}\\Bigr\\}\\,W^\\alpha\\,\\delta W^\\beta,\n\\]\nusing the same Appendix-C integrals as the spheroidal block. No density, gravity or pressure enters. Rather than adding \\(W\\) as a fifth interleaved field to the spheroidal system, VILMA gives it its own per-degree operator. That operator is symmetric and tridiagonal, and it is factored once per degree and reused for all orders, loads and steps, like the spheroidal one (see Solver). The spheroidal operator is untouched.\nTwo conditions make it non-singular:\n\nFluid regions. Where \\(\\mu = 0\\) (the inviscid core) there is no shear energy and \\(W\\) has no stiffness. These nodes are pinned, \\(W = 0\\). This is a Dirichlet condition on a degree of freedom the fluid does not have.\nDegree 1. At \\(j = 1\\) a rigid rotation, \\(W \\propto r\\), has no strain and is a null mode. It is removed by one KKT border row per solid shell, \\(\\sum_k W^k\\!\\int\\!\\psi_k\\,r^3\\,\\mathrm{d}r = 0\\), which states \\(\\int\\mathbf{x}\\times\\mathbf{u}\\,\\mathrm{d}V = 0\\) (no net rotation) for that shell. A structure with a solid inner core has two such shells. This is a gauge: a rigid rotation moves no output.",
     "crumbs": [
       "Overview",
-      "Discretization",
-      "Radial finite elements and the per-degree operator"
+      "Physics",
+      "Toroidal flow under lateral viscosity"
     ]
   },
   {
-    "objectID": "discretization/radial-fe.html#boundary-and-regularity-conditions",
-    "href": "discretization/radial-fe.html#boundary-and-regularity-conditions",
-    "title": "Radial finite elements and the per-degree operator",
-    "section": "Boundary and regularity conditions",
-    "text": "Boundary and regularity conditions\n\nSurface — the exterior potential match (\\(\\varphi_1\\propto r^{-(j+1)}\\) outside) adds a \\((j+1)F(a)\\) term on the \\(F\\!-\\!F\\) diagonal at the surface node; the load enters as the right-hand side \\(-a^2\\sigma\\,g_0(a)\\) on \\(U(a)\\) and \\(-a^2\\sigma\\) on \\(F(a)\\) (eq. 84).\nCentre \\(r=0\\) — no explicit BC (meshed through, \\(r^2\\) weighting + \\(R_1=0\\)).\nCore–mantle boundary — none imposed; free-slip emerges from \\(\\mu=0\\) in the meshed core.\nDensity-jump interfaces — natural conditions of the weak form.",
+    "objectID": "physics/toroidal.html#coupling-into-the-time-step",
+    "href": "physics/toroidal.html#coupling-into-the-time-step",
+    "title": "Toroidal flow under lateral viscosity",
+    "section": "Coupling into the time step",
+    "text": "Coupling into the time step\nBecause the surface load never forces \\(W\\), the toroidal field has no elastic gain. It is pure relaxation drift. Within the field driver a step proceeds as follows:\n\nbegin_step solves, for every \\((j,m)\\), the spheroidal drift and the toroidal drift \\(W\\) from the dissipative forcing of the current memory, the latter with the toroidal operator.\nThe SLE fixed point calls apply() as usual. \\(W\\) does not enter uplift or geoid directly, so the affine structure is unchanged.\ncommit_step advances the memory. In each genuinely 3-D element all six dyadic components of memory and strain, spheroidal and toroidal, are synthesized on the Gauss grid and multiplied pointwise by \\(M(\\theta,\\varphi)\\). The increment is analysed back into all six channels. This is where the two families exchange stress. Laterally uniform elements advance their toroidal channels on the per-degree spectral path, where they simply relax.\n\nThe toroidal channels are switched on only when some element is genuinely 3-D (its lateral \\(\\log_{10}\\eta\\) spread exceeds visc3d_tol) and l_toroidal = .true.. The memory arrays then widen from four to six channels (about 50 % more memory state). A radially symmetric or laterally uniform run keeps four channels and pays nothing. Once on, the channels stay on for the rest of the run: a later laterally uniform field no longer drives \\(W\\), but existing toroidal memory must still relax.\nRestart files record the channel count. A spheroidal (four-channel) restart can be read into a toroidal run, with the toroidal memory starting at zero. Reading a toroidal restart into a spheroidal run is an error, since it would discard memory.",
     "crumbs": [
       "Overview",
-      "Discretization",
-      "Radial finite elements and the per-degree operator"
+      "Physics",
+      "Toroidal flow under lateral viscosity"
     ]
   },
   {
-    "objectID": "discretization/radial-fe.html#degree-1-the-geocenter-kept-sparse",
-    "href": "discretization/radial-fe.html#degree-1-the-geocenter-kept-sparse",
-    "title": "Radial finite elements and the per-degree operator",
-    "section": "Degree 1: the geocenter, kept sparse",
-    "text": "Degree 1: the geocenter, kept sparse\nDegree 1 carries the rigid-translation null space, removed by \\(E_{\\text{uniq}}\\) (eq. 83). That penalty is a rank-1 term whose coefficient is \\(\\sim 10^{16}\\times\\) the band entries — i.e. it is already a hard constraint \\(w^{\\mathsf T}d = 0\\) (the CM/geocenter frame, (Blewitt 2003)) in all but name. Imposing it as a dense penalty would fill the band; instead it borders the band with one KKT row/column:\n\\[\n\\begin{bmatrix} A_{\\text{band}} & w\\\\ w^{\\mathsf T} & 0\\end{bmatrix}\n\\begin{bmatrix} d\\\\ \\lambda\\end{bmatrix}\n=\n\\begin{bmatrix} f\\\\ 0\\end{bmatrix}.\n\\]\nThe solve runs at \\(\\text{ndof}+1\\) internally but keeps the physical \\(\\text{ndof}\\) interface, so the time stepper needs no degree-1 special case. The geocenter is thus the physical degree-1 signal, not a hard-coded \\(\\{h_1,l_1,k_1\\}\\).\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nvilma_radial_fe assembles build_dense_operator (the reference dense operator, with the dense \\(E_{\\text{uniq}}\\) penalty for cross-checking) and the banded operator used in production; vilma_radial_integrals holds the Appendix-C element integrals. Love numbers are extracted by loading_love — see Love numbers. Validated by test_assembly, test_love.",
+    "objectID": "physics/toroidal.html#configuration-and-output",
+    "href": "physics/toroidal.html#configuration-and-output",
+    "title": "Toroidal flow under lateral viscosity",
+    "section": "Configuration and output",
+    "text": "Configuration and output\n\n\n\n\n\n\n\n\n\nParameter\nGroup\nDefault\nEffect\n\n\n\n\nl_toroidal\n&vilma\n.false.\ncarry \\(W\\) and \\(\\lambda = 3,4\\) once a 3-D element exists\n\n\nl_visc_3d\n&vilma\n.false.\nload a lateral viscosity field (required for any toroidal flow)\n\n\nvisc3d_tol\n&vilma\n\\(10^{-3}\\) dex\nlateral spread above which an element is 3-D\n\n\nfile_hor\n&ctl\n\"\"\nwrite the surface horizontal displacement\n\n\n\nThe horizontal-displacement file holds east/north components on the Gauss grid of file_out: the total (u_east, u_north, spheroidal plus toroidal) and the toroidal part alone (u_east_tor, u_north_tor). The toroidal part is exactly zero whenever no toroidal field is carried.",
     "crumbs": [
       "Overview",
-      "Discretization",
-      "Radial finite elements and the per-degree operator"
+      "Physics",
+      "Toroidal flow under lateral viscosity"
     ]
   },
   {
-    "objectID": "discretization/time-stepping.html",
-    "href": "discretization/time-stepping.html",
-    "title": "Time stepping and the field driver",
-    "section": "",
-    "text": "The viscoelastic evolution is an explicit march in time built directly on the elastic operator. This page covers how a step is taken, how the memory state is carried, and how the field-level driver feeds the sea-level equation without corrupting that state.",
+    "objectID": "physics/toroidal.html#validation",
+    "href": "physics/toroidal.html#validation",
+    "title": "Toroidal flow under lateral viscosity",
+    "section": "Validation",
+    "text": "Validation\nNo community benchmark exercises toroidal flow: all of them are radially symmetric or axisymmetric. The implementation is instead checked by internal consistency, symmetry and scaling tests:\n\n\n\n\n\n\n\n\nTest\nCheck\nResult\n\n\n\n\ntest_assembly\n\\(W\\) stiffness equals the energy rebuilt from the strain rows and norms\n\\(2\\times10^{-16}\\)\n\n\ntest_tensor_sh\nsix channels reproduce an arbitrary symmetric tensor field; channel cross-talk at nlat \\(= 2\\ell_{\\max}+2\\)\n\\(9\\times10^{-15}\\) (four channels miss 35 %); \\(\\le 8\\times10^{-13}\\)\n\n\ntest_sht\ntoroidal synthesis is \\(\\mathbf{e}_r\\times\\nabla_1 T\\) (SHTns’ native field is its negative)\nround-off\n\n\ntest_toroidal\n\\(W = 0\\) for an axisymmetric configuration\nround-off\n\n\ntest_toroidal\n\\(W\\) driven by a \\(\\cos 2\\varphi\\) viscosity pattern; reflection selection rule\nrule holds to \\(4\\times10^{-16}\\)\n\n\ntest_toroidal\nscaling with contrast \\(\\delta\\): \\(W \\propto \\delta\\), uplift feedback \\(\\propto \\delta^2\\)\nslopes 0.987 and 1.986\n\n\ntest_rotinv\ncoaxial cap and low-viscosity zone: \\(W = 0\\) on the pole; off the pole \\(W/U\\) at discretization level, falling with resolution\n\\(2.6\\times10^{-4}\\to1.5\\times10^{-6}\\) (\\(\\ell_{\\max}\\) 16 \\(\\to\\) 32)\n\n\ntest_restart\nrestart with toroidal channels; four-channel file into a toroidal run\nbit-for-bit continuation; spheroidal memory exact, toroidal zero\n\n\n\nEvery existing 1D and benchmark result is unchanged (bit-identical). The remaining steps are a cross-check of a toroidal-carrying configuration against VILMA-v1 through solver = \"v1\", and a measurement of what the toroidal coupling changes in a 3D deglaciation. Until then it stays off by default.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nvilma_radial_fe (toroidal_operator: assembly, fluid-node pinning, degree-1 rotation borders), vilma_viscoelastic (strain_coeffs_tor, ve_strain_constants_tor, dissipative_rhs_tor, advance_memory_tor), vilma_tensor_sh (\\(Z^{(3)}\\), \\(Z^{(4)}\\) as channels 5 and 6), vilma_sht (toroidal vector transforms), vilma_response (the \\(W\\) drift, enable_toroidal, the six-channel 3-D advance), and vilma_io (restart channel count, file_hor). The design notes and derivation are in the repository’s doc/design-toroidal.md.",
     "crumbs": [
       "Overview",
-      "Discretization",
-      "Time stepping and the field driver"
-    ]
-  },
-  {
-    "objectID": "discretization/time-stepping.html#one-step",
-    "href": "discretization/time-stepping.html#one-step",
-    "title": "Time stepping and the field driver",
-    "section": "One step",
-    "text": "One step\nThe \\(\\omega=1\\) Maxwell scheme (see Rheology) keeps the left-hand operator fixed and updates only the right-hand side. A step at degree \\(j\\) is:\n\nForm the dissipative forcing \\(-\\int\\boldsymbol{\\tau}^{V,i-1}:\\delta\\boldsymbol{\\varepsilon}\\) from the previous memory stress (a two-point radial Gauss quadrature of the spectral double-dot over the four spheroidal tensor components).\nAdd the surface-load right-hand side for the current load.\nBack-substitute through the once-factored operator (no re-factorization).\nUpdate the memory stress \\(\\boldsymbol{\\tau}^{V,i} = (1-M)\\boldsymbol{\\tau}^{V,i-1} - 2\\mu M\\,\\boldsymbol{\\varepsilon}^{i}\\) from the new strain.\n\nElastic layers (\\(M\\to 0\\)) freeze; fluid layers (\\(\\mu=0\\)) carry no memory. The 1D validation test_relax shows a held load relaxing monotonically from the elastic Love number to the fluid limit \\(-(2j+1)/3\\), with \\(t_{\\text{relax}}\\propto\\eta\\) and convergence under step refinement.\nThis explicit update is conditionally stable — the step is capped by the shortest Maxwell time, so a short dynamical \\(\\Delta t\\) is sub-cycled within the coupling interval (the vilma_timestep controller sizes it; scheme = \"trap\" selects the 2nd-order adaptive variant).",
-    "crumbs": [
-      "Overview",
-      "Discretization",
-      "Time stepping and the field driver"
-    ]
-  },
-  {
-    "objectID": "discretization/time-stepping.html#the-viscoelastic-field-driver",
-    "href": "discretization/time-stepping.html#the-viscoelastic-field-driver",
-    "title": "Time stepping and the field driver",
-    "section": "The viscoelastic field driver",
-    "text": "The viscoelastic field driver\nThe SLE needs a field load whose every coefficient \\((\\ell,m)\\) has its own independent load history — the ice and ocean evolve differently everywhere. The ve_response driver provides this while remaining safe to call from inside an iterative solver, using the affine structure of the response at fixed time:\n\\[\nu_{\\ell m} \\;=\\; g_u(\\ell)\\,\\sigma_{\\ell m} \\;+\\; \\text{drift}_{\\ell m},\n\\]\nwhere \\(g_u(\\ell)\\) is the instantaneous (elastic) gain and \\(\\text{drift}_{\\ell m}\\) comes from the frozen past-relaxation memory. The step is bracketed:\n\nbegin_step freezes the drift — one memory-forcing solve per coefficient, done once at the start of the step;\napply() is then a cheap affine evaluation the SLE fixed point may call repeatedly;\ncommit_step advances the Maxwell memory once, with the converged load.\n\nEach complex \\((\\ell,m)\\) history is stored as two real histories (real/imaginary), since the operator and \\(M=\\mu\\Delta t/\\eta\\) are real. The per-element Maxwell kernel is shared verbatim with the 1D stepper — test_ve_response confirms the field driver’s first step equals elastic_response exactly, and that a held degree-2 field reproduces the 1D ve_degree history to \\(\\sim 10^{-13}\\).",
-    "crumbs": [
-      "Overview",
-      "Discretization",
-      "Time stepping and the field driver"
-    ]
-  },
-  {
-    "objectID": "discretization/time-stepping.html#memory-storage-and-restart",
-    "href": "discretization/time-stepping.html#memory-storage-and-restart",
-    "title": "Time stepping and the field driver",
-    "section": "Memory storage and restart",
-    "text": "Memory storage and restart\nThe per-\\((\\ell,m)\\) memory and drift are stored in degree-grouped slot order (an \\(\\ell m \\leftrightarrow k\\) map), so the inner loop is contiguous and per-degree, allowing operator reuse without scattering the (large) memory arrays. The only prognostic state carried across a restart is the viscoelastic memory — the Maxwell stress \\(\\boldsymbol{\\tau}\\) — plus the integrator state and the model time. Reference fields (equilibrium bedrock, reference ice/topo) are static and validated on read. test_restart confirms a checkpoint-restart reproduces an uninterrupted run bit-for-bit. A lower-resolution restart is interpolated up to the model grid (degree-grouped spectral block copy), so a run can be spun up cheaply at coarse resolution and continued at fine resolution.",
-    "crumbs": [
-      "Overview",
-      "Discretization",
-      "Time stepping and the field driver"
-    ]
-  },
-  {
-    "objectID": "discretization/time-stepping.html#coupling-cadence",
-    "href": "discretization/time-stepping.html#coupling-cadence",
-    "title": "Time stepping and the field driver",
-    "section": "Coupling cadence",
-    "text": "Coupling cadence\nFor host coupling (CLIMBER-X), the model sub-cycles its short dynamical step \\(\\Delta t\\) within a longer coupling interval: ice thickness is held across the interval, the SLE is solved each \\(\\Delta t\\), and the bedrock \\(z_{\\text{bed}} = z_{\\text{bed,eq}} - \\text{rsl}\\) is returned at the coupling cadence. The reference state and its datum are chosen by i_eq (e.g. a present-day RTopo reference, or an equilibrium configuration); a non-equilibrium start (a held LGM load) is brought into balance by a spin-up (solid_earth_spinup) that relaxes the held load to bed-stationary equilibrium (rate below equil_rate_tol) — capped by equil_time_max — with an optional cheap 1-D pre-equilibration (pre_spinup_1d) before switching the transient to the 3-D path.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nvilma_viscoelastic (1D stepper + shared kernel), vilma_response (ve_response field driver, begin_step/commit_step), vilma_io (netCDF restart), and vilma_coupling (host init/update contract). The cost of begin_step is the main performance driver and is addressed in Solver.",
-    "crumbs": [
-      "Overview",
-      "Discretization",
-      "Time stepping and the field driver"
-    ]
-  },
-  {
-    "objectID": "getting-started.html",
-    "href": "getting-started.html",
-    "title": "Installation and running",
-    "section": "",
-    "text": "WarningUnder heavy development\n\n\n\nVILMA v2 is not yet ready for use in a scientific production capacity. If you want to use VILMA for now, please contact Volker Klemann at GFZ.\nThis page covers getting VILMA v2 built and running a forced simulation. The build is driven by configme (one source of machine/compiler truth) and runs are staged by runme (single simulations and ensembles, locally or on SLURM).",
-    "crumbs": [
-      "Overview",
-      "Getting started",
-      "Installation and running"
-    ]
-  },
-  {
-    "objectID": "getting-started.html#dependencies",
-    "href": "getting-started.html#dependencies",
-    "title": "Installation and running",
-    "section": "Dependencies",
-    "text": "Dependencies\nVILMA needs only a small, well-established stack:\n\n\n\nDependency\nProvides\nSource\n\n\n\n\nfesm-utils (branch coords-dev)\nFFTW, SHTns, the fesmutils helper library (precision, ncio, namelists), and the coords module used by the remapper\ncloned/linked by configme\n\n\nnetCDF (C + Fortran)\nrestart and output I/O\nsystem package (Homebrew, modules, …)\n\n\n\nThe coords-dev branch is pinned in .configme/manifest.toml, so the checkout self-describes the exact ref it needs.",
-    "crumbs": [
-      "Overview",
-      "Getting started",
-      "Installation and running"
-    ]
-  },
-  {
-    "objectID": "getting-started.html#install-with-configme",
-    "href": "getting-started.html#install-with-configme",
-    "title": "Installation and running",
-    "section": "Install with configme",
-    "text": "Install with configme\nconfigme clones (or reuses) the dependencies, generates the machine/compiler Makefile fragment, and links everything together:\nconfigme install vilma\nIt resolves the machine and compiler from flags, your ~/.configme/config.toml, hostname detection, or a prompt. To be explicit, or to reuse an existing fesm-utils checkout instead of cloning:\n# pick machine + compiler explicitly\nconfigme install vilma -m macbook -c gfortran\n\n# symlink an on-disk fesm-utils rather than cloning it\nconfigme install vilma --link fesm-utils=/abs/path/to/fesm-utils\nSupported machines include awi_albedo, chinook, dkrz_levante, linux, macbook, pik_hpc2024; compilers gfortran, ifort, ifx. Run configme list for the current set and configme status to see what is present versus pending. If you only need to (re)generate the Makefile for an already-present checkout, configme config vilma does that without cloning.",
-    "crumbs": [
-      "Overview",
-      "Getting started",
-      "Installation and running"
-    ]
-  },
-  {
-    "objectID": "getting-started.html#build",
-    "href": "getting-started.html#build",
-    "title": "Installation and running",
-    "section": "Build",
-    "text": "Build\nconfigme writes the compiler fragment into the Makefile; building is then plain make:\nmake vilma        # -&gt; bin/vilma.x        (standalone forced-run driver)\nmake vilma_mkref  # -&gt; bin/vilma_mkref.x  (build a Gauss-grid reference state)\nmake vilma_remap  # -&gt; bin/vilma_remap.x  (offline lon-lat -&gt; Gauss remap)\nmake check            # build + run the test suite\nBuild switches: debug = 0|1|2 (optimized / checks / profile) and openmp = 0|1 (default 1). The threaded degree loop is what makes production resolutions fast — build openmp=1 (see Solver).",
-    "crumbs": [
-      "Overview",
-      "Getting started",
-      "Installation and running"
-    ]
-  },
-  {
-    "objectID": "getting-started.html#configuration-the-vilma-namelist",
-    "href": "getting-started.html#configuration-the-vilma-namelist",
-    "title": "Installation and running",
-    "section": "Configuration: the &vilma namelist",
-    "text": "Configuration: the &vilma namelist\nAll runtime parameters live in a single namelist group &vilma. vilma.nml is the canonical, fully documented defaults set — every parameter is present. A run can pass a sparse overlay that sets only what it overrides (the yelmo defaults_file convention):\n./bin/vilma.x examples/deglac_lgm.nml vilma.nml\n#                 ^ sparse overlay        ^ complete defaults\nA few conventions worth knowing:\n\nTime fields (dt_*, time_*) are given in years in the namelist and converted to SI seconds on load; everything else is SI.\nEarth structure is chosen by earth — a named built-in (e.g. \"M3-L70-V01\") or \"custom\" to assemble from the surface-first layer arrays.\nResponse solver is chosen by earth_response: \"ve\" (full viscoelastic, default), \"elastic\", or \"null\".\nReference state / spin-up is controlled by i_eq, equil_time_max, equil_rate_tol (LGM-memory spin-up cap, relaxing to bed-stationary equilibrium), pre_spinup_1d (run a cheap 1-D pre-equilibration first), and restart_in_file (resume full state, interpolated up if lower-resolution).\n3-D viscosity is enabled with l_visc_3d = .true. and a lateral log10(eta) field (visc_3d_file).\nRotational feedback (rotation) is on by default for real-Earth runs; set rotation = .false. for the non-rotating community benchmarks.",
-    "crumbs": [
-      "Overview",
-      "Getting started",
-      "Installation and running"
-    ]
-  },
-  {
-    "objectID": "getting-started.html#the-drivers",
-    "href": "getting-started.html#the-drivers",
-    "title": "Installation and running",
-    "section": "The drivers",
-    "text": "The drivers\n\n\n\n\n\n\n\nExecutable\nRole\n\n\n\n\nbin/vilma.x\nreads a reference state + an ice-thickness forcing h_ice(lon,lat,time), marches the model across the forcing (online lon-lat → Gauss remap by default), and writes the diagnostic surface fields (rsl, z_bed, h_ice, ocean function) to file_out\n\n\nbin/vilma_mkref.x\ngenerates the canonical Gauss-grid present-day reference (e.g. RTopo) used by i_eq = 1; other resolutions remap it online (cached)\n\n\nbin/vilma_remap.x\noffline conservative lon-lat → Gauss remap, to preprocess a forcing onto the model grid (remap_input = .false.)\n\n\n\nA complete worked configuration — an LGM → present-day deglaciation forced by the Tarasov ice/bed reconstruction — is in examples/deglac_lgm.nml.",
-    "crumbs": [
-      "Overview",
-      "Getting started",
-      "Installation and running"
-    ]
-  },
-  {
-    "objectID": "getting-started.html#running-with-runme",
-    "href": "getting-started.html#running-with-runme",
-    "title": "Installation and running",
-    "section": "Running with runme",
-    "text": "Running with runme\nrunme stages a clean run directory (linking in data and input, copying the namelist, recording the parameters), then runs or submits it. The executable aliases match the drivers: main → vilma.x, mkref → vilma_mkref.x, remap → vilma_remap.x.\n# single local run, 8 OpenMP threads, overriding a few parameters\nrunme -o runs/deglac -e main --omp 8 -r \\\n      -p vilma.lmax=128 vilma.earth_response=ve vilma.file_out=out.nc\nHow a run is launched is set by two flags:\n\n-r run the executable;\n-s prepare a SLURM submit script (and submit it, with -r);\n-s -r prepare and submit on HPC; -s alone stages the script to inspect; omitting both stages the run directory only.\n\nA comma list, range, or distribution in -p turns a parameter into an ensemble dimension (-p vilma.lmax=64,128), with -a naming the member directories from their parameter values. SLURM settings (cluster, account, threads) live in .runme/config.toml; bootstrap it with runme config init and inspect what runme reads with runme info.",
-    "crumbs": [
-      "Overview",
-      "Getting started",
-      "Installation and running"
-    ]
-  },
-  {
-    "objectID": "getting-started.html#embedding-in-a-host-model",
-    "href": "getting-started.html#embedding-in-a-host-model",
-    "title": "Installation and running",
-    "section": "Embedding in a host model",
-    "text": "Embedding in a host model\nThe CLIMBER-X coupling path uses the same code behind a single use vilma. The contract is intentionally narrow — the host passes ice thickness in and receives relative sea level and bedrock out, on its own grid. The model owns its Gauss grid and the host↔︎Gauss remap (built from the parameter record), and keeps all spherical-harmonic work inside (see Implementation):\nuse vilma\ntype(solid_earth) :: se\ncall vilma_par_load(se%par, \"vilma.nml\")             ! configuration lives in se%par\ncall solid_earth_init(se, z_bed_eq, h_ice_eq, grid=host_grid)  ! builds the Gauss grid + remap\ncall solid_earth_spinup(se, h_ice_lgm)                ! optional LGM-memory spin-up\ndo\n   call solid_earth_update(se, h_ice, dt_yr)          ! advance dt_yr [years]\n   ! ... read se%rsl, se%z_bed on the host grid (se%gg%* on the Gauss grid) ...\nend do\ncall solid_earth_finalize(se)                         ! frees the grid too\ngrid (a coords lon-lat grid) is optional: omit it when the fields are already on the model’s Gauss grid. The full prognostic state (the Maxwell memory, the integrator state, and the model clock) is persisted on restart, so a coupled run resumes bit-for-bit; the host-grid outputs are re-derived on read.",
-    "crumbs": [
-      "Overview",
-      "Getting started",
-      "Installation and running"
+      "Physics",
+      "Toroidal flow under lateral viscosity"
     ]
   },
   {
@@ -958,7 +1054,7 @@
     "href": "physics/rheology.html#explicit-memory-stress-scheme",
     "title": "Maxwell rheology and the memory stress",
     "section": "Explicit memory-stress scheme",
-    "text": "Explicit memory-stress scheme\nFollowing Martinec (2000) (§3, eqs. 23–25), the total stress at time step \\(i\\) is the instantaneous elastic stress — computed by the same elastic operator every step — plus a memory stress \\(\\boldsymbol{\\tau}^{V}\\) that encodes the relaxation history:\n\\[\n\\boldsymbol{\\tau}^{V,i}\n\\;=\\; (1 - M)\\,\\boldsymbol{\\tau}^{V,i-1}\n\\;-\\; 2\\mu\\,M\\,\\boldsymbol{\\varepsilon}^{\\,i},\n\\qquad\nM \\equiv \\frac{\\mu\\,\\Delta t}{\\eta}.\n\\]\nThis is the \\(\\omega = 1\\) (fully explicit) update. The memory stress enters the right-hand side of the field equations as a dissipative forcing\n\\[\nF_{\\text{diss}} \\;=\\; -\\!\\int \\boldsymbol{\\tau}^{V,i} : \\delta\\boldsymbol{\\varepsilon}\\ \\mathrm{d}V\n\\qquad\\text{(eq. 35).}\n\\]\nThe crucial consequence: the left-hand-side operator never changes in time. It is assembled, equilibrated, and LU-factored once, then reused at every step with a fresh right-hand side. Each step costs a back-substitution, not a re-factorization (see Solver).\n\n\n\n\n\n\nNoteWhy explicit, not implicit or normal-mode\n\n\n\nWith the explicit update, the memory stress at step \\(i\\) depends only on the previous step’s stress and strain — both known. Nothing in the operator depends on viscosity, so a spatially varying \\(\\eta(r,\\theta,\\phi)\\) changes only the scalar \\(M\\) that multiplies known fields pointwise. The angular harmonics stay decoupled in the solve. A normal-mode method, by contrast, must re-solve a degree-by-degree eigenvalue problem whenever the radial structure changes and cannot represent lateral viscosity at all without abandoning the mode basis.",
+    "text": "Explicit memory-stress scheme\nFollowing Martinec (2000) (§3, eqs. 23–25), the total stress at time step \\(i\\) is the instantaneous elastic stress — computed by the same elastic operator every step — plus a memory stress \\(\\boldsymbol{\\tau}^{V}\\) that encodes the relaxation history:\n\\[\n\\boldsymbol{\\tau}^{V,i}\n\\;=\\; (1 - M)\\,\\boldsymbol{\\tau}^{V,i-1}\n\\;-\\; 2\\mu\\,M\\,\\boldsymbol{\\varepsilon}^{\\,i},\n\\qquad\nM \\equiv \\frac{\\mu\\,\\Delta t}{\\eta}.\n\\]\nThis is the \\(\\omega = 1\\) (fully explicit) update. The memory stress enters the right-hand side of the field equations as a dissipative forcing\n\\[\nF_{\\text{diss}} \\;=\\; -\\!\\int \\boldsymbol{\\tau}^{V,i} : \\delta\\boldsymbol{\\varepsilon}\\ \\mathrm{d}V\n\\qquad\\text{(eq. 35).}\n\\]\nThe crucial consequence: the left-hand-side operator never changes in time. It is assembled, equilibrated, and LU-factored once, then reused at every step with a fresh right-hand side. Each step costs a back-substitution, not a re-factorization (see Solver). The time step enters only through \\(M\\), so changing \\(\\Delta t\\) is a rescale, never a re-factorization.\n\nMemory time schemes\nThe memory update is selected by scheme. All schemes share the fixed operator; they differ only in how \\(\\boldsymbol{\\tau}^{V}\\) is advanced over a step.\n\n\n\n\n\n\n\n\n\nscheme\nUpdate\nOrder, stability\nStep control\n\n\n\n\n\"fe\" (default)\n\\(\\boldsymbol{\\tau}^{V,i} = (1-M)\\,\\boldsymbol{\\tau}^{V,i-1} - 2\\mu M\\,\\boldsymbol{\\varepsilon}^{i}\\)\n1st order, conditionally stable\nequal sub-steps with \\(M \\le\\) cfl\n\n\n\"trap\"\n\\(\\boldsymbol{\\tau}^{V,i} = \\dfrac{(1-M/2)\\,\\boldsymbol{\\tau}^{V,i-1} - \\mu M\\,(\\boldsymbol{\\varepsilon}^{i-1}+\\boldsymbol{\\varepsilon}^{i})}{1+M/2}\\)\n2nd order, A-stable (Crank–Nicolson)\nadaptive, step-doubling error estimate\n\n\n\n\"fe\" is the \\(\\omega = 1\\) scheme of Martinec (2000) and matches how VILMA-v1 marches its memory. \"trap\" is implicit in the end-of-step strain \\(\\boldsymbol{\\varepsilon}^{i}\\), which itself depends on \\(\\boldsymbol{\\tau}^{V,i}\\). The commit therefore iterates the step endpoint to a consistent strain–memory pair (up to max_couple_iter passes). The exponential (\"etd1\") and backward-Euler (\"be\") updates are kept in the single-degree stepper as controls for testing; the field driver advances them as \"fe\" and \"trap\" respectively.\n\n\n\n\n\n\nNoteWhy explicit, not implicit or normal-mode\n\n\n\nWith the explicit update, the memory stress at step \\(i\\) depends only on the previous step’s stress and strain — both known. Nothing in the operator depends on viscosity, so a spatially varying \\(\\eta(r,\\theta,\\phi)\\) changes only the scalar \\(M\\) that multiplies known fields pointwise. The angular harmonics stay decoupled in the solve. A normal-mode method, by contrast, must re-solve a degree-by-degree eigenvalue problem whenever the radial structure changes and cannot represent lateral viscosity at all without abandoning the mode basis.",
     "crumbs": [
       "Overview",
       "Physics",
@@ -970,7 +1066,7 @@
     "href": "physics/rheology.html#from-layers-to-the-same-kernel-in-1d-and-3d",
     "title": "Maxwell rheology and the memory stress",
     "section": "From layers to the same kernel in 1D and 3D",
-    "text": "From layers to the same kernel in 1D and 3D\nIn the 1D (radially symmetric) case the memory stress evolves directly on the tensor spherical-harmonic coefficients (Martinec 2000, §9): there is no spatial grid. Per radial element it is stored for the four spheroidal tensor components \\(\\lambda\\in\\{1,2,5,6\\}\\) (eq. 109), and the strain coefficients follow from the nodal radial functions \\(U,V\\) via eq. 87–88. The dissipative right-hand side is a two-point radial Gauss quadrature of the spectral double-dot \\(\\sum_\\lambda \\lVert Z^\\lambda\\rVert^2\\,\\tau^{V,\\lambda}\\,\\delta\\varepsilon^\\lambda\\) with the component norms \\(\\{1,\\ J/2,\\ 2J^2,\\ 2J(J-2)\\}\\), \\(J = \\ell(\\ell+1)\\) (eqs. 110, B13).\nWith laterally varying viscosity the pointwise product \\(M(\\theta,\\varphi)\\,\\tau\\) mixes spheroidal and toroidal stress, so the toroidal components \\(\\lambda\\in\\{3,4\\}\\) (norms \\(J/2\\), \\(J(J-2)/2\\)) are carried as well, and the toroidal displacement \\(W\\) they force feeds back into the spheroidal field.\nIn the 3D (laterally varying viscosity) case, the identical kernel runs, but the memory update \\(M = \\mu\\Delta t/\\eta\\) is evaluated pointwise on the Gauss–Legendre grid and transformed back to spectral space each step (pseudo-spectral). The per-element Maxwell routines — strain_coeffs, ve_strain_constants, dissipative_rhs, advance_memory — are shared verbatim between the 1D stepper and the field driver. There is no duplicated algorithm and no separate “3D solver”.",
+    "text": "From layers to the same kernel in 1D and 3D\nIn the 1D (radially symmetric) case the memory stress evolves directly on the tensor spherical-harmonic coefficients (Martinec 2000, §9): there is no spatial grid. Per radial element it is stored for the four spheroidal tensor components \\(\\lambda\\in\\{1,2,5,6\\}\\) (eq. 109), and the strain coefficients follow from the nodal radial functions \\(U,V\\) via eq. 87–88. The dissipative right-hand side is a two-point radial Gauss quadrature of the spectral double-dot \\(\\sum_\\lambda \\lVert Z^\\lambda\\rVert^2\\,\\tau^{V,\\lambda}\\,\\delta\\varepsilon^\\lambda\\) with the component norms \\(\\{1,\\ J/2,\\ 2J^2,\\ 2J(J-2)\\}\\), \\(J = \\ell(\\ell+1)\\) (eqs. 110, B13).\nWith laterally varying viscosity the pointwise product \\(M(\\theta,\\varphi)\\,\\tau\\) mixes spheroidal and toroidal stress. The toroidal components \\(\\lambda\\in\\{3,4\\}\\) (norms \\(J/2\\), \\(J(J-2)/2\\)) can then be carried as well (l_toroidal), and the toroidal displacement \\(W\\) they force feeds back into the spheroidal field. See Toroidal flow.\nIn the 3D (laterally varying viscosity) case the operator, the strain coefficients and the dissipative right-hand side are unchanged; only the memory advance differs. \\(M = \\mu\\Delta t/\\eta(\\theta,\\varphi)\\) becomes a field, so for each radial element the memory and strain tensors are synthesized on the Gauss–Legendre grid from their six dyadic components (Martinec 2000, B10–B11), advanced pointwise, and analysed back to spectral space (pseudo-spectral). The per-element Maxwell routines (strain_coeffs, ve_strain_constants, dissipative_rhs, advance_memory) are shared verbatim between the 1D stepper and the field driver. There is no duplicated algorithm and no separate “3D solver”.\nThree details matter in practice:\n\nOnly genuinely 3-D elements pay for the grid round trip. An element is treated as 3-D when its lateral spread of \\(\\log_{10}\\eta\\) exceeds visc3d_tol (default \\(10^{-3}\\) dex). Every other Maxwell element collapses to its lateral-mean rate and advances on the cheap per-degree spectral path, as in VILMA-v1’s 1-D/3-D layer split. A laterally uniform field therefore flags no element as 3-D and costs exactly the 1D run.\nThe update is analysed as an increment. The grid step is written \\(\\boldsymbol{\\tau}^{+} = \\boldsymbol{\\tau} - M(\\boldsymbol{\\tau} + 2\\mu\\boldsymbol{\\varepsilon})\\), and only the increment is transformed back. Analysing \\(\\boldsymbol{\\tau}^{+}\\) itself would put the transform’s round-off (\\(\\sim 10^{-13}\\) relative to \\(|\\boldsymbol{\\tau}|\\)) on a change of size \\(M|\\boldsymbol{\\tau}|\\). For the stiffest Maxwell elements (\\(M\\sim10^{-10}\\) at \\(\\eta\\sim10^{30}\\) Pa s) that error is of order one per step.\nElastic and fluid layers stay memory-free. A 3-D field modulates only the Maxwell layers; the elastic lithosphere of the earth model remains exactly elastic and laterally uniform, whatever the file prescribes there.\n\nThe lateral field is read as absolute \\(\\log_{10}\\eta(\\text{lon},\\text{lat},r)\\) (visc_3d_file, default the Bagge et al. (2021) field), bounded by visc_log10_min / visc_log10_max, and optionally perturbed by f_visc_sd standard deviations for uncertainty ensembles.",
     "crumbs": [
       "Overview",
       "Physics",
@@ -982,7 +1078,7 @@
     "href": "physics/rheology.html#stability",
     "title": "Maxwell rheology and the memory stress",
     "section": "Stability",
-    "text": "Stability\nThe explicit scheme is conditionally stable: the step is bounded by the shortest Maxwell time present,\n\\[\n\\Delta t \\;\\lesssim\\; \\frac{2\\,\\eta_{\\min}}{\\mu}.\n\\]\nIn practice a viscosity floor (e.g. \\(\\sim 10^{19}\\ \\mathrm{Pa\\,s}\\)) caps the fastest relaxation and sets a usable step (VILMA-v1-scale runs use \\(\\Delta t \\approx 2.5\\) yr; the benchmark cases here use 20 yr). Elastic layers (\\(M\\to 0\\)) freeze and carry no memory; fluid layers (\\(\\mu = 0\\)) carry no memory either.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nvilma_viscoelastic holds both the 1D per-degree stepper (ve_degree) and the shared per-element kernel. The memory state is the only prognostic field carried across a restart (vilma_io). Time integration is validated by test_relax (a held load relaxes elastic \\(\\to\\) fluid, \\(t_{\\text{relax}}\\propto\\eta\\), step-converged) and is benchmarked in Sea-level equation.",
+    "text": "Stability\nThe explicit scheme is conditionally stable: \\(|1-M| &lt; 1\\) bounds the step by the shortest Maxwell time present,\n\\[\n\\Delta t \\;&lt;\\; \\frac{2\\,\\eta_{\\min}}{\\mu}.\n\\]\nThe \"fe\" stepper keeps a factor-2 margin: it splits each coupling interval into equal sub-steps with \\(M \\le\\) cfl (default 1). A guard rolls a sub-step back and halves it if the memory norm grows abnormally; it normally never fires. A viscosity floor (visc_log10_min, default \\(10^{19.5}\\) Pa s) caps the fastest relaxation of a 3-D field and so sets a usable step. \"trap\" is A-stable and chooses its step by accuracy alone. Elastic layers (\\(M\\to 0\\)) freeze and carry no memory; fluid layers (\\(\\mu = 0\\)) carry no memory either.\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nvilma_viscoelastic holds both the 1D per-degree stepper (ve_degree) and the shared per-element kernel. The memory state is the only prognostic field carried across a restart (vilma_io). Time integration is validated by test_relax (a held load relaxes elastic \\(\\to\\) fluid, \\(t_{\\text{relax}}\\propto\\eta\\), step-converged) and is benchmarked in Sea-level equation.",
     "crumbs": [
       "Overview",
       "Physics",
@@ -1054,7 +1150,7 @@
     "href": "physics/governing-equations.html#conventions-and-constants",
     "title": "Governing equations",
     "section": "Conventions and constants",
-    "text": "Conventions and constants\n\nDensities: the benchmark density set is fixed once, \\(\\rho_{\\text{ice}} = 931\\), \\(\\rho_{\\text{water}} = 1000\\ \\mathrm{kg\\,m^{-3}}\\); surface gravity \\(g_0 = 9.815\\ \\mathrm{m\\,s^{-2}}\\). Mass — not volume — is conserved, applying \\(\\rho_{\\text{ice}}/\\rho_{\\text{water}}\\) exactly once in each of the flotation criterion, the eustatic conversion, and the sea-level equation.\nDegree 1 is frame-dependent. The geocenter (degree-1) signal is physical and is not hard-coded; it is solved in the CM frame (Blewitt 2003). See Sea-level equation and Radial finite elements.\n\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nThe governing equations are realized in vilma_earth_structure (reference layers and gravity), vilma_radial_fe (the assembled energy-Hessian operator), and vilma_viscoelastic (the Maxwell memory term). The continuous-to-discrete mapping is documented term-by-term in the repository’s doc/formulation.md.",
+    "text": "Conventions and constants\n\nDensities: the benchmark density set is fixed once, \\(\\rho_{\\text{ice}} = 931\\), \\(\\rho_{\\text{water}} = 1000\\ \\mathrm{kg\\,m^{-3}}\\); surface gravity \\(g_0 = 9.815\\ \\mathrm{m\\,s^{-2}}\\). Mass — not volume — is conserved, applying \\(\\rho_{\\text{ice}}/\\rho_{\\text{water}}\\) exactly once in each of the flotation criterion, the eustatic conversion, and the sea-level equation.\nDegree 1 is frame-dependent. The geocenter (degree-1) signal is physical and is not hard-coded. By default displacement and geoid are both expressed in the centre-of-mass (CM) frame (Blewitt 2003) (deg1_frame = \"cm\"). See Sea-level equation and Radial finite elements.\n\n\n\n\n\n\n\nTipWhere this lives in the code\n\n\n\nThe governing equations are realized in vilma_earth_structure (reference layers and gravity), vilma_radial_fe (the assembled energy-Hessian operator), and vilma_viscoelastic (the Maxwell memory term). The continuous-to-discrete mapping is documented term-by-term in the repository’s doc/formulation.md.",
     "crumbs": [
       "Overview",
       "Physics",
