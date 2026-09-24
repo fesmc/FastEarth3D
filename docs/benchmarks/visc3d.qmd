@@ -1,0 +1,147 @@
+---
+title: "Benchmark: lateral viscosity (Klemann et al.)"
+---
+
+::: {.callout-note appearance="minimal"}
+**Reference:** community benchmark of GIA codes with laterally heterogeneous
+earth structure, setup note by Klemann et al. [@Klemann2022setup]
+(`doc/refs/klemann-visc3d-benchmarks-setup.pdf`). **Driver:**
+`bench_klemann3d` (not in `make check`). **Status:** 🔧 set up and run at
+low resolution; no reference solutions published yet.
+:::
+
+The benchmark follows @Spada2011 and @Martinec2018 but adds a
+**low-viscosity column** under or near an ice load. It isolates the effect of
+lateral viscosity on vertical and horizontal displacement, on the gravitational
+potential, and on geocentre motion. The note defines compressible and
+incompressible variants; VILMA is incompressible, so only **A-i, B-i and C-i**
+are run.
+
+## Setup
+
+**Earth.** M3–L70–V01 (as for the [Love numbers](love-numbers.qmd)), with
+interfaces added at 60 and 220 km depth so that FE nodes bound the structure.
+The 60–70 km part of the lithosphere is made Maxwell with
+$\eta = 10^{30}$ Pa s, because an elastic element cannot carry a lateral
+viscosity. This split changes the test-A result by $\lesssim 4\times10^{-9}$
+relative.
+
+**Structure.** A rotationally symmetric column over 60–220 km depth, centred at
+$(\vartheta_S, \lambda_S)$, with a smoothed-Heaviside profile in the angular
+distance $\vartheta$ from its centre:
+
+$$
+\log_{10}\eta = \log_{10}\eta_\text{ref}
+  + \left(\log_{10}\eta_c - \log_{10}\eta_\text{ref}\right) H(\vartheta),
+\qquad
+H(\vartheta) = \left[1 + e^{2(\vartheta-\vartheta_w)/d}\right]^{-1},
+$$
+
+with half-width $\vartheta_w = 12°$, edge width $d = 1°$ and centre viscosity
+$\eta_c = 10^{18}$ Pa s. That is a drop of 3 orders of magnitude in the mantle
+and 12 in the 60–70 km lithosphere, which the note asks to reach the same centre
+value.
+
+**Load.** A cap of radius $\alpha = 10°$ with a square-root profile,
+
+$$
+\sigma(\vartheta) = \rho_\text{ice}\, h_L
+  \sqrt{\frac{\cos\vartheta - \cos\alpha}{1 - \cos\alpha}},
+\qquad h_L = 1500\ \mathrm{m},\ \rho_\text{ice} = 931\ \mathrm{kg\,m^{-3}},
+$$
+
+centred at $(\vartheta_L, \lambda_L)$. Its SH coefficients are exact: Gauss–Legendre
+quadrature in $s$ with $\cos\vartheta = \cos\alpha + (1-\cos\alpha)s^2$ turns the
+square-root edge into a polynomial, and the addition theorem rotates the cap to
+its centre. Two forcings: **heav** (load applied at $t=0$) and **ramp**
+(thickness linear over 0–10 kyr, then held). No ocean, no rotation.
+
+| test | structure $(\vartheta_S, \lambda_S)$ | load $(\vartheta_L, \lambda_L)$ | geometry |
+|---|---|---|---|
+| A-i | none (S0) | (0°, 0°) | 1-D reference |
+| B-i | (0°, 0°) | (0°, 0°) | axisymmetric, structure under load |
+| C-i | (35°, 25°) | (30°, 25°) | off-axis, structure and load overlap |
+
+A and B are axisymmetric and run with $m_\max = 0$; C runs the full spectrum.
+
+**Time stepping.** Explicit (`fe`) memory update. $\Delta t$ is set by the
+Maxwell ceiling at $\eta_c$ ($\mu\Delta t/\eta_c \le 1$), rounded to divide
+100 yr, which gives $\Delta t = 0.448$ yr. All three tests use the same
+$\Delta t$, so their differences come from the structure alone.
+
+### Readings of the setup note
+
+The note is a draft and a few points had to be interpreted:
+
+- The half-width of the structure is 12° in the text and 10° in the table;
+  12° is used.
+- $\Delta\eta = -10^3$ is read as a factor $10^{-3}$ in log space (the formula
+  in the note gives $\eta = 0$ for S0, $\Delta\eta = 0$).
+- The prose swaps the ice and water densities; the table's values
+  ($\rho_\text{ice} = 931$, $\rho_w = 1000$) are used.
+- "$\vartheta_S$ and $\alpha$ are increased" in the ramp is read as the
+  @Spada2011 ramp: the ice **thickness** grows linearly, the geometry is fixed.
+- The model's own constants (seconds per year, $G$) are used; they differ from
+  the note's by $\lesssim 10^{-4}$ relative.
+
+## Output
+
+At the epochs 0.1, 0.2, 0.5, 1, 2, 5, 10, 11, 12, 15, 20, 50 and 100 kyr, the
+fields are evaluated at points every 0.1°. The points lie along the great circle
+from the structure centre through the load centre to the antipode. For A and B,
+where both centres sit at the pole, that circle is the $\lambda = 0$ meridian.
+The files follow the protocol (tab-delimited, `#` header):
+
+- `disp_VILMA2_<T>-i_<forcing>.txt`: longitude, latitude, distance along the
+  section [deg], time [kyr], $u_r$, $u_\vartheta$, $u_\varphi$ [m] and
+  $\delta\phi$ [m² s⁻²].
+- `gcm_VILMA2_<T>-i_<forcing>.txt`: time [kyr] and the geocentre offset
+  $u_\text{gcm} = u_\text{CF} - u_\text{CM}$ ($x, y, z$ [m]).
+
+Conventions:
+
+- **Frame.** Displacements are in the CM frame (`deg1_frame = "cm"`). Then
+  $u_\text{gcm} = u_\text{CF}$, the surface mean of the displacement vector,
+  $(U_1 + 2V_1)/3$ in Cartesian components [@Blewitt2003].
+- **Potential.** $\delta\phi = -F(a) = g N$, which includes the load's own
+  potential.
+- **Horizontal displacement** is spheroidal plus [toroidal](../physics/toroidal.qmd).
+  Its components are in the local geographic basis, so $u_\vartheta$ changes
+  sign where the section crosses a pole. At the pole itself, the basis is that
+  of the meridian the section runs along.
+
+## Running
+
+```bash
+make bench_klemann3d openmp=1
+ulimit -s unlimited; OMP_STACKSIZE=256M ./bin/bench_klemann3d.x C heav 128
+```
+
+The arguments are `<A|B|C> <heav|ramp> [lmax=128] [t_end_kyr=100]
+[outdir=runs/klemann3d]`. `analysis/plot_klemann3d.jl [dir] [heav|ramp]` plots
+the cross-sections and the geocentre motion.
+
+The step count is set by $\eta_c$: 223 000 steps to 100 kyr. At
+$\ell_\max = 64$ with 8 threads (laptop), a C run costs about 53 ms per step,
+or about 3.3 h. A and B, with $m_\max = 0$, take minutes. The target
+resolution is $\ell_\max = 128$.
+
+## Result
+
+Only a short test so far ($\ell_\max = 64$, to 2 kyr). The load mass matches the
+closed form exactly. The geocentre offset is about $-4$ m along the load axis,
+which is the expected size for $3.6\times10^{18}$ kg of ice, and for C it points
+towards the load's longitude. At $\ell_\max = 64$, B shows Gibbs ringing with a
+~3° period and a bulge at the structure edge: the 1° edge width is not resolved.
+The full runs at $\ell_\max = 128$ are to follow.
+
+## Figures
+
+*Figures to be added: $u_r$, $u_\vartheta$, $u_\varphi$, $\delta\phi$ along the
+section for A/B/C; geocentre motion; comparison with the other codes once
+available.*
+
+<!--
+![Cross-sections, heav](figures/visc3d_sections_heav.png)
+![Geocentre motion](figures/visc3d_gcm.png)
+-->
