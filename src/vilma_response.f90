@@ -706,8 +706,8 @@ contains
       real(wp), allocatable :: fre(:), fim(:), xre(:), xim(:)
       real(wp), allocatable :: gre(:), gim(:), wre(:), wim(:)
       logical :: tor
-      integer :: k, l, node, e, mm
-      real(wp) :: thr, mk
+      integer :: k, l, node, nb
+      real(wp) :: thr
       integer(kind=8) :: pc0, pc1, prate           ! PROFILE: drift-solve wall-clock
       call system_clock(pc0, prate)
 
@@ -715,17 +715,15 @@ contains
       ! vs the solves) so it is always consistent — including after a restart, which
       ! reloads the memory arrays but not this derived cache. Explicit loop (no
       ! abs(slice) temporaries, which would each heap-allocate).
-      !$omp parallel do default(shared) private(k, e, mm, mk) schedule(static)
+      ! Each (nlam, ne) slot block is contiguous, so it is scanned as one flat run
+      ! of nb values (absmax6): a runtime-width channel loop inside the element
+      ! loop does not vectorize, and cost the 1-D drift solve 5 % once nlam
+      ! stopped being NLAM.
+      nb = self%nlam*self%ne
+      !$omp parallel do default(shared) private(k) schedule(static)
       do k = 1, self%nk
-         mk = 0.0_wp
-         do e = 1, self%ne
-            do mm = 1, self%nlam
-               mk = max(mk, abs(self%Are(mm,e,k)), abs(self%Bre(mm,e,k)), &
-                           abs(self%Cre(mm,e,k)), abs(self%Aim(mm,e,k)), &
-                           abs(self%Bim(mm,e,k)), abs(self%Cim(mm,e,k)))
-            end do
-         end do
-         self%mnorm(k) = mk
+         self%mnorm(k) = absmax6(nb, self%Are(1,1,k), self%Bre(1,1,k), self%Cre(1,1,k), &
+                                 self%Aim(1,1,k), self%Bim(1,1,k), self%Cim(1,1,k))
       end do
       !$omp end parallel do
       ! Skip the drift solve for coefficients with negligible memory (their drift is
@@ -809,6 +807,37 @@ contains
       call system_clock(pc1)
       self%t_drift = self%t_drift + real(pc1-pc0,wp)/prate;  self%n_drift = self%n_drift + 1
    end subroutine solve_drift
+
+   pure real(wp) function absmax6(n, x1, x2, x3, x4, x5, x6) result(amax)
+      !! max|x| over six contiguous blocks of n values each (0 for n = 0): the six
+      !! memory arrays of one (l,m) slot. Exact, so the scan order cannot move a bit.
+      !! One loop over all six, not six loops: at low thread counts the scan is
+      !! latency-bound, and six concurrent streams draw more bandwidth than one
+      !! at a time. Callers pass each block's first element, A(1,1,k), not the
+      !! section A(:,:,k), which ifx copied into a temporary first.
+      integer,  intent(in) :: n
+      real(wp), intent(in) :: x1(n), x2(n), x3(n), x4(n), x5(n), x6(n)
+      integer :: i
+      amax = 0.0_wp
+      do i = 1, n
+         amax = max(amax, abs(x1(i)), abs(x2(i)), abs(x3(i)), &
+                          abs(x4(i)), abs(x5(i)), abs(x6(i)))
+      end do
+   end function absmax6
+
+   pure real(wp) function absdiffmax6(n, x1, x2, x3, x4, x5, x6, y1, y2, y3, y4, y5, y6) &
+         result(dmax)
+      !! max|x − y| over six pairs of contiguous blocks, as absmax6.
+      integer,  intent(in) :: n
+      real(wp), intent(in) :: x1(n), x2(n), x3(n), x4(n), x5(n), x6(n)
+      real(wp), intent(in) :: y1(n), y2(n), y3(n), y4(n), y5(n), y6(n)
+      integer :: i
+      dmax = 0.0_wp
+      do i = 1, n
+         dmax = max(dmax, abs(x1(i) - y1(i)), abs(x2(i) - y2(i)), abs(x3(i) - y3(i)), &
+                          abs(x4(i) - y4(i)), abs(x5(i) - y5(i)), abs(x6(i) - y6(i)))
+      end do
+   end function absdiffmax6
 
    subroutine ve_response_apply(self, sht, sigma_lm, u_lm, n_lm)
       !! Affine response at the frozen time: u = gu(l)·σ + drift_U,
@@ -1712,29 +1741,23 @@ contains
       !! for the controller's scaled local-error estimate.
       type(response), intent(in)  :: self
       real(wp),           intent(out) :: err_inf, tau_inf
-      integer  :: k, e, m
-      real(wp) :: d, t
+      integer  :: k, nb
       ! Explicit threaded loop for the same reason response_memory_norm uses one:
       ! the maxval(abs(A - B)) form this replaced built TWELVE full (NLAM,ne,nk)
-      ! heap temporaries per call, one per term, and ran serially.
+      ! heap temporaries per call, one per term, and ran serially. Each slot block
+      ! is scanned flat (see solve_drift).
+      nb = self%nlam*self%ne
       err_inf = 0.0_wp;  tau_inf = 0.0_wp
-      !$omp parallel do default(shared) private(k,e,m,d,t) schedule(static) &
+      !$omp parallel do default(shared) private(k) schedule(static) &
       !$omp   reduction(max:err_inf,tau_inf)
       do k = 1, self%nk
-         do e = 1, self%ne
-            do m = 1, self%nlam
-               d = max(abs(self%Are(m,e,k) - self%Are_c(m,e,k)), &
-                       abs(self%Aim(m,e,k) - self%Aim_c(m,e,k)), &
-                       abs(self%Bre(m,e,k) - self%Bre_c(m,e,k)), &
-                       abs(self%Bim(m,e,k) - self%Bim_c(m,e,k)), &
-                       abs(self%Cre(m,e,k) - self%Cre_c(m,e,k)), &
-                       abs(self%Cim(m,e,k) - self%Cim_c(m,e,k)))
-               t = max(abs(self%Are(m,e,k)), abs(self%Aim(m,e,k)), &
-                       abs(self%Bre(m,e,k)), abs(self%Bim(m,e,k)), &
-                       abs(self%Cre(m,e,k)), abs(self%Cim(m,e,k)))
-               err_inf = max(err_inf, d);  tau_inf = max(tau_inf, t)
-            end do
-         end do
+         err_inf = max(err_inf, absdiffmax6(nb, &
+                       self%Are(1,1,k), self%Aim(1,1,k), self%Bre(1,1,k), &
+                       self%Bim(1,1,k), self%Cre(1,1,k), self%Cim(1,1,k), &
+                       self%Are_c(1,1,k), self%Aim_c(1,1,k), self%Bre_c(1,1,k), &
+                       self%Bim_c(1,1,k), self%Cre_c(1,1,k), self%Cim_c(1,1,k)))
+         tau_inf = max(tau_inf, absmax6(nb, self%Are(1,1,k), self%Aim(1,1,k), &
+                       self%Bre(1,1,k), self%Bim(1,1,k), self%Cre(1,1,k), self%Cim(1,1,k)))
       end do
    end subroutine response_coarse_fine_error
 
@@ -1756,20 +1779,14 @@ contains
       !! runaway value flags an unstable sub-step). Explicit loop to avoid the
       !! abs(slice) heap temporaries maxval would create on these (NLAM,ne,nk) arrays.
       type(response), intent(in) :: self
-      integer  :: k, e, m
-      real(wp) :: v
+      integer  :: k, nb
       nrm = 0.0_wp
       if (.not. allocated(self%Are)) return
-      !$omp parallel do default(shared) private(k,e,m,v) reduction(max:nrm) schedule(static)
+      nb = self%nlam*self%ne                   ! slot blocks scanned flat (see solve_drift)
+      !$omp parallel do default(shared) private(k) reduction(max:nrm) schedule(static)
       do k = 1, self%nk
-         do e = 1, self%ne
-            do m = 1, self%nlam
-               v = max(abs(self%Are(m,e,k)), abs(self%Aim(m,e,k)), &
-                       abs(self%Bre(m,e,k)), abs(self%Bim(m,e,k)), &
-                       abs(self%Cre(m,e,k)), abs(self%Cim(m,e,k)))
-               if (v > nrm) nrm = v
-            end do
-         end do
+         nrm = max(nrm, absmax6(nb, self%Are(1,1,k), self%Aim(1,1,k), self%Bre(1,1,k), &
+                                    self%Bim(1,1,k), self%Cre(1,1,k), self%Cim(1,1,k)))
       end do
       !$omp end parallel do
    end function response_memory_norm

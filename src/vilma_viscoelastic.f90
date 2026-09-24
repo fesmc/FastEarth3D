@@ -503,6 +503,8 @@ contains
       !! forward-Euler kernel, so existing callers are unchanged.
       integer,  intent(in)    :: ne
       real(wp), intent(in)    :: mu(:), Mk(:), Un(:), Vn(:), Jr
+      !! Am/Bm/Cm may carry the toroidal channels too (NLAM+NLAM_TOR); only the
+      !! leading NLAM are advanced here, advance_memory_tor does the rest.
       real(wp), intent(inout) :: Am(:,:), Bm(:,:), Cm(:,:)   !! (NLAM or NLAM+NLAM_TOR, ne)
       integer,  intent(in),  optional :: scheme
       real(wp), intent(in),  optional :: Un_prev(:), Vn_prev(:)
@@ -512,8 +514,9 @@ contains
       !! elements spectrally and leave the genuinely-3-D ones to advance_memory_3d.
       logical,  intent(in),  optional :: active(:)
       real(wp) :: a(NLAM), b(NLAM), c(NLAM), ap(NLAM), bp(NLAM), cp(NLAM)
-      real(wp) :: locerr
-      integer  :: e, sch
+      real(wp) :: om, two_muM, Me, phi1, phi2, w_new, w_prev, twoMu, locerr
+      real(wp) :: denom, c_old, w_eps
+      integer  :: e, m, sch
 
       sch = SCHEME_FE;  if (present(scheme)) sch = scheme
       locerr = 0.0_wp
@@ -523,11 +526,63 @@ contains
             if (.not. active(e)) cycle      ! left to the pseudo-spectral 3-D path
          end if
          call strain_coeffs(Un(e), Un(e+1), Vn(e), Vn(e+1), Jr, a, b, c)
-         if (sch == SCHEME_ETD1 .or. sch == SCHEME_TRAP) &
+         Me = Mk(e)
+
+         if (sch == SCHEME_ETD1) then
+            call etd_phis(Me, phi1, phi2)
             call strain_coeffs(Un_prev(e), Un_prev(e+1), Vn_prev(e), Vn_prev(e+1), &
                                Jr, ap, bp, cp)
-         call maxwell_update(sch, Mk(e), mu(e), a, b, c, ap, bp, cp, &
-                             Am(1:NLAM,e), Bm(1:NLAM,e), Cm(1:NLAM,e), locerr)
+            om     = exp(-Me)
+            twoMu  = 2.0_wp*mu(e)
+            w_new  = twoMu*Me*phi2                 ! weight on ε_{n+1}
+            w_prev = twoMu*Me*(phi1 - phi2)        ! weight on ε_n
+            do m = 1, NLAM
+               Am(m,e) = om*Am(m,e) - w_prev*ap(m) - w_new*a(m)
+               Bm(m,e) = om*Bm(m,e) - w_prev*bp(m) - w_new*b(m)
+               Cm(m,e) = om*Cm(m,e) - w_prev*cp(m) - w_new*c(m)
+            end do
+            ! Embedded estimate: ETD1 minus ETD0 differs only in the forcing, by
+            ! w_prev·(ε_{n+1} − ε_n) per component (ETD0 weight on ε_{n+1} is 2μMφ₁).
+            do m = 1, NLAM
+               locerr = max(locerr, abs(w_prev*(a(m) - ap(m))), &
+                                    abs(w_prev*(b(m) - bp(m))), &
+                                    abs(w_prev*(c(m) - cp(m))))
+            end do
+         else if (sch == SCHEME_TRAP) then
+            ! Crank–Nicolson on dτ/dt = −(1/τ_M)(τ + 2με), with τ implicit:
+            ! τ_{n+1} = [(1−M/2)τ_n − μM(ε_n+ε_{n+1})] / (1+M/2). Here `a` is the
+            ! endpoint strain ε_{n+1} (Un) and `ap` the start strain ε_n (Un_prev).
+            call strain_coeffs(Un_prev(e), Un_prev(e+1), Vn_prev(e), Vn_prev(e+1), &
+                               Jr, ap, bp, cp)
+            denom = 1.0_wp + 0.5_wp*Me
+            c_old = (1.0_wp - 0.5_wp*Me)/denom
+            w_eps = mu(e)*Me/denom
+            do m = 1, NLAM
+               Am(m,e) = c_old*Am(m,e) - w_eps*(a(m) + ap(m))
+               Bm(m,e) = c_old*Bm(m,e) - w_eps*(b(m) + bp(m))
+               Cm(m,e) = c_old*Cm(m,e) - w_eps*(c(m) + cp(m))
+            end do
+         else if (sch == SCHEME_BE) then
+            ! Backward Euler: τ_{n+1} = (τ_n − 2μM ε_{n+1})/(1+M). 1st-order but
+            ! A-stable; the control that isolates "iterate the coupling" (implicit,
+            ! consistent) from "raise the memory-rule order" (TRAP). `a` is ε_{n+1}.
+            denom = 1.0_wp + Me
+            c_old = 1.0_wp/denom
+            w_eps = 2.0_wp*mu(e)*Me/denom
+            do m = 1, NLAM
+               Am(m,e) = c_old*Am(m,e) - w_eps*a(m)
+               Bm(m,e) = c_old*Bm(m,e) - w_eps*b(m)
+               Cm(m,e) = c_old*Cm(m,e) - w_eps*c(m)
+            end do
+         else
+            om      = 1.0_wp - Me
+            two_muM = 2.0_wp*mu(e)*Me
+            do m = 1, NLAM
+               Am(m,e) = om*Am(m,e) - two_muM*a(m)
+               Bm(m,e) = om*Bm(m,e) - two_muM*b(m)
+               Cm(m,e) = om*Cm(m,e) - two_muM*c(m)
+            end do
+         end if
       end do
 
       if (present(err)) err = locerr
@@ -537,11 +592,11 @@ contains
                                       scheme, Wn_prev, active)
       !! advance_memory for the toroidal channels λ = 3,4 (NLAM+1..NLAM+NLAM_TOR of
       !! the full-width memory), from the nodal W. The Maxwell rule is the same
-      !! per-channel scalar recurrence (maxwell_update), so every scheme carries
+      !! per-channel scalar recurrence (the maxwell_* kernels), so every scheme carries
       !! over unchanged; only the strain map differs.
       integer,  intent(in)    :: ne
       real(wp), intent(in)    :: mu(:), Mk(:), Wn(:), Jr
-      real(wp), intent(inout) :: Am(:,:), Bm(:,:), Cm(:,:)   !! (NLAM+NLAM_TOR, ne)
+      real(wp), intent(inout), contiguous :: Am(:,:), Bm(:,:), Cm(:,:)   !! (NLAM+NLAM_TOR, ne)
       integer,  intent(in),  optional :: scheme
       real(wp), intent(in),  optional :: Wn_prev(:)
       logical,  intent(in),  optional :: active(:)
@@ -557,75 +612,111 @@ contains
          call strain_coeffs_tor(Wn(e), Wn(e+1), Jr, a, b, c)
          if (sch == SCHEME_ETD1 .or. sch == SCHEME_TRAP) &
             call strain_coeffs_tor(Wn_prev(e), Wn_prev(e+1), Jr, ap, bp, cp)
-         call maxwell_update(sch, Mk(e), mu(e), a, b, c, ap, bp, cp, &
-                             Am(NLAM+1:,e), Bm(NLAM+1:,e), Cm(NLAM+1:,e), locerr)
+         associate (At => Am(NLAM+1:NLAM+NLAM_TOR,e), Bt => Bm(NLAM+1:NLAM+NLAM_TOR,e), &
+                    Ct => Cm(NLAM+1:NLAM+NLAM_TOR,e))
+         select case (sch)
+         case (SCHEME_ETD1)
+            call maxwell_etd1(NLAM_TOR, Mk(e), mu(e), a, b, c, ap, bp, cp, At, Bt, Ct, locerr)
+         case (SCHEME_TRAP)
+            call maxwell_trap(NLAM_TOR, Mk(e), mu(e), a, b, c, ap, bp, cp, At, Bt, Ct)
+         case (SCHEME_BE)
+            call maxwell_be(NLAM_TOR, Mk(e), mu(e), a, b, c, At, Bt, Ct)
+         case default
+            call maxwell_fe(NLAM_TOR, Mk(e), mu(e), a, b, c, At, Bt, Ct)
+         end select
+         end associate
       end do
    end subroutine advance_memory_tor
 
-   pure subroutine maxwell_update(sch, Me, mu_e, a, b, c, ap, bp, cp, Am, Bm, Cm, locerr)
-      !! One element's memory advance, channel by channel: the scheme formulas of
-      !! advance_memory applied to shape coefficients (A,B,C) from the endpoint
-      !! strain (a,b,c) and, for ETD1/TRAP, the start strain (ap,bp,cp). Shared by
-      !! the spheroidal and toroidal channels; `locerr` accumulates ETD1's
-      !! embedded error estimate.
-      integer,  intent(in)    :: sch
-      real(wp), intent(in)    :: Me, mu_e, a(:), b(:), c(:), ap(:), bp(:), cp(:)
-      real(wp), intent(inout) :: Am(:), Bm(:), Cm(:), locerr
-      real(wp) :: om, two_muM, phi1, phi2, w_new, w_prev, twoMu, denom, c_old, w_eps
-      integer  :: m
+   ! The toroidal channels' memory advance, per scheme, for advance_memory_tor:
+   ! the formulas of advance_memory applied to shape coefficients (A,B,C) from the
+   ! endpoint strain (a,b,c) and, for ETD1/TRAP, the start strain (ap,bp,cp), over
+   ! `n` = NLAM_TOR channels. advance_memory keeps its own inline NLAM loops rather
+   ! than calling these: it is the hot path of every run, and routing it through
+   ! shared kernels cost the 1-D memory advance 1.5-2.3x (not inlined, then
+   ! vectorized worse than the scalar loops), which the toroidal path, taken only
+   ! with genuinely 3-D elements, can afford.
 
-      if (sch == SCHEME_ETD1) then
-         call etd_phis(Me, phi1, phi2)
-         om     = exp(-Me)
-         twoMu  = 2.0_wp*mu_e
-         w_new  = twoMu*Me*phi2                 ! weight on ε_{n+1}
-         w_prev = twoMu*Me*(phi1 - phi2)        ! weight on ε_n
-         do m = 1, size(a)
-            Am(m) = om*Am(m) - w_prev*ap(m) - w_new*a(m)
-            Bm(m) = om*Bm(m) - w_prev*bp(m) - w_new*b(m)
-            Cm(m) = om*Cm(m) - w_prev*cp(m) - w_new*c(m)
-         end do
-         ! Embedded estimate: ETD1 minus ETD0 differs only in the forcing, by
-         ! w_prev·(ε_{n+1} − ε_n) per component (ETD0 weight on ε_{n+1} is 2μMφ₁).
-         do m = 1, size(a)
-            locerr = max(locerr, abs(w_prev*(a(m) - ap(m))), &
-                                 abs(w_prev*(b(m) - bp(m))), &
-                                 abs(w_prev*(c(m) - cp(m))))
-         end do
-      else if (sch == SCHEME_TRAP) then
-         ! Crank–Nicolson on dτ/dt = −(1/τ_M)(τ + 2με), with τ implicit:
-         ! τ_{n+1} = [(1−M/2)τ_n − μM(ε_n+ε_{n+1})] / (1+M/2). Here `a` is the
-         ! endpoint strain ε_{n+1} (Un) and `ap` the start strain ε_n (Un_prev).
-         denom = 1.0_wp + 0.5_wp*Me
-         c_old = (1.0_wp - 0.5_wp*Me)/denom
-         w_eps = mu_e*Me/denom
-         do m = 1, size(a)
-            Am(m) = c_old*Am(m) - w_eps*(a(m) + ap(m))
-            Bm(m) = c_old*Bm(m) - w_eps*(b(m) + bp(m))
-            Cm(m) = c_old*Cm(m) - w_eps*(c(m) + cp(m))
-         end do
-      else if (sch == SCHEME_BE) then
-         ! Backward Euler: τ_{n+1} = (τ_n − 2μM ε_{n+1})/(1+M). 1st-order but
-         ! A-stable; the control that isolates "iterate the coupling" (implicit,
-         ! consistent) from "raise the memory-rule order" (TRAP). `a` is ε_{n+1}.
-         denom = 1.0_wp + Me
-         c_old = 1.0_wp/denom
-         w_eps = 2.0_wp*mu_e*Me/denom
-         do m = 1, size(a)
-            Am(m) = c_old*Am(m) - w_eps*a(m)
-            Bm(m) = c_old*Bm(m) - w_eps*b(m)
-            Cm(m) = c_old*Cm(m) - w_eps*c(m)
-         end do
-      else
-         om      = 1.0_wp - Me
-         two_muM = 2.0_wp*mu_e*Me
-         do m = 1, size(a)
-            Am(m) = om*Am(m) - two_muM*a(m)
-            Bm(m) = om*Bm(m) - two_muM*b(m)
-            Cm(m) = om*Cm(m) - two_muM*c(m)
-         end do
-      end if
-   end subroutine maxwell_update
+   pure subroutine maxwell_fe(n, Me, mu_e, a, b, c, Am, Bm, Cm)
+      !! Forward Euler: τ_{n+1} = (1−M)τ_n − 2μM ε_{n+1}.
+      integer,  intent(in)    :: n
+      real(wp), intent(in)    :: Me, mu_e, a(n), b(n), c(n)
+      real(wp), intent(inout) :: Am(n), Bm(n), Cm(n)
+      real(wp) :: om, two_muM
+      integer  :: m
+      om      = 1.0_wp - Me
+      two_muM = 2.0_wp*mu_e*Me
+      do m = 1, n
+         Am(m) = om*Am(m) - two_muM*a(m)
+         Bm(m) = om*Bm(m) - two_muM*b(m)
+         Cm(m) = om*Cm(m) - two_muM*c(m)
+      end do
+   end subroutine maxwell_fe
+
+   pure subroutine maxwell_etd1(n, Me, mu_e, a, b, c, ap, bp, cp, Am, Bm, Cm, locerr)
+      !! ETD1, linear strain over the step; `locerr` accumulates the embedded
+      !! estimate ETD1 − ETD0.
+      integer,  intent(in)    :: n
+      real(wp), intent(in)    :: Me, mu_e, a(n), b(n), c(n), ap(n), bp(n), cp(n)
+      real(wp), intent(inout) :: Am(n), Bm(n), Cm(n), locerr
+      real(wp) :: om, phi1, phi2, w_new, w_prev, twoMu
+      integer  :: m
+      call etd_phis(Me, phi1, phi2)
+      om     = exp(-Me)
+      twoMu  = 2.0_wp*mu_e
+      w_new  = twoMu*Me*phi2                 ! weight on ε_{n+1}
+      w_prev = twoMu*Me*(phi1 - phi2)        ! weight on ε_n
+      do m = 1, n
+         Am(m) = om*Am(m) - w_prev*ap(m) - w_new*a(m)
+         Bm(m) = om*Bm(m) - w_prev*bp(m) - w_new*b(m)
+         Cm(m) = om*Cm(m) - w_prev*cp(m) - w_new*c(m)
+      end do
+      ! Embedded estimate: ETD1 minus ETD0 differs only in the forcing, by
+      ! w_prev·(ε_{n+1} − ε_n) per component (ETD0 weight on ε_{n+1} is 2μMφ₁).
+      do m = 1, n
+         locerr = max(locerr, abs(w_prev*(a(m) - ap(m))), &
+                              abs(w_prev*(b(m) - bp(m))), &
+                              abs(w_prev*(c(m) - cp(m))))
+      end do
+   end subroutine maxwell_etd1
+
+   pure subroutine maxwell_trap(n, Me, mu_e, a, b, c, ap, bp, cp, Am, Bm, Cm)
+      !! Crank–Nicolson on dτ/dt = −(1/τ_M)(τ + 2με), with τ implicit:
+      !! τ_{n+1} = [(1−M/2)τ_n − μM(ε_n+ε_{n+1})] / (1+M/2). `a` is the endpoint
+      !! strain ε_{n+1} (Un) and `ap` the start strain ε_n (Un_prev).
+      integer,  intent(in)    :: n
+      real(wp), intent(in)    :: Me, mu_e, a(n), b(n), c(n), ap(n), bp(n), cp(n)
+      real(wp), intent(inout) :: Am(n), Bm(n), Cm(n)
+      real(wp) :: denom, c_old, w_eps
+      integer  :: m
+      denom = 1.0_wp + 0.5_wp*Me
+      c_old = (1.0_wp - 0.5_wp*Me)/denom
+      w_eps = mu_e*Me/denom
+      do m = 1, n
+         Am(m) = c_old*Am(m) - w_eps*(a(m) + ap(m))
+         Bm(m) = c_old*Bm(m) - w_eps*(b(m) + bp(m))
+         Cm(m) = c_old*Cm(m) - w_eps*(c(m) + cp(m))
+      end do
+   end subroutine maxwell_trap
+
+   pure subroutine maxwell_be(n, Me, mu_e, a, b, c, Am, Bm, Cm)
+      !! Backward Euler: τ_{n+1} = (τ_n − 2μM ε_{n+1})/(1+M). 1st-order but
+      !! A-stable; the control that isolates "iterate the coupling" (implicit,
+      !! consistent) from "raise the memory-rule order" (TRAP). `a` is ε_{n+1}.
+      integer,  intent(in)    :: n
+      real(wp), intent(in)    :: Me, mu_e, a(n), b(n), c(n)
+      real(wp), intent(inout) :: Am(n), Bm(n), Cm(n)
+      real(wp) :: denom, c_old, w_eps
+      integer  :: m
+      denom = 1.0_wp + Me
+      c_old = 1.0_wp/denom
+      w_eps = 2.0_wp*mu_e*Me/denom
+      do m = 1, n
+         Am(m) = c_old*Am(m) - w_eps*a(m)
+         Bm(m) = c_old*Bm(m) - w_eps*b(m)
+         Cm(m) = c_old*Cm(m) - w_eps*c(m)
+      end do
+   end subroutine maxwell_be
 
    pure subroutine etd_phis(M, phi1, phi2)
       !! φ-functions for the linear-strain exponential update:
