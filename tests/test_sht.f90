@@ -7,14 +7,14 @@ program test_sht
    use, intrinsic :: iso_c_binding, only: c_double
    use vilma_precision, only: wp
    use vilma_sht,       only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_synthesis, sht_grid_analysis, sht_grid_surface_integral, sht_grid_destroy, &
-                           sht_grid_sph_synthesis, sht_grid_tor_synthesis, sht_grid_sphtor_synthesis, sht_grid_sphtor_analysis
+                           sht_grid_sph_synthesis, sht_grid_tor_synthesis, sht_grid_sphtor_synthesis, sht_grid_sphtor_analysis, sht_grid_eval_point_horiz
    implicit none
 
    type(sht_grid) :: g
    integer  :: lmax, l, m, lm, j
    real(wp),    allocatable :: sh(:,:)
    complex(wp), allocatable :: slm(:), slm0(:)
-   real(wp) :: err, tol, fourpi, area, integ, y10err, torerr, orth
+   real(wp) :: err, tol, fourpi, area, integ, y10err, torerr, orth, vth1, vph1
    real(wp),    allocatable :: st(:,:), sp(:,:), tt(:,:), tp(:,:)
    complex(wp), allocatable :: s1(:), t1(:), t0(:)
    logical  :: ok
@@ -128,6 +128,19 @@ program test_sht
    orth = max(orth, maxval(abs(t1)))
    print '(a,es12.4)', ' sph/tor cross-talk                   = ', orth
    if (orth >= 1.0e-12_wp) ok = .false.
+
+   ! --- Point evaluation of ∇₁S + e_r×∇₁T matches the grid synthesis -----------
+   ! eval_point_horiz with t_lm must use the same toroidal orientation as
+   ! sphtor_synthesis; checked at a few grid nodes off the equator.
+   call sht_grid_sphtor_synthesis(g, s1, t0, st, sp)
+   err = 0.0_wp
+   do j = 5, g%nlat - 4, 7
+      call sht_grid_eval_point_horiz(g, s1, g%colat(j), g%lon(3), vth1, vph1, t_lm=t0)
+      err = max(err, abs(vth1 - st(3,j)), abs(vph1 - sp(3,j)))
+   end do
+   err = err / maxval(abs(st) + abs(sp))
+   print '(a,es12.4)', ' eval_point_horiz(s,t) vs sphtor synth = ', err
+   if (err >= 1.0e-12_wp) ok = .false.
 
    call sht_grid_destroy(g)
 
