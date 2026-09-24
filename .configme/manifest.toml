@@ -1,5 +1,5 @@
 # configme manifest for VILMA v2.
-package = "vilma"
+package = "vilma2"
 deps = [
     "fesm-utils:dev",
 ]
