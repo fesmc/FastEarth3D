@@ -6,7 +6,7 @@
     ! &vilma below carries physics overrides; run I/O is in the &ctl group.
     ! ====================================================================
     lmax         = 64
-    scheme       = "trap"
+    scheme       = "fe"
 
     equil_time_max = 50000.0   ! full-model LGM-memory spin-up cap [years]; >0 equilibrates
                                ! the LGM state first (else i_eq=1 starts at the present-day
