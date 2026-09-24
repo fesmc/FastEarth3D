@@ -70,5 +70,5 @@ figures (to be added as the benchmark figures are generated):
 - **[Disc-load response](disc.qmd)** — vertical displacement, geoid, and uplift
   rate for the 10° disc.
 - **[Sea-level equation](sea-level.qmd)** — the five @Martinec2018 cases.
-- **[Lateral viscosity](visc3d.qmd)** — the Klemann et al. 3D benchmark,
+- **[Lateral viscosity](visc3d.qmd)** — the 3D lateral-viscosity benchmark
   tests A-i, B-i, C-i.

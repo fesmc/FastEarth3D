@@ -7,7 +7,7 @@
         {   "main"  : "bin/vilma.x",
             "mkref" : "bin/vilma_mkref.x",
             "remap" : "bin/vilma_remap.x",
-            "klemann3d" : "bin/bench_klemann3d.x"
+            "visc3d" : "bin/bench_visc3d.x"
         },
 
     "grp_aliases" : {},

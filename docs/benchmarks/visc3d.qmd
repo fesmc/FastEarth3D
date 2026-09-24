@@ -1,12 +1,12 @@
 ---
-title: "Benchmark: lateral viscosity (Klemann et al.)"
+title: "Benchmark: lateral viscosity"
 ---
 
 ::: {.callout-note appearance="minimal"}
 **Reference:** community benchmark of GIA codes with laterally heterogeneous
 earth structure, setup note by Klemann et al. [@Klemann2022setup]
 (`doc/refs/klemann-visc3d-benchmarks-setup.pdf`). **Driver:**
-`bench_klemann3d` (not in `make check`). **Status:** 🔧 set up and run at
+`bench_visc3d` (not in `make check`). **Status:** 🔧 set up and run at
 low resolution; no reference solutions published yet.
 :::
 
@@ -112,29 +112,29 @@ Conventions:
 
 ## Running
 
-The run config is `examples/klemann3d.nml`. Its `&klemann` group sets `test`
+The run config is `examples/bench_visc3d.nml`. Its `&benchv3d` group sets `test`
 (`A`/`B`/`C`), `forcing` (`heav`/`ramp`) and `time_end` [years]. From `&vilma`
 only `lmax` (default 128), `l_toroidal` (on) and `visc3d_tol` are read. The
 earth model, memory scheme, degree-1 frame and grid are fixed by the benchmark.
 The protocol files are written to the working directory.
 
 Build, then submit all six cases as one runme ensemble (runme alias
-`klemann3d`):
+`visc3d`):
 
 ```bash
-make bench_klemann3d openmp=1
-runme -o runs/klemann3d -e klemann3d -n examples/klemann3d.nml --omp 64 \
-      -p klemann.test=A,B,C klemann.forcing=heav,ramp -s
+make bench_visc3d openmp=1
+runme -o runs/bench_visc3d -e visc3d -n examples/bench_visc3d.nml --omp 64 \
+      -p benchv3d.test=A,B,C benchv3d.forcing=heav,ramp -s
 ```
 
 Use `-r` instead of `-s` to run locally, and add e.g. `vilma.lmax=64
-klemann.time_end=2000` for a short test. At $\ell_\max \ge 128$ the 3-D path
+benchv3d.time_end=2000` for a short test. At $\ell_\max \ge 128$ the 3-D path
 needs a large stack: the SLURM template sets it, but a local run needs
 `ulimit -s unlimited` and `OMP_STACKSIZE=256M` in the calling shell. Then plot
 the cross-sections and the geocentre motion from the ensemble directory:
 
 ```bash
-julia --project=analysis analysis/plot_klemann3d.jl runs/klemann3d heav
+julia --project=analysis analysis/plot_bench_visc3d.jl runs/bench_visc3d heav
 ```
 
 The step count is set by $\eta_c$: 223 000 steps to 100 kyr. At

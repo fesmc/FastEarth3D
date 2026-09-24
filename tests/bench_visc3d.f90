@@ -1,14 +1,14 @@
-program bench_klemann3d
-   !! Laterally-heterogeneous GIA benchmark of Klemann et al. (setup note,
+program bench_visc3d
+   !! Laterally-heterogeneous GIA benchmark (setup note by Klemann et al.,
    !! doc/refs/klemann-visc3d-benchmarks-setup.pdf): a √-profile ice cap on
    !! M3-L70-V01 with a smoothed-Heaviside low-viscosity column, incompressible
    !! variants only (A-i, B-i, C-i). Writes the protocol's cross-section and
    !! geocentre files to the working directory; there is no reference solution to
    !! pass/fail against.
    !!
-   !!   ./bench_klemann3d.x klemann3d.nml      (runme: -e klemann3d -n examples/klemann3d.nml)
+   !!   ./bench_visc3d.x bench_visc3d.nml      (runme: -e visc3d -n examples/bench_visc3d.nml)
    !!
-   !! The run config carries the &klemann group (test, forcing, time_end [years])
+   !! The run config carries the &benchv3d group (test, forcing, time_end [years])
    !! and &vilma overrides of input/vilma_defaults.nml. Only lmax, l_toroidal and
    !! visc3d_tol are read from &vilma: the earth model, memory scheme, degree-1
    !! frame, grid and the absence of ocean and rotation are fixed by the benchmark.
@@ -81,25 +81,25 @@ program bench_klemann3d
    type(response)    :: ve
    type(vilma_param_class) :: par
 
-   ! --- run config: &klemann + &vilma ----------------------------------------------
-   if (command_argument_count() < 1) error stop 'usage: bench_klemann3d.x <run-config.nml>'
+   ! --- run config: &benchv3d + &vilma ----------------------------------------------
+   if (command_argument_count() < 1) error stop 'usage: bench_visc3d.x <run-config.nml>'
    call get_command_argument(1, cfg)
    call vilma_par_load(par, trim(cfg), DEFAULTS_FILE)
    t_end = 100.0e3_wp                                ! [years] in the namelist
    call nml_set_verbose(.false.)
-   call nml_read(trim(cfg), 'klemann', 'test',     test)
-   call nml_read(trim(cfg), 'klemann', 'forcing',  forcing)
-   call nml_read(trim(cfg), 'klemann', 'time_end', t_end)
+   call nml_read(trim(cfg), 'benchv3d', 'test',     test)
+   call nml_read(trim(cfg), 'benchv3d', 'forcing',  forcing)
+   call nml_read(trim(cfg), 'benchv3d', 'time_end', t_end)
    t_end = t_end*sec_per_year
    lmax  = par%lmax
-   if (forcing /= 'heav' .and. forcing /= 'ramp') error stop 'klemann: forcing must be heav or ramp'
+   if (forcing /= 'heav' .and. forcing /= 'ramp') error stop 'benchv3d: forcing must be heav or ramp'
 
    ! S#/L# placement (colatitude, longitude) and the structure's log10 η drop.
    select case (trim(test))
    case ('A');  colat_s =  0.0_wp;  lon_s =  0.0_wp;  colat_l =  0.0_wp;  lon_l =  0.0_wp;  dlog_s = 0.0_wp
    case ('B');  colat_s =  0.0_wp;  lon_s =  0.0_wp;  colat_l =  0.0_wp;  lon_l =  0.0_wp;  dlog_s = 1.0_wp
    case ('C');  colat_s = 35.0_wp;  lon_s = 25.0_wp;  colat_l = 30.0_wp;  lon_l = 25.0_wp;  dlog_s = 1.0_wp
-   case default; error stop 'klemann: test must be A, B or C'
+   case default; error stop 'benchv3d: test must be A, B or C'
    end select
    colat_s = colat_s*DEG;  lon_s = lon_s*DEG;  colat_l = colat_l*DEG;  lon_l = lon_l*DEG
    tname = trim(test)//'-i'
@@ -126,7 +126,7 @@ program bench_klemann3d
    call section_points(colat_s, lon_s, colat_l, lon_l, pcol, plon, pdist)
    npt = size(pcol)
 
-   write(*,'(3a,i0,a,i0,a,f6.3,a,i0,a)') ' Klemann 3D benchmark ', trim(tname)//' '//trim(forcing), &
+   write(*,'(3a,i0,a,i0,a,f6.3,a,i0,a)') ' 3D viscosity benchmark ', trim(tname)//' '//trim(forcing), &
         ': lmax=', lmax, ' mmax=', mmax, ' dt=', dt/YR, ' yr, ', nstep, ' steps'
    write(*,'(a,i0,a,i0,a,l1)') '   radial elements: ', ve%ne, ', genuinely 3-D: ', ve%ne3d, &
         ', toroidal: ', ve%toroidal
@@ -418,4 +418,4 @@ contains
                                     real(f(sht_grid_lmidx(sht, 1, 0)))]
    end function cart1
 
-end program bench_klemann3d
+end program bench_visc3d

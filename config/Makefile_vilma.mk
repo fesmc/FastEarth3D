@@ -356,11 +356,11 @@ diag_visc3d_paths: vilma-static | $(bindir)
 		-o $(bindir)/diag_visc3d_paths.x $(objdir)/libvilma.a $(LFLAGS)
 	@echo "    $(bindir)/diag_visc3d_paths.x is ready."
 
-# Klemann et al. 3-D viscosity benchmark (protocol output, no pass/fail; not in check).
-bench_klemann3d: vilma-static | $(bindir)
-	$(FC) $(DFLAGS) $(CPPFLAGS) $(FFLAGS) $(testdir)/bench_klemann3d.f90 \
-		-o $(bindir)/bench_klemann3d.x $(objdir)/libvilma.a $(LFLAGS)
-	@echo "    $(bindir)/bench_klemann3d.x is ready."
+# 3-D lateral-viscosity benchmark (protocol output, no pass/fail; not in check).
+bench_visc3d: vilma-static | $(bindir)
+	$(FC) $(DFLAGS) $(CPPFLAGS) $(FFLAGS) $(testdir)/bench_visc3d.f90 \
+		-o $(bindir)/bench_visc3d.x $(objdir)/libvilma.a $(LFLAGS)
+	@echo "    $(bindir)/bench_visc3d.x is ready."
 
 TESTS = test_params test_drive test_band test_sht test_earth test_mesh test_integrals test_assembly test_love test_relax test_tidal test_rotation test_rotation_sle test_response test_sle test_flotation test_flotation_load test_marine_reference test_etd1 test_ve_response test_tensor_sh test_response_3d test_toroidal test_sle_ve test_benchmark_love test_coupling test_couple_remap test_spinup test_restart test_benchmark_disc test_benchmark_martinec test_field test_sle_subgrid test_visc_load test_rotinv test_remap
 

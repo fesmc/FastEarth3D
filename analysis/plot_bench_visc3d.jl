@@ -1,13 +1,13 @@
 #!/usr/bin/env julia
-# Cross-section and geocentre plots for the Klemann et al. 3-D viscosity benchmark
-# (tests/bench_klemann3d.f90). For one forcing: a 4x3 panel figure, rows u_r, u_θ,
+# Cross-section and geocentre plots for the 3-D viscosity benchmark (setup note by Klemann et al.)
+# (tests/bench_visc3d.f90). For one forcing: a 4x3 panel figure, rows u_r, u_θ,
 # u_φ, δφ against distance along the section, columns tests A, B, C, one line per
 # output epoch; plus the geocentre components against time. The protocol files
 # are searched for anywhere under `dir`, so a runme ensemble directory (one
 # member per test/forcing) works as is. Missing tests are left blank.
 #
-# Usage:  julia --project=analysis analysis/plot_klemann3d.jl [dir] [heav|ramp]
-#         (defaults: runs/klemann3d heav)
+# Usage:  julia --project=analysis analysis/plot_bench_visc3d.jl [dir] [heav|ramp]
+#         (defaults: runs/bench_visc3d heav)
 
 using CairoMakie
 using Printf
@@ -72,12 +72,12 @@ function plot_gcm(dir, forcing)
 end
 
 function main(args)
-    dir     = length(args) >= 1 ? args[1] : "runs/klemann3d"
+    dir     = length(args) >= 1 ? args[1] : "runs/bench_visc3d"
     forcing = length(args) >= 2 ? args[2] : "heav"
     mkpath(OUTDIR)
     tag = replace(dir, r"[/\\]" => "_")
-    f1 = joinpath(OUTDIR, "klemann3d_sections_$(tag)_$(forcing).png")
-    f2 = joinpath(OUTDIR, "klemann3d_gcm_$(tag)_$(forcing).png")
+    f1 = joinpath(OUTDIR, "bench_visc3d_sections_$(tag)_$(forcing).png")
+    f2 = joinpath(OUTDIR, "bench_visc3d_gcm_$(tag)_$(forcing).png")
     save(f1, plot_sections(dir, forcing))
     save(f2, plot_gcm(dir, forcing))
     @printf("wrote %s\n      %s\n", f1, f2)
