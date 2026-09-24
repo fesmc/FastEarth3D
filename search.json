@@ -516,78 +516,6 @@
     ]
   },
   {
-    "objectID": "benchmarks/visc3d.html",
-    "href": "benchmarks/visc3d.html",
-    "title": "Benchmark: lateral viscosity",
-    "section": "",
-    "text": "Reference: community benchmark of GIA codes with laterally heterogeneous earth structure, setup note by Klemann et al. (Klemann et al. 2022) (doc/refs/klemann-visc3d-benchmarks-setup.pdf). Driver: bench_visc3d (not in make check). Status: 🔧 set up and run at low resolution; no reference solutions published yet.\nThe benchmark follows Spada et al. (2011) and Martinec et al. (2018) but adds a low-viscosity column under or near an ice load. It isolates the effect of lateral viscosity on vertical and horizontal displacement, on the gravitational potential, and on geocentre motion. The note defines compressible and incompressible variants; VILMA is incompressible, so only A-i, B-i and C-i are run.",
-    "crumbs": [
-      "Overview",
-      "Benchmarks",
-      "Benchmark: lateral viscosity"
-    ]
-  },
-  {
-    "objectID": "benchmarks/visc3d.html#setup",
-    "href": "benchmarks/visc3d.html#setup",
-    "title": "Benchmark: lateral viscosity",
-    "section": "Setup",
-    "text": "Setup\nEarth. M3–L70–V01 (as for the Love numbers), with interfaces added at 60 and 220 km depth so that FE nodes bound the structure. The 60–70 km part of the lithosphere is made Maxwell with \\(\\eta = 10^{30}\\) Pa s, because an elastic element cannot carry a lateral viscosity. This split changes the test-A result by \\(\\lesssim 4\\times10^{-9}\\) relative.\nStructure. A rotationally symmetric column over 60–220 km depth, centred at \\((\\vartheta_S, \\lambda_S)\\), with a smoothed-Heaviside profile in the angular distance \\(\\vartheta\\) from its centre:\n\\[\n\\log_{10}\\eta = \\log_{10}\\eta_\\text{ref}\n  + \\left(\\log_{10}\\eta_c - \\log_{10}\\eta_\\text{ref}\\right) H(\\vartheta),\n\\qquad\nH(\\vartheta) = \\left[1 + e^{2(\\vartheta-\\vartheta_w)/d}\\right]^{-1},\n\\]\nwith half-width \\(\\vartheta_w = 12°\\), edge width \\(d = 1°\\) and centre viscosity \\(\\eta_c = 10^{18}\\) Pa s. That is a drop of 3 orders of magnitude in the mantle and 12 in the 60–70 km lithosphere, which the note asks to reach the same centre value.\nLoad. A cap of radius \\(\\alpha = 10°\\) with a square-root profile,\n\\[\n\\sigma(\\vartheta) = \\rho_\\text{ice}\\, h_L\n  \\sqrt{\\frac{\\cos\\vartheta - \\cos\\alpha}{1 - \\cos\\alpha}},\n\\qquad h_L = 1500\\ \\mathrm{m},\\ \\rho_\\text{ice} = 931\\ \\mathrm{kg\\,m^{-3}},\n\\]\ncentred at \\((\\vartheta_L, \\lambda_L)\\). Its SH coefficients are exact: Gauss–Legendre quadrature in \\(s\\) with \\(\\cos\\vartheta = \\cos\\alpha + (1-\\cos\\alpha)s^2\\) turns the square-root edge into a polynomial, and the addition theorem rotates the cap to its centre. Two forcings: heav (load applied at \\(t=0\\)) and ramp (thickness linear over 0–10 kyr, then held). No ocean, no rotation.\n\n\n\n\n\n\n\n\n\ntest\nstructure \\((\\vartheta_S, \\lambda_S)\\)\nload \\((\\vartheta_L, \\lambda_L)\\)\ngeometry\n\n\n\n\nA-i\nnone (S0)\n(0°, 0°)\n1-D reference\n\n\nB-i\n(0°, 0°)\n(0°, 0°)\naxisymmetric, structure under load\n\n\nC-i\n(35°, 25°)\n(30°, 25°)\noff-axis, structure and load overlap\n\n\n\nA and B are axisymmetric and run with \\(m_\\max = 0\\); C runs the full spectrum.\nTime stepping. Explicit (fe) memory update. \\(\\Delta t\\) is set by the Maxwell ceiling at \\(\\eta_c\\) (\\(\\mu\\Delta t/\\eta_c \\le 1\\)), rounded to divide 100 yr, which gives \\(\\Delta t = 0.448\\) yr. All three tests use the same \\(\\Delta t\\), so their differences come from the structure alone.\n\nReadings of the setup note\nThe note is a draft and a few points had to be interpreted:\n\nThe half-width of the structure is 12° in the text and 10° in the table; 12° is used.\n\\(\\Delta\\eta = -10^3\\) is read as a factor \\(10^{-3}\\) in log space (the formula in the note gives \\(\\eta = 0\\) for S0, \\(\\Delta\\eta = 0\\)).\nThe prose swaps the ice and water densities; the table’s values (\\(\\rho_\\text{ice} = 931\\), \\(\\rho_w = 1000\\)) are used.\n“\\(\\vartheta_S\\) and \\(\\alpha\\) are increased” in the ramp is read as the Spada et al. (2011) ramp: the ice thickness grows linearly, the geometry is fixed.\nThe model’s own constants (seconds per year, \\(G\\)) are used; they differ from the note’s by \\(\\lesssim 10^{-4}\\) relative.",
-    "crumbs": [
-      "Overview",
-      "Benchmarks",
-      "Benchmark: lateral viscosity"
-    ]
-  },
-  {
-    "objectID": "benchmarks/visc3d.html#output",
-    "href": "benchmarks/visc3d.html#output",
-    "title": "Benchmark: lateral viscosity",
-    "section": "Output",
-    "text": "Output\nAt the epochs 0.1, 0.2, 0.5, 1, 2, 5, 10, 11, 12, 15, 20, 50 and 100 kyr, the fields are evaluated at points every 0.1°. The points lie along the great circle from the structure centre through the load centre to the antipode. For A and B, where both centres sit at the pole, that circle is the \\(\\lambda = 0\\) meridian. The files follow the protocol (tab-delimited, # header):\n\ndisp_VILMA2_&lt;T&gt;-i_&lt;forcing&gt;.txt: longitude, latitude, distance along the section [deg], time [kyr], \\(u_r\\), \\(u_\\vartheta\\), \\(u_\\varphi\\) [m] and \\(\\delta\\phi\\) [m² s⁻²].\ngcm_VILMA2_&lt;T&gt;-i_&lt;forcing&gt;.txt: time [kyr] and the geocentre offset \\(u_\\text{gcm} = u_\\text{CF} - u_\\text{CM}\\) (\\(x, y, z\\) [m]).\n\nConventions:\n\nFrame. Displacements are in the CM frame (deg1_frame = \"cm\"). Then \\(u_\\text{gcm} = u_\\text{CF}\\), the surface mean of the displacement vector, \\((U_1 + 2V_1)/3\\) in Cartesian components (Blewitt 2003).\nPotential. \\(\\delta\\phi = -F(a) = g N\\), which includes the load’s own potential.\nHorizontal displacement is spheroidal plus toroidal. Its components are in the local geographic basis, so \\(u_\\vartheta\\) changes sign where the section crosses a pole. At the pole itself, the basis is that of the meridian the section runs along.",
-    "crumbs": [
-      "Overview",
-      "Benchmarks",
-      "Benchmark: lateral viscosity"
-    ]
-  },
-  {
-    "objectID": "benchmarks/visc3d.html#running",
-    "href": "benchmarks/visc3d.html#running",
-    "title": "Benchmark: lateral viscosity",
-    "section": "Running",
-    "text": "Running\nThe run config is examples/bench_visc3d.nml. Its &benchv3d group sets test (A/B/C), forcing (heav/ramp) and time_end [years]. From &vilma only lmax (default 128), l_toroidal (on) and visc3d_tol are read. The earth model, memory scheme, degree-1 frame and grid are fixed by the benchmark. The protocol files are written to the working directory.\nBuild, then submit all six cases as one runme ensemble (runme alias visc3d):\nmake bench_visc3d openmp=1\nrunme -o runs/bench_visc3d -e visc3d -n examples/bench_visc3d.nml --omp 64 \\\n      -p benchv3d.test=A,B,C benchv3d.forcing=heav,ramp -s\nUse -r instead of -s to run locally, and add e.g. vilma.lmax=64 benchv3d.time_end=2000 for a short test. At \\(\\ell_\\max \\ge 128\\) the 3-D path needs a large stack: the SLURM template sets it, but a local run needs ulimit -s unlimited and OMP_STACKSIZE=256M in the calling shell. Then plot the cross-sections and the geocentre motion from the ensemble directory:\njulia --project=analysis analysis/plot_bench_visc3d.jl runs/bench_visc3d heav\nThe step count is set by \\(\\eta_c\\): 223 000 steps to 100 kyr. At \\(\\ell_\\max = 64\\) with 8 threads (laptop), a C run costs about 53 ms per step, or about 3.3 h. A and B, with \\(m_\\max = 0\\), take minutes. The target resolution is \\(\\ell_\\max = 128\\).",
-    "crumbs": [
-      "Overview",
-      "Benchmarks",
-      "Benchmark: lateral viscosity"
-    ]
-  },
-  {
-    "objectID": "benchmarks/visc3d.html#result",
-    "href": "benchmarks/visc3d.html#result",
-    "title": "Benchmark: lateral viscosity",
-    "section": "Result",
-    "text": "Result\nOnly a short test so far (\\(\\ell_\\max = 64\\), to 2 kyr). The load mass matches the closed form exactly. The geocentre offset is about \\(-4\\) m along the load axis, which is the expected size for \\(3.6\\times10^{18}\\) kg of ice, and for C it points towards the load’s longitude. At \\(\\ell_\\max = 64\\), B shows Gibbs ringing with a ~3° period and a bulge at the structure edge: the 1° edge width is not resolved. The full runs at \\(\\ell_\\max = 128\\) are to follow.",
-    "crumbs": [
-      "Overview",
-      "Benchmarks",
-      "Benchmark: lateral viscosity"
-    ]
-  },
-  {
-    "objectID": "benchmarks/visc3d.html#figures",
-    "href": "benchmarks/visc3d.html#figures",
-    "title": "Benchmark: lateral viscosity",
-    "section": "Figures",
-    "text": "Figures\nFigures to be added: \\(u_r\\), \\(u_\\vartheta\\), \\(u_\\varphi\\), \\(\\delta\\phi\\) along the section for A/B/C; geocentre motion; comparison with the other codes once available.",
-    "crumbs": [
-      "Overview",
-      "Benchmarks",
-      "Benchmark: lateral viscosity"
-    ]
-  },
-  {
     "objectID": "benchmarks/index.html",
     "href": "benchmarks/index.html",
     "title": "Benchmarks",
@@ -604,7 +532,7 @@
     "href": "benchmarks/index.html#summary-results",
     "title": "Benchmarks",
     "section": "Summary results",
-    "text": "Summary results\n\n\n\n#\nBenchmark\nPhysics exercised\nReference\nStatus\nAgreement\n\n\n\n\n1\nSH transform round-trip\nspectral kernel\n— (analytic)\n✅\n\\(\\sim 10^{-15}\\)\n\n\n2\nLove numbers \\(h,\\ell,k\\)\nelastic + fluid radial solve, self-gravity\nM3–L70–V01 table (Spada et al. 2011)\n✅\n\\(\\sim 0.1\\%\\), all degrees 2–256\n\n\n3\nDisc-load response\ndeformation + geoid, time relaxation\nSpada disc test (Spada et al. 2011)\n✅\n\\(u\\) \\(\\sim 1\\%\\) near-field; geoid \\(\\sim 1\\%\\) (\\(\\ell\\ge2\\))\n\n\n4\nSea-level equation\nmigrating-coastline SLE, flotation, sub-grid\nMartinec 2018 cases A/C2/D3/E2/F1 (Martinec et al. 2018)\n✅\nwithin inter-code scatter (esl \\(\\lesssim 5\\) m; D3 \\(\\sim 0.2\\) m)\n\n\n5\nRotation / polar motion\nrotational feedback (TPW)\nSpada test 3/2 (Spada et al. 2011)\n✅\npolar motion vs Spada 3/2; on by default\n\n\n6\n3D (lateral viscosity)\nlaterally varying \\(\\eta\\), toroidal flow\nKlemann et al. setup (Klemann et al. 2022)\n🔧\nset up and run at low resolution; no reference solutions yet\n\n\n\nLegend: ✅ implemented and validated · 🔧 implemented, validation ongoing · ⏳ planned. “Agreement” quotes the representative relative error against the reference; see each page for the full breakdown.",
+    "text": "Summary results\n\n\n\n#\nBenchmark\nPhysics exercised\nReference\nStatus\nAgreement\n\n\n\n\n1\nSH transform round-trip\nspectral kernel\n— (analytic)\n✅\n\\(\\sim 10^{-15}\\)\n\n\n2\nLove numbers \\(h,\\ell,k\\)\nelastic + fluid radial solve, self-gravity\nM3–L70–V01 table (Spada et al. 2011)\n✅\n\\(\\sim 0.1\\%\\), all degrees 2–256\n\n\n3\nDisc-load response\ndeformation + geoid, time relaxation\nSpada disc test (Spada et al. 2011)\n✅\n\\(u\\) \\(\\sim 1\\%\\) near-field; geoid \\(\\sim 1\\%\\) (\\(\\ell\\ge2\\))\n\n\n4\nSea-level equation\nmigrating-coastline SLE, flotation, sub-grid\nMartinec 2018 cases A/C2/D3/E2/F1 (Martinec et al. 2018)\n✅\nwithin inter-code scatter (esl \\(\\lesssim 5\\) m; D3 \\(\\sim 0.2\\) m)\n\n\n5\nRotation / polar motion\nrotational feedback (TPW)\nSpada test 3/2 (Spada et al. 2011)\n✅\npolar motion vs Spada 3/2; on by default\n\n\n6\n3D (lateral viscosity) [to do]\nlaterally varying \\(\\eta\\), toroidal flow\n[to do]\n🔧\ncode path implemented + tested; cross-code validation ongoing\n\n\n\nLegend: ✅ implemented and validated · 🔧 implemented, validation ongoing · ⏳ planned. “Agreement” quotes the representative relative error against the reference; see each page for the full breakdown.",
     "crumbs": [
       "Overview",
       "Benchmarks",
@@ -628,7 +556,7 @@
     "href": "benchmarks/index.html#per-benchmark-pages",
     "title": "Benchmarks",
     "section": "Per-benchmark pages",
-    "text": "Per-benchmark pages\nThe pages below give the model setup, the comparison metrics, and a place for figures (to be added as the benchmark figures are generated):\n\nLove numbers — elastic and fluid \\(h,\\ell,k\\) for M3–L70–V01.\nDisc-load response — vertical displacement, geoid, and uplift rate for the 10° disc.\nSea-level equation — the five Martinec et al. (2018) cases.\nLateral viscosity — the 3D lateral-viscosity benchmark tests A-i, B-i, C-i.",
+    "text": "Per-benchmark pages\nThe pages below give the model setup, the comparison metrics, and a place for figures (to be added as the benchmark figures are generated):\n\nLove numbers — elastic and fluid \\(h,\\ell,k\\) for M3–L70–V01.\nDisc-load response — vertical displacement, geoid, and uplift rate for the 10° disc.\nSea-level equation — the five Martinec et al. (2018) cases.\nLateral viscosity — [to do]",
     "crumbs": [
       "Overview",
       "Benchmarks",
