@@ -16,7 +16,7 @@ openmp ?= 1
 # VILMA-v1 symbol is referenced, no VILMA-v1 include path is needed, and a namelist
 # asking for solver="v1" aborts with an actionable message from the
 # compiled-in stub (src/vilma_v1.f90, gated on -DVILMA_V1). See doc/vilma-v1-backend.md.
-#   make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma
+#   make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma1
 vilma_v1  ?= 0
 
 defaulttarget: usage

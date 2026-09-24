@@ -1,5 +1,5 @@
 program dump_reference
-   !! Reference dumper for the Julia port (FastEarth3D.jl). Runs the validated
+   !! Reference dumper for the Julia port (vilma.jl). Runs the validated
    !! Fortran model through the same call paths as the unit tests and writes
    !! machine-readable NetCDF reference data (ncio), one file per topic.
    !!

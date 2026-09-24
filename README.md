@@ -1,8 +1,12 @@
-# VILMA
+# VILMA v2
 
-(Formerly FastEarth3D.) A state-of-the-art but simple and fast **3D solid-Earth model** — a
+> **Under heavy development.** VILMA v2 is not yet ready for use in a
+> scientific production capacity. If you want to use VILMA for now, please
+> contact Volker Klemann at GFZ.
+
+**VILMA v2** is a state-of-the-art but simple and fast **3D solid-Earth model** — a
 visco-elastic deformation model coupled with the sea-level equation — intended
-as an **open-source replacement for VILMA-v1** within the CLIMBER-X climate model.
+as an **open-source alternative to VILMA-v1** within the CLIMBER-X climate model.
 
 The method is a clean-room reimplementation of the **spectral–finite-element,
 time-domain** approach of Martinec (2000): spherical harmonics horizontally,
@@ -11,7 +15,7 @@ explicitly in time, a self-consistent sea-level equation with migrating
 coastlines, and rotational feedback. It is built **3D-ready from the start**
 (laterally varying viscosity) and validated against the published GIA benchmarks.
 
-**Documentation:** <https://fesmc.github.io/VILMA/> (physics,
+**Documentation:** <https://fesmc.github.io/vilma/> (physics,
 discretization, benchmarks, install & run), rendered from the Quarto sources
 under [`docs/`](docs/); see [doc/design.md](doc/design.md) for the design
 rationale and method comparison, and
@@ -23,7 +27,8 @@ is **off by default and is not a dependency**: it needs an explicit
 
 ## Status
 
-The full model is implemented and validated: the spectral–finite-element solver
+VILMA v2 is under heavy development and not yet ready for scientific
+production use (see the note at the top). Implemented and validated so far: the spectral–finite-element solver
 core, viscoelastic time stepping, the self-consistent migrating-coastline
 sea-level equation, rotational feedback (polar motion), and laterally varying
 (3D) viscosity — plus restart, spin-up, online lon-lat→Gauss remapping, and a
@@ -41,9 +46,9 @@ module) plus a system netCDF. **configme** clones/links the dependencies and
 generates the machine/compiler Makefile:
 
 ```bash
-configme install FastEarth3D                 # resolve machine/compiler, clone deps
-configme install FastEarth3D -m macbook -c gfortran
-configme install FastEarth3D --link fesm-utils=/abs/path/to/fesm-utils   # reuse a checkout
+configme install vilma                       # resolve machine/compiler, clone deps
+configme install vilma -m macbook -c gfortran
+configme install vilma --link fesm-utils=/abs/path/to/fesm-utils   # reuse a checkout
 ```
 
 ## Build

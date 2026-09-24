@@ -1,5 +1,5 @@
-# configme manifest for FastEarth3D.
-package = "FastEarth3D"
+# configme manifest for VILMA v2.
+package = "vilma"
 deps = [
     "fesm-utils:dev",
 ]

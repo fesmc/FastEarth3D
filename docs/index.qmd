@@ -1,13 +1,18 @@
 ---
-title: "VILMA"
+title: "VILMA v2"
 subtitle: "A fast, open-source, time-domain spectral–finite-element solid-Earth model"
 toc: false
 ---
 
-**VILMA** is a fast, open-source 3D solid-Earth model: a
+::: {.callout-warning title="Under heavy development"}
+VILMA v2 is not yet ready for use in a scientific production capacity. If you
+want to use VILMA for now, please contact Volker Klemann at GFZ.
+:::
+
+**VILMA v2** is a fast, open-source 3D solid-Earth model: a
 self-gravitating, incompressible, Maxwell-viscoelastic sphere coupled to a
 self-consistent **sea-level equation** with migrating coastlines. It is
-designed as an open-source replacement for VILMA-v1 inside the
+designed as an open-source alternative to VILMA-v1 inside the
 [CLIMBER-X](https://doi.org/10.5194/gmd-15-5905-2022) Earth system model
 [@Willeit2022], and more generally as a reusable glacial isostatic adjustment
 (GIA) engine for ice-sheet and sea-level work.
@@ -55,7 +60,8 @@ paths are therefore the same solver**.
 
 ## Status
 
-The full model is implemented. The core includes the spectral–finite-element
+VILMA v2 is under heavy development and not yet ready for scientific
+production use. The core implemented so far includes the spectral–finite-element
 solver, the viscoelastic time stepping and response operator, the
 self-consistent migrating-coastline sea-level equation, rotational feedback
 (polar motion), and laterally varying (3D) viscosity. It also supports

@@ -417,7 +417,7 @@ usage:
 	@echo "   switches:  debug=0|1|2   openmp=0|1   vilma_v1=0|1"
 	@echo ""
 	@echo "   vilma_v1=1 additionally links the optional VILMA-v1 backend (solver=\"v1\"):"
-	@echo "     make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma"
+	@echo "     make vilma vilma_v1=1 VILMA_V1_ROOT=/path/to/vilma1"
 	@echo "   It is OFF by default and is not a dependency; see doc/vilma-v1-backend.md."
 	@echo ""
 

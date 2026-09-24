@@ -57,12 +57,10 @@ there); V3 W = 0 exactly for axisymmetric configurations, off-pole W falls
 4e-16, W ∝ δ^0.987 and its uplift feedback ∝ δ^1.986. V6/V7 (VILMA-v1, the
 deglaciation) are the paper's, not this note's.
 
-**Context.** The GitHub repository was renamed `fesmc/FastEarth3D` →
-`fesmc/VILMA` ahead of a wider rename: Volker Klemann, VILMA-v1's author, is
-joining the effort, and this model is expected to become VILMA-v1's direct
-successor. That reframes this work. The toroidal block is not a feature to
-match a competitor on — it is physics the predecessor has and the successor
-must not lose. It also means the oracle problem of §4 is far less severe than
+**Context.** Volker Klemann, VILMA-v1's author, is part of the effort, and
+VILMA v2 is developed as an open-source alternative to VILMA-v1. That reframes
+this work. The toroidal block is not a feature to match a competitor on — it
+is physics VILMA-v1 has and VILMA v2 must not lose. It also means the oracle problem of §4 is far less severe than
 it looks (§2.1).
 
 ---
