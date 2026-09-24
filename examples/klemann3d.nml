@@ -1,0 +1,20 @@
+! ====================================================================
+! Klemann et al. lateral-viscosity benchmark (tests A-i, B-i, C-i):
+!     bin/bench_klemann3d.x examples/klemann3d.nml
+!     runme -o runs/klemann3d -e klemann3d -n examples/klemann3d.nml \
+!           -p klemann.test=A,B,C klemann.forcing=heav,ramp -r
+! Setup and output: docs/benchmarks/visc3d.qmd. Only lmax, l_toroidal and
+! visc3d_tol are read from &vilma; the earth model, memory scheme, degree-1
+! frame and grid are fixed by the benchmark.
+! ====================================================================
+
+&klemann
+    test     = "A"         ! A | B | C
+    forcing  = "heav"      ! heav (load on at t = 0) | ramp (linear over 0-10 kyr)
+    time_end = 100.0e3     ! [years]
+/
+
+&vilma
+    lmax       = 128
+    l_toroidal = .true.    ! carry the toroidal flow driven by the structure
+/

@@ -3,9 +3,15 @@ program bench_klemann3d
    !! doc/refs/klemann-visc3d-benchmarks-setup.pdf): a √-profile ice cap on
    !! M3-L70-V01 with a smoothed-Heaviside low-viscosity column, incompressible
    !! variants only (A-i, B-i, C-i). Writes the protocol's cross-section and
-   !! geocentre files; there is no reference solution to pass/fail against.
+   !! geocentre files to the working directory; there is no reference solution to
+   !! pass/fail against.
    !!
-   !!   usage: bench_klemann3d.x <A|B|C> <heav|ramp> [lmax=128] [t_end_kyr=100] [outdir=runs/klemann3d]
+   !!   ./bench_klemann3d.x klemann3d.nml      (runme: -e klemann3d -n examples/klemann3d.nml)
+   !!
+   !! The run config carries the &klemann group (test, forcing, time_end [years])
+   !! and &vilma overrides of input/vilma_defaults.nml. Only lmax, l_toroidal and
+   !! visc3d_tol are read from &vilma: the earth model, memory scheme, degree-1
+   !! frame, grid and the absence of ocean and rotation are fixed by the benchmark.
    !!
    !! Setup, and the readings taken where the note is ambiguous:
    !!   - Structure S# centred at (θ_S, λ_S), half-width ϑ_S = 12° (text; the table
@@ -34,7 +40,7 @@ program bench_klemann3d
    !! centre, every 0.1°. For A/B (both at the pole) this is the λ = 0 meridian.
    !! A/B are axisymmetric and run with mmax = 0.
    use vilma_precision,       only: wp
-   use vilma_constants,       only: pi, rho_ice, kyr
+   use vilma_constants,       only: pi, rho_ice, kyr, sec_per_year
    use vilma_earth_structure, only: earth_model, earth_layer, build_M3L70V01, RHEOL_MAXWELL
    use vilma_radial_fe,       only: radial_fe_finalize
    use vilma_response,        only: response, response_init_ve, response_apply, response_horizontal, &
@@ -42,6 +48,9 @@ program bench_klemann3d
                                     response_enable_lateral_visc, response_set_dt, response_destroy
    use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_lmidx, &
                                     sht_grid_eval_point, sht_grid_eval_point_horiz
+   use vilma_params,          only: vilma_param_class, vilma_par_load
+   use vilma_control,         only: DEFAULTS_FILE
+   use nml,                   only: nml_read, nml_set_verbose
    implicit none
 
    character(*), parameter :: CODE   = 'VILMA2'
@@ -59,10 +68,10 @@ program bench_klemann3d
    real(wp), parameter :: T_OUT_KYR(NOUT) = [0.1_wp, 0.2_wp, 0.5_wp, 1.0_wp, 2.0_wp, 5.0_wp, &
                                              10.0_wp, 11.0_wp, 12.0_wp, 15.0_wp, 20.0_wp, 50.0_wp, 100.0_wp]
 
-   character(len=512) :: arg, outdir, fdisp, fgcm
-   character(len=16)  :: test, forcing, tname
+   character(len=512) :: cfg, fdisp, fgcm
+   character(len=16)  :: test = 'A', forcing = 'heav', tname
    integer  :: lmax, mmax, nsub, nstep, i, iout, npt, ud, ug
-   real(wp) :: t_end, dt, t, colat_s, lon_s, colat_l, lon_l, dlog_s, eta_ratio
+   real(wp) :: t_end, dt, t, colat_s, lon_s, colat_l, lon_l, dlog_s
    real(wp) :: gcm(3), mu_max
    real(wp), allocatable :: pcol(:), plon(:), pdist(:)
    complex(wp), allocatable :: load_lm(:), slm(:), ulm(:), nlm(:), vlm(:), tlm(:)
@@ -70,23 +79,27 @@ program bench_klemann3d
    type(sht_grid)    :: sht
    type(earth_model) :: em
    type(response)    :: ve
+   type(vilma_param_class) :: par
 
-   ! --- arguments ----------------------------------------------------------------
-   call get_command_argument(1, test);     call get_command_argument(2, forcing)
-   if (len_trim(test) == 0 .or. len_trim(forcing) == 0) &
-      error stop 'usage: bench_klemann3d.x <A|B|C> <heav|ramp> [lmax] [t_end_kyr] [outdir]'
-   lmax = 128;  t_end = 100.0_wp*kyr;  outdir = 'runs/klemann3d'
-   call get_command_argument(3, arg);  if (len_trim(arg) > 0) read(arg,*) lmax
-   call get_command_argument(4, arg);  if (len_trim(arg) > 0) then; read(arg,*) t_end; t_end = t_end*kyr; end if
-   call get_command_argument(5, arg);  if (len_trim(arg) > 0) outdir = arg
-   if (forcing /= 'heav' .and. forcing /= 'ramp') error stop 'forcing must be heav or ramp'
+   ! --- run config: &klemann + &vilma ----------------------------------------------
+   if (command_argument_count() < 1) error stop 'usage: bench_klemann3d.x <run-config.nml>'
+   call get_command_argument(1, cfg)
+   call vilma_par_load(par, trim(cfg), DEFAULTS_FILE)
+   t_end = 100.0e3_wp                                ! [years] in the namelist
+   call nml_set_verbose(.false.)
+   call nml_read(trim(cfg), 'klemann', 'test',     test)
+   call nml_read(trim(cfg), 'klemann', 'forcing',  forcing)
+   call nml_read(trim(cfg), 'klemann', 'time_end', t_end)
+   t_end = t_end*sec_per_year
+   lmax  = par%lmax
+   if (forcing /= 'heav' .and. forcing /= 'ramp') error stop 'klemann: forcing must be heav or ramp'
 
    ! S#/L# placement (colatitude, longitude) and the structure's log10 η drop.
    select case (trim(test))
    case ('A');  colat_s =  0.0_wp;  lon_s =  0.0_wp;  colat_l =  0.0_wp;  lon_l =  0.0_wp;  dlog_s = 0.0_wp
    case ('B');  colat_s =  0.0_wp;  lon_s =  0.0_wp;  colat_l =  0.0_wp;  lon_l =  0.0_wp;  dlog_s = 1.0_wp
    case ('C');  colat_s = 35.0_wp;  lon_s = 25.0_wp;  colat_l = 30.0_wp;  lon_l = 25.0_wp;  dlog_s = 1.0_wp
-   case default; error stop 'test must be A, B or C'
+   case default; error stop 'klemann: test must be A, B or C'
    end select
    colat_s = colat_s*DEG;  lon_s = lon_s*DEG;  colat_l = colat_l*DEG;  lon_l = lon_l*DEG
    tname = trim(test)//'-i'
@@ -97,6 +110,8 @@ program bench_klemann3d
    em = split_earth()
    ve%deg1_cm = .true.                               ! frame is part of the init gains
    call response_init_ve(ve, em, sht, YR)
+   ve%toroidal   = par%l_toroidal                    ! both read before the structure is enabled
+   ve%visc3d_tol = par%visc3d_tol
    call enable_structure(ve, dlog_s, mu_max)
 
    ! Explicit Δt from the Maxwell ceiling at η_c, rounded to divide 100 yr (the
@@ -113,16 +128,16 @@ program bench_klemann3d
 
    write(*,'(3a,i0,a,i0,a,f6.3,a,i0,a)') ' Klemann 3D benchmark ', trim(tname)//' '//trim(forcing), &
         ': lmax=', lmax, ' mmax=', mmax, ' dt=', dt/YR, ' yr, ', nstep, ' steps'
-   write(*,'(a,i0,a,i0)') '   radial elements: ', ve%ne, ', genuinely 3-D: ', ve%ne3d
+   write(*,'(a,i0,a,i0,a,l1)') '   radial elements: ', ve%ne, ', genuinely 3-D: ', ve%ne3d, &
+        ', toroidal: ', ve%toroidal
    ! Load mass from the degree-0 coefficient vs the closed form (2π/3)ρh(1−cosα)·2a².
    write(*,'(a,es14.6,a,es14.6,a)') '   load mass: ', &
         sqrt(4.0_wp*pi)*em%r_earth**2*real(load_lm(sht_grid_lmidx(sht,0,0))), ' kg (exact ', &
         4.0_wp*pi/3.0_wp*rho_ice*H_L*(1.0_wp - cos(ALPHA_L))*em%r_earth**2, ' kg)'
 
    ! --- output files ---------------------------------------------------------------
-   call execute_command_line('mkdir -p '//trim(outdir))
-   fdisp = trim(outdir)//'/disp_'//CODE//'_'//trim(tname)//'_'//trim(forcing)//'.txt'
-   fgcm  = trim(outdir)//'/gcm_'//CODE//'_'//trim(tname)//'_'//trim(forcing)//'.txt'
+   fdisp = 'disp_'//CODE//'_'//trim(tname)//'_'//trim(forcing)//'.txt'
+   fgcm  = 'gcm_'//CODE//'_'//trim(tname)//'_'//trim(forcing)//'.txt'
    open(newunit=ud, file=trim(fdisp), status='replace', action='write')
    open(newunit=ug, file=trim(fgcm),  status='replace', action='write')
    call write_header(ud, 'longitude, latitude, distance on cross section, time, '// &

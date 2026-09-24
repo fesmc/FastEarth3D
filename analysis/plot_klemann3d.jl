@@ -2,8 +2,9 @@
 # Cross-section and geocentre plots for the Klemann et al. 3-D viscosity benchmark
 # (tests/bench_klemann3d.f90). For one forcing: a 4x3 panel figure, rows u_r, u_θ,
 # u_φ, δφ against distance along the section, columns tests A, B, C, one line per
-# output epoch; plus the geocentre components against time. Missing tests are
-# left blank.
+# output epoch; plus the geocentre components against time. The protocol files
+# are searched for anywhere under `dir`, so a runme ensemble directory (one
+# member per test/forcing) works as is. Missing tests are left blank.
 #
 # Usage:  julia --project=analysis analysis/plot_klemann3d.jl [dir] [heav|ramp]
 #         (defaults: runs/klemann3d heav)
@@ -16,6 +17,14 @@ const FIELDS = [(5, L"u_r\ \mathrm{[m]}"), (6, L"u_\vartheta\ \mathrm{[m]}"),
                 (7, L"u_\varphi\ \mathrm{[m]}"), (8, L"\delta\phi\ \mathrm{[m^2\,s^{-2}]}")]
 const OUTDIR = "analysis/figs"
 
+# Path of the protocol file `name` under `dir`, or nothing.
+function find_file(dir, name)
+    for (root, _, files) in walkdir(dir)
+        name in files && return joinpath(root, name)
+    end
+    return nothing
+end
+
 # Numeric rows of a protocol file (tab-delimited, '#' header lines).
 function read_table(path)
     rows = [parse.(Float64, split(strip(l))) for l in eachline(path)
@@ -26,8 +35,8 @@ end
 function plot_sections(dir, forcing)
     fig = Figure(size = (1200, 1100))
     for (j, t) in enumerate(TESTS)
-        path = joinpath(dir, "disp_VILMA2_$(t)-i_$(forcing).txt")
-        d = isfile(path) ? read_table(path) : nothing
+        path = find_file(dir, "disp_VILMA2_$(t)-i_$(forcing).txt")
+        d = isnothing(path) ? nothing : read_table(path)
         for (i, (col, lab)) in enumerate(FIELDS)
             ax = Axis(fig[i, j]; ylabel = j == 1 ? lab : "",
                       xlabel = i == length(FIELDS) ? "distance from structure centre [deg]" : "",
@@ -52,8 +61,8 @@ function plot_gcm(dir, forcing)
         ax = Axis(fig[1, i]; xlabel = "time [kyr]", ylabel = "$(c) [m]", xscale = log10,
                   title = "geocentre u_CF − u_CM ($(forcing))")
         for t in TESTS
-            path = joinpath(dir, "gcm_VILMA2_$(t)-i_$(forcing).txt")
-            isfile(path) || continue
+            path = find_file(dir, "gcm_VILMA2_$(t)-i_$(forcing).txt")
+            isnothing(path) && continue
             g = read_table(path)
             scatterlines!(ax, g[:, 1], g[:, i+1]; label = "$(t)-i")
         end
