@@ -1,18 +1,18 @@
 {
-    "exe_default" : "bin/fastearth.x",
+    "exe_default" : "bin/vilma.x",
 
     "par_path_as_argument" : true,
 
     "exe_aliases" :
-        {   "main"  : "bin/fastearth.x",
-            "mkref" : "bin/fastearth_mkref.x",
-            "remap" : "bin/fastearth_remap.x"
+        {   "main"  : "bin/vilma.x",
+            "mkref" : "bin/vilma_mkref.x",
+            "remap" : "bin/vilma_remap.x"
         },
 
     "grp_aliases" : {},
 
     "par_paths" :
-        {   "all" : "fastearth.nml"
+        {   "all" : "vilma.nml"
         },
 
     "files" :

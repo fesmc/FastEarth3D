@@ -20,14 +20,14 @@ program test_toroidal
    !!   (4) ZERO (V3) — an axisymmetric perturbation p = δ·cos²θ under the same
    !!       axisymmetric load has every vertical plane as a mirror, which leaves the
    !!       toroidal potential nothing to be odd under: W ≡ 0 to round-off.
-   use fe_precision,       only: wp
-   use fe_constants,       only: kyr
-   use fe_earth_structure, only: earth_model, build_M3L70V01
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_response,        only: response, response_init_ve, response_enable_lateral_visc, &
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: kyr
+   use vilma_earth_structure, only: earth_model, build_M3L70V01
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_response,        only: response, response_init_ve, response_enable_lateral_visc, &
                                  response_begin_step, response_apply, response_commit_step, &
                                  response_horizontal_toroidal, response_destroy
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_lmidx
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_lmidx
    implicit none
 
    integer,  parameter :: LMAX  = 12

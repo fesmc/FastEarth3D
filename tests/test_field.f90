@@ -1,10 +1,10 @@
 program test_field
    !! Validate the arbitrary-point evaluator (sht_grid_eval_point) and the analytic
-   !! field generators (fe_field), the infrastructure the Martinec-2018 SLE
+   !! field generators (vilma_field), the infrastructure the Martinec-2018 SLE
    !! benchmark profiles are built on.
-   use fe_precision, only: wp
-   use fe_sht,       only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_eval_point, sht_grid_synthesis, sht_grid_eval_point_horiz, sht_grid_destroy, sht_grid_surface_integral
-   use fe_field,     only: spherical_cap, exp_basin, angular_distance
+   use vilma_precision, only: wp
+   use vilma_sht,       only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_eval_point, sht_grid_synthesis, sht_grid_eval_point_horiz, sht_grid_destroy, sht_grid_surface_integral
+   use vilma_field,     only: spherical_cap, exp_basin, angular_distance
    implicit none
    real(wp), parameter :: pi = acos(-1.0_wp)
    integer,  parameter :: LMAX = 32

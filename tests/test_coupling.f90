@@ -9,17 +9,17 @@ program test_coupling
    !!       the ice immediately (elastic) and keeps subsiding with decreasing
    !!       increments toward an isostatic limit (viscoelastic relaxation), and
    !!       the ocean draws down (adding land ice removes ocean water).
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, sec_per_year
-   use fe_params,          only: fe_param_class
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy
-   use fe_coupling,        only: solid_earth_finalize, solid_earth_update, solid_earth_init, solid_earth
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, sec_per_year
+   use vilma_params,          only: vilma_param_class
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy
+   use vilma_coupling,        only: solid_earth_finalize, solid_earth_update, solid_earth_init, solid_earth
    implicit none
 
    integer, parameter :: LMAX = 16, NSTEP = 15
    type(sht_grid), target :: sht
-   type(fe_param_class)   :: p
+   type(vilma_param_class)   :: p
    type(solid_earth)      :: se
    real(wp), allocatable  :: z_bed_eq(:,:), h_ice_eq(:,:), h_ice(:,:)
    real(wp) :: dt_couple, bed_eq_ice, bed_prev, bed_now, d_first, d_last
@@ -155,7 +155,7 @@ contains
       !! Drive the coupling with an off-axis cap, rotation OFF then ON. Assert: the
       !! rotation-on run conserves ocean mass, develops a finite polar motion, and the
       !! bed differs from the rotation-off run (the feedback has an effect).
-      type(fe_param_class) :: pr
+      type(vilma_param_class) :: pr
       type(solid_earth)    :: se_off, se_on
       real(wp), allocatable :: h_off(:,:), zoff(:,:)
       real(wp) :: wmass, mdeg, dzmax

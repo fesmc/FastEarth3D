@@ -1,4 +1,4 @@
-module fe_tensor_sh
+module vilma_tensor_sh
    !! Tensor spherical-harmonic dyadic transforms (Martinec 2000, Appendix B), the
    !! machinery rung 6 (laterally-varying viscosity) needs — GENERAL order (mmax≥0).
    !!
@@ -39,8 +39,8 @@ module fe_tensor_sh
    !! calibrated once at init. Z⁴⊥Z⁶ (B12) keeps the two projections diagonal only
    !! as far as the grid quadrature is exact; test_tensor_sh measures the leak.
    !! Validated by the round trip and the physical ∫τ:ε double-dot vs the B13 norms.
-   use fe_precision, only: wp
-   use fe_sht,       only: sht_grid, sht_free_cfg, sht_grid_lmidx, sht_grid_clone_cfg, sht_grid_synthesis, sht_grid_sph_synthesis, sht_grid_analysis, sht_grid_sph_analysis, &
+   use vilma_precision, only: wp
+   use vilma_sht,       only: sht_grid, sht_free_cfg, sht_grid_lmidx, sht_grid_clone_cfg, sht_grid_synthesis, sht_grid_sph_synthesis, sht_grid_analysis, sht_grid_sph_analysis, &
                            sht_grid_sphtor_synthesis, sht_grid_sphtor_analysis
    use, intrinsic :: iso_c_binding, only: c_ptr
    !$ use omp_lib
@@ -211,7 +211,7 @@ contains
       case (TLAM_SPH);  tor = .false.
       case (TLAM);      tor = .true.
       case default
-         error stop 'fe_tensor_sh: coefficient block must have TLAM_SPH or TLAM channels'
+         error stop 'vilma_tensor_sh: coefficient block must have TLAM_SPH or TLAM channels'
       end select
    end function toroidal_channels
 
@@ -412,4 +412,4 @@ contains
       self%npool = 0;  self%lmax = 0;  self%nlm = 0
    end subroutine tensor_sh_destroy
 
-end module fe_tensor_sh
+end module vilma_tensor_sh

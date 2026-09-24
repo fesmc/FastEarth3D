@@ -29,7 +29,7 @@ and convergence under step refinement.
 
 This explicit update is **conditionally stable** — the step is capped by the
 shortest Maxwell time, so a short dynamical $\Delta t$ is sub-cycled within the
-coupling interval (the `fe_timestep` controller sizes it; `scheme = "trap"`
+coupling interval (the `vilma_timestep` controller sizes it; `scheme = "trap"`
 selects the 2nd-order adaptive variant).
 
 ## The viscoelastic field driver
@@ -87,8 +87,8 @@ start (a held LGM load) is brought into balance by a **spin-up**
 (`pre_spinup_1d`) before switching the transient to the 3-D path.
 
 ::: {.callout-tip title="Where this lives in the code"}
-`fe_viscoelastic` (1D stepper + shared kernel), `fe_response` (`ve_response`
-field driver, `begin_step`/`commit_step`), `fe_io` (netCDF restart), and
-`fe_coupling` (host init/update contract). The cost of `begin_step` is the
+`vilma_viscoelastic` (1D stepper + shared kernel), `vilma_response` (`ve_response`
+field driver, `begin_step`/`commit_step`), `vilma_io` (netCDF restart), and
+`vilma_coupling` (host init/update contract). The cost of `begin_step` is the
 main performance driver and is addressed in [Solver](solver.qmd).
 :::

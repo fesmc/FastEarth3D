@@ -1,5 +1,5 @@
 program test_rotation
-   !! Rung-5b validation: rotational feedback / polar motion (fe_rotation) vs the
+   !! Rung-5b validation: rotational feedback / polar motion (vilma_rotation) vs the
    !! Spada et al. (2011) Test 3/2 benchmark (data/benchmarks/rotation_spada2011).
    !!
    !! Three checks, increasingly physical:
@@ -9,13 +9,13 @@ program test_rotation
    !!       from the viscoelastic / Liouville physics.
    !!   (2) SECULAR Love number k_s = k^T_f and elastic k^T_e are physical.
    !!   (3) POLAR MOTION |m(t)| under a Heaviside load matches Table 14 (the
-   !!       Chandler-excluded, Cw=0, column — the quasi-static regime fe_rotation
+   !!       Chandler-excluded, Cw=0, column — the quasi-static regime vilma_rotation
    !!       integrates) at t = 0,1,2,5,10,20 kyr, for the cap AND disc loads.
-   use fe_precision,       only: wp
-   use fe_earth_structure, only: earth_model, build_M3L70V01
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_rotation,        only: rotation_update, rotation_destroy, rotation_init, rotation_state
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_surface_integral
+   use vilma_precision,       only: wp
+   use vilma_earth_structure, only: earth_model, build_M3L70V01
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_rotation,        only: rotation_update, rotation_destroy, rotation_init, rotation_state
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_surface_integral
    implicit none
 
    real(wp), parameter :: deg = acos(-1.0_wp)/180.0_wp
@@ -154,7 +154,7 @@ contains
 
    complex(wp) function inertia21(sht, load, a) result(I21)
       !! (2,1) inertia I₁₃+iI₂₃ = −a⁴∫σ sinθcosθ e^{iφ}dΩ (the check mirrors the
-      !! integral fe_rotation uses internally).
+      !! integral vilma_rotation uses internally).
       type(sht_grid), intent(in) :: sht
       real(wp),       intent(in) :: load(:,:), a
       real(wp), allocatable :: w13(:,:), w23(:,:)
@@ -180,9 +180,9 @@ contains
 
 
    subroutine dump_cols(name, header, a)
-      !! Write a column table to $FE_BENCH_DUMP/<name> for the analysis scripts.
+      !! Write a column table to $VILMA_BENCH_DUMP/<name> for the analysis scripts.
       !!
-      !! No-op unless FE_BENCH_DUMP names a directory, so `make check` and any
+      !! No-op unless VILMA_BENCH_DUMP names a directory, so `make check` and any
       !! plain run behave exactly as before — the dump is opt-in and costs
       !! nothing when off. `header` names the columns and is written as a leading
       !! `#` comment line, so the file is self-describing and readable with any
@@ -191,7 +191,7 @@ contains
       real(wp),     intent(in) :: a(:,:)          ! (nrow, ncol)
       character(512) :: dir, path
       integer :: u, i, st
-      call get_environment_variable('FE_BENCH_DUMP', dir, status=st)
+      call get_environment_variable('VILMA_BENCH_DUMP', dir, status=st)
       if (st /= 0 .or. len_trim(dir) == 0) return
       path = trim(dir)//'/'//name
       open(newunit=u, file=trim(path), status='replace', action='write', iostat=st)

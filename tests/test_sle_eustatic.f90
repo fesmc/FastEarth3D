@@ -13,14 +13,14 @@ program test_sle_eustatic
    !! Independent checks: ocean_frac == 0.5, mass_resid == 0. If ocean_frac is right
    !! and barystatic is sensible, the dphi-vs-barystatic gap is the (legitimate)
    !! ocean-mean deformation, NOT an ocean-area bug.
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, kyr, rho_ice, rho_water
-   use fe_earth_structure, only: earth_model, build_M3L70V01
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_response,        only: response_destroy, response, response_init_elastic, response_init_ve, response_init_null
-   use fe_sht,             only: sht_grid_destroy, sht_grid_eval_point, sht_grid_analysis, sht_grid_surface_integral, sht_grid_init, sht_grid
-   use fe_sle,             only: sle_solve, sle_solver, sle_result
-   use fe_field,           only: spherical_cap
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, kyr, rho_ice, rho_water
+   use vilma_earth_structure, only: earth_model, build_M3L70V01
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_response,        only: response_destroy, response, response_init_elastic, response_init_ve, response_init_null
+   use vilma_sht,             only: sht_grid_destroy, sht_grid_eval_point, sht_grid_analysis, sht_grid_surface_integral, sht_grid_init, sht_grid
+   use vilma_sle,             only: sle_solve, sle_solver, sle_result
+   use vilma_field,           only: spherical_cap
    implicit none
 
    integer, parameter :: LMAX = 48, NSTEP = 20

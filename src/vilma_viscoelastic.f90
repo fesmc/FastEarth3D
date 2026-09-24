@@ -1,4 +1,4 @@
-module fe_viscoelastic
+module vilma_viscoelastic
    !! Time-domain viscoelastic relaxation: the heart of the method.
    !!
    !! Incompressible Maxwell rheology integrated explicitly in time (Martinec
@@ -20,15 +20,15 @@ module fe_viscoelastic
    !! the spheroidal strain keeps the four tensor components λ ∈ {1,2,5,6}. The
    !! laterally varying (3-D) case re-uses this same path with the memory update
    !! done pointwise on the Gauss grid (the project's 3-D goal, built on top).
-   use fe_precision,       only: wp
-   use fe_earth_structure, only: earth_model
-   use fe_radial_fe,       only: radial_operator_destroy, radial_operator_solve_vec, radial_operator_load_rhs, radial_operator_assemble, radial_operator, radial_mesh, &
+   use vilma_precision,       only: wp
+   use vilma_earth_structure, only: earth_model
+   use vilma_radial_fe,       only: radial_operator_destroy, radial_operator_solve_vec, radial_operator_load_rhs, radial_operator_assemble, radial_operator, radial_mesh, &
                                  idx_u, idx_v, idx_f, ndof_of
    implicit none
    private
 
    public :: ve_degree
-   ! Per-element Maxwell kernel, shared with the field driver (fe_response):
+   ! Per-element Maxwell kernel, shared with the field driver (vilma_response):
    public :: NLAM, strain_coeffs, ve_strain_constants, dissipative_rhs, &
              advance_memory
    ! ... and its toroidal counterpart, active only with lateral viscosity:
@@ -250,7 +250,7 @@ contains
    end function scheme_order
 
    pure integer function scheme_from_name(name) result(scheme)
-      !! Map a namelist scheme string to its SCHEME_* code (see fe_params).
+      !! Map a namelist scheme string to its SCHEME_* code (see vilma_params).
       character(len=*), intent(in) :: name
       select case (trim(name))
       case ("fe");   scheme = SCHEME_FE
@@ -373,7 +373,7 @@ contains
    pure subroutine strain_coeffs_tor(w1, w2, Jr, a, b, c)
       !! Toroidal strain coefficients (a,b,c) for λ = 3,4 from an element's nodal
       !! W (Martinec eq 87, the rows the spheroidal kernel drops). For
-      !! u = W(r) e_r×∇₁Y the strain is (W′ − W/r) Z³ + (W/r) Z⁴ (fe_tensor_sh), so
+      !! u = W(r) e_r×∇₁Y the strain is (W′ − W/r) Z³ + (W/r) Z⁴ (vilma_tensor_sh), so
       !! with W = W^k ψ_k + W^{k+1} ψ_{k+1} and ε = a/h + bψ_k/r + cψ_{k+1}/r:
       !!   λ=3:  a = W^{k+1} − W^k,  b = −W^k,  c = −W^{k+1}
       !!   λ=4:  a = 0,              b =  W^k,  c =  W^{k+1}
@@ -664,4 +664,4 @@ contains
       if (allocated(self%Cm0))  deallocate(self%Cm0)
    end subroutine ve_destroy
 
-end module fe_viscoelastic
+end module vilma_viscoelastic

@@ -1,12 +1,12 @@
 program test_sht
-   !! Round-trip test for the SHTns transform wrapper (fe_sht): synthesize a
+   !! Round-trip test for the SHTns transform wrapper (vilma_sht): synthesize a
    !! known band-limited spectrum to the spatial grid, analyze it back, and check
    !! the coefficients are recovered to machine precision. This proves the build
    !! system, the SHTns linkage, and the spectral<->spatial kernel before any
    !! physics is added.
    use, intrinsic :: iso_c_binding, only: c_double
-   use fe_precision, only: wp
-   use fe_sht,       only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_synthesis, sht_grid_analysis, sht_grid_surface_integral, sht_grid_destroy, &
+   use vilma_precision, only: wp
+   use vilma_sht,       only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_synthesis, sht_grid_analysis, sht_grid_surface_integral, sht_grid_destroy, &
                            sht_grid_sph_synthesis, sht_grid_tor_synthesis, sht_grid_sphtor_synthesis, sht_grid_sphtor_analysis
    implicit none
 

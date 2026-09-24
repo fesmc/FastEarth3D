@@ -17,11 +17,11 @@ program test_benchmark_martinec
    !! The remaining Martinec-2018 cases (C2/D3/E2/F1) exercise the full migrating-
    !! coastline SLE with basin topography and time-evolving caps; they are a
    !! separate, larger effort (full-sphere SLE + arbitrary lon/lat profiles).
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, rho_ice, kyr
-   use fe_earth_structure, only: earth_gravity_at, earth_model, build_M3L70V01
-   use fe_radial_fe,       only: radial_mesh_build, radial_mesh, radial_fe_finalize
-   use fe_viscoelastic,    only: ve_destroy, ve_step, ve_init, ve_degree
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, rho_ice, kyr
+   use vilma_earth_structure, only: earth_gravity_at, earth_model, build_M3L70V01
+   use vilma_radial_fe,       only: radial_mesh_build, radial_mesh, radial_fe_finalize
+   use vilma_viscoelastic,    only: ve_destroy, ve_step, ve_init, ve_degree
    implicit none
    character(*), parameter :: REF = 'data/benchmarks/sle_martinec2018/A_fig10_SBK.dat'
    integer,  parameter :: NROW = 721, NMAX = 128, NQ = 8000, NSTEP = 500

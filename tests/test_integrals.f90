@@ -1,10 +1,10 @@
 program test_integrals
-   !! Verify the closed-form element integrals (fe_radial_integrals, Martinec 2000
+   !! Verify the closed-form element integrals (vilma_radial_integrals, Martinec 2000
    !! Appendix C) against 5-point Gauss-Legendre numerical quadrature of their
    !! defining integrands. 5-point GL is exact for the polynomial integrands
    !! (I1-I6, K1-K4) and highly accurate for the smooth 1/r integrand (I7).
-   use fe_precision, only: wp
-   use fe_radial_integrals
+   use vilma_precision, only: wp
+   use vilma_radial_integrals
    implicit none
 
    ! A representative element away from r=0 (so I7's 1/r is non-singular).

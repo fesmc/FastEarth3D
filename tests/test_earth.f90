@@ -12,15 +12,15 @@ program test_earth
    !! real Earth's total mass and MOI factor to <1% and surface gravity to ~9.8 —
    !! this is the mass-consistency check the volume-average buys over midpoint
    !! sampling. The pointwise prem_rho_mu evaluator is checked at the surface crust.
-   use fe_precision,       only: wp
-   use fe_constants,       only: m_earth
-   use fe_params,          only: fe_param_class
-   use fe_earth_structure, only: earth_moi, earth_total_mass, earth_gravity_at, earth_n_layers, &
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: m_earth
+   use vilma_params,          only: vilma_param_class
+   use vilma_earth_structure, only: earth_moi, earth_total_mass, earth_gravity_at, earth_n_layers, &
                                  earth_model, build_M3L70V01, build_earth, prem_rho_mu
    implicit none
 
    type(earth_model)    :: em
-   type(fe_param_class) :: p
+   type(vilma_param_class) :: p
    integer  :: i
    logical  :: ok
    real(wp) :: mass, moi_factor, g, gtol, rho_c, mu_c

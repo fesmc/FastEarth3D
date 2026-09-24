@@ -4,7 +4,7 @@ title: "Maxwell rheology and the memory stress"
 
 The mantle is modelled as an **incompressible Maxwell** body: it responds
 elastically on short timescales and viscously on long ones, with a single
-Maxwell time $\tau_M = \eta/\mu$ per layer. FastEarth3D integrates this
+Maxwell time $\tau_M = \eta/\mu$ per layer. VILMA integrates this
 constitutive law **explicitly in the time domain** — there is no normal-mode
 decomposition and no Laplace transform. This is the structural choice that
 makes laterally varying (3D) viscosity essentially free.
@@ -102,15 +102,15 @@ $$
 $$
 
 In practice a **viscosity floor** (e.g. $\sim 10^{19}\ \mathrm{Pa\,s}$) caps the
-fastest relaxation and sets a usable step (VILMA-scale runs use
+fastest relaxation and sets a usable step (VILMA-v1-scale runs use
 $\Delta t \approx 2.5$ yr; the benchmark cases here use 20 yr). Elastic layers
 ($M\to 0$) freeze and carry no memory; fluid layers ($\mu = 0$) carry no memory
 either.
 
 ::: {.callout-tip title="Where this lives in the code"}
-`fe_viscoelastic` holds both the 1D per-degree stepper (`ve_degree`) and the
+`vilma_viscoelastic` holds both the 1D per-degree stepper (`ve_degree`) and the
 shared per-element kernel. The memory state is the only prognostic field carried
-across a restart (`fe_io`). Time integration is validated by `test_relax`
+across a restart (`vilma_io`). Time integration is validated by `test_relax`
 (a held load relaxes elastic $\to$ fluid, $t_{\text{relax}}\propto\eta$,
 step-converged) and is benchmarked in
 [Sea-level equation](../benchmarks/sea-level.qmd).

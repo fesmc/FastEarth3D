@@ -4,9 +4,9 @@ program test_mesh
    !! strictly ascending, place a node on every material interface — including
    !! the CMB (no element straddles a discontinuity) — and honour the element-size
    !! targets (5/10/40 km by depth).
-   use fe_precision,       only: wp
-   use fe_earth_structure, only: earth_model, build_M3L70V01
-   use fe_radial_fe,       only: radial_mesh_build, radial_mesh
+   use vilma_precision,       only: wp
+   use vilma_earth_structure, only: earth_model, build_M3L70V01
+   use vilma_radial_fe,       only: radial_mesh_build, radial_mesh
    implicit none
 
    type(earth_model) :: em

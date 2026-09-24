@@ -32,11 +32,11 @@ program test_couple_order
    !! The reference is the most accurate scheme (D) at a tiny dt, cross-checked
    !! against FE single-pass at the same tiny dt to confirm a shared dt->0 limit
    !! (so the measured "error" is a genuine truncation error, not a scheme artefact).
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, grav_G, sec_per_year
-   use fe_earth_structure, only: earth_model, earth_layer, RHEOL_MAXWELL
-   use fe_radial_fe,       only: radial_mesh_build, radial_mesh, radial_operator, radial_fe_finalize
-   use fe_viscoelastic,    only: ve_step_double, ve_destroy, ve_step, ve_init, ve_degree, SCHEME_FE, SCHEME_TRAP, SCHEME_BE
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, grav_G, sec_per_year
+   use vilma_earth_structure, only: earth_model, earth_layer, RHEOL_MAXWELL
+   use vilma_radial_fe,       only: radial_mesh_build, radial_mesh, radial_operator, radial_fe_finalize
+   use vilma_viscoelastic,    only: ve_step_double, ve_destroy, ve_step, ve_init, ve_degree, SCHEME_FE, SCHEME_TRAP, SCHEME_BE
    implicit none
 
    real(wp), parameter :: km = 1.0e3_wp, yr = sec_per_year

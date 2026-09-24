@@ -12,13 +12,13 @@ program test_ve_response
    !!       same Maxwell kernel. Degree 1 is special: its geoid is referenced to
    !!       the CM frame (N₁≡0), so the field driver's degree-1 geoid is zero by
    !!       design and does not track the 1-D stepper's raw F — checked as N₁=0.
-   use fe_precision,       only: wp
-   use fe_constants,       only: kyr
-   use fe_earth_structure, only: earth_model, build_M3L70V01
-   use fe_radial_fe,       only: radial_mesh_build, radial_mesh, radial_fe_finalize
-   use fe_viscoelastic,    only: ve_destroy, ve_step, ve_init, ve_degree, SCHEME_FE, SCHEME_TRAP
-   use fe_response,        only: response_commit_step, response_apply, response_begin_step, response_destroy, response, response_init_elastic, response_init_ve, response_init_null
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_lmidx
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: kyr
+   use vilma_earth_structure, only: earth_model, build_M3L70V01
+   use vilma_radial_fe,       only: radial_mesh_build, radial_mesh, radial_fe_finalize
+   use vilma_viscoelastic,    only: ve_destroy, ve_step, ve_init, ve_degree, SCHEME_FE, SCHEME_TRAP
+   use vilma_response,        only: response_commit_step, response_apply, response_begin_step, response_destroy, response, response_init_elastic, response_init_ve, response_init_null
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_lmidx
    implicit none
 
    integer, parameter :: LMAX = 8

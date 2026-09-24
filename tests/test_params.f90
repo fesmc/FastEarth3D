@@ -1,21 +1,21 @@
 program test_params
-   !! fe_params: load a &fe3d namelist into fe_param_class and build the earth
+   !! vilma_params: load a &vilma namelist into vilma_param_class and build the earth
    !! model from it. A sparse user file is overlaid on the complete, shipped
-   !! defaults file (input/fastearth3d_defaults.nml) — the yelmo defaults_file
+   !! defaults file (input/vilma_defaults.nml) — the yelmo defaults_file
    !! convention. Checks
    !! (1) scalar / string / logical overrides, (2) the YEARS->seconds conversion
    !! of the time fields, (3) custom per-layer earth assembly, (4) the named
    !! built-in path (defaults), and (5) an un-overridden value falling through to
    !! the defaults file.
-   use fe_precision,       only: wp
-   use fe_constants,       only: sec_per_year
-   use fe_params,          only: fe_param_class, fe_par_load, expand_path
-   use fe_earth_structure, only: earth_n_layers, earth_model, build_earth, RHEOL_MAXWELL, RHEOL_FLUID
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: sec_per_year
+   use vilma_params,          only: vilma_param_class, vilma_par_load, expand_path
+   use vilma_earth_structure, only: earth_n_layers, earth_model, build_earth, RHEOL_MAXWELL, RHEOL_FLUID
    implicit none
 
    character(len=*), parameter :: NML  = "obj/test_params.nml"
-   character(len=*), parameter :: DEFS = "input/fastearth3d_defaults.nml"   ! shipped complete &fe3d defaults
-   type(fe_param_class) :: p, pdef
+   character(len=*), parameter :: DEFS = "input/vilma_defaults.nml"   ! shipped complete &vilma defaults
+   type(vilma_param_class) :: p, pdef
    type(earth_model)    :: em, emdef
    integer :: u
    logical :: ok
@@ -26,7 +26,7 @@ program test_params
 
    ! --- write a SPARSE user file (custom 2-layer earth) overriding the defaults -
    open(newunit=u, file=NML, status="replace", action="write")
-   write(u,'(a)') "&fe3d"
+   write(u,'(a)') "&vilma"
    write(u,'(a)') "    lmax    = 32"
    write(u,'(a)') '    earth   = "custom"'
    write(u,'(a)') "    n_layer = 2"
@@ -45,7 +45,7 @@ program test_params
    write(u,'(a)') "/"
    close(u)
 
-   call fe_par_load(p, NML, defaults_file=DEFS)
+   call vilma_par_load(p, NML, defaults_file=DEFS)
 
    ! --- (1) scalar / string / logical overrides -------------------------------
    call check_int("lmax",        p%lmax,        32)
@@ -87,10 +87,10 @@ program test_params
 
    write(*,'(a)') ''
    if (ok) then
-      write(*,'(a)') ' PASS: fe_par_load fills the record (years->s) and build_earth'
+      write(*,'(a)') ' PASS: vilma_par_load fills the record (years->s) and build_earth'
       write(*,'(a)') '       assembles both custom and named earth models'
    else
-      write(*,'(a)') ' FAIL: fe_params did not all pass'
+      write(*,'(a)') ' FAIL: vilma_params did not all pass'
       error stop 1
    end if
 

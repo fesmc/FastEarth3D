@@ -1,6 +1,6 @@
 program test_restart
    !! netCDF restart round-trip for the coupling state (yelmo-convention I/O via
-   !! fe_io: a time axis lets several snapshots share one file), for RESP_VE (the
+   !! vilma_io: a time axis lets several snapshots share one file), for RESP_VE (the
    !! Maxwell memory tensor + σ_n). Checks:
    !!
    !!   (1) direct state restore — read the last snapshot into a fresh model and
@@ -17,13 +17,13 @@ program test_restart
    !! spheroidal-only file (l_toroidal = .false., 4 channels) read into a run
    !! that carries the toroidal field restores the spheroidal memory exactly and
    !! starts the toroidal channels at zero.
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, sec_per_year
-   use fe_params,          only: fe_param_class
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy
-   use fe_coupling,        only: solid_earth_finalize, solid_earth_update, solid_earth_init, solid_earth
-   use fe_io,              only: fe_restart_write, fe_restart_read
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, sec_per_year
+   use vilma_params,          only: vilma_param_class
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy
+   use vilma_coupling,        only: solid_earth_finalize, solid_earth_update, solid_earth_init, solid_earth
+   use vilma_io,              only: vilma_restart_write, vilma_restart_read
    use ncio,               only: nc_size
    implicit none
 
@@ -62,7 +62,7 @@ contains
       character(len=*),  intent(in)    :: resp, file
       logical,           intent(in)    :: visc3d   !! lateral viscosity (toroidal channels on)
       logical,           intent(inout) :: ok
-      type(fe_param_class) :: p
+      type(vilma_param_class) :: p
       type(solid_earth)    :: a, b, c
       real(wp), allocatable :: a6_zbed(:,:), a6_rsl(:,:)
       real(wp) :: t1, t2, d_restore, d_continue, dt_yr
@@ -82,13 +82,13 @@ contains
          call solid_earth_update(a, h_ice, dt_yr)
       end do
       t1 = a%time
-      call fe_restart_write(a, t1, filename=file, init=.true.)   ! snapshot 1 (memory @ K1)
+      call vilma_restart_write(a, t1, filename=file, init=.true.)   ! snapshot 1 (memory @ K1)
 
       do step = 1, K2
          call solid_earth_update(a, h_ice, dt_yr)
       end do
       t2 = a%time
-      call fe_restart_write(a, t2, filename=file, init=.false.)  ! snapshot 2 (state @ K1+K2)
+      call vilma_restart_write(a, t2, filename=file, init=.false.)  ! snapshot 2 (state @ K1+K2)
       a6_zbed = a%z_bed;  a6_rsl = a%rsl
 
       write(*,'(a,a,a,l1,a,i0,a,i0,a,f6.2,a,f6.2)') ' restart [', trim(resp), &
@@ -107,7 +107,7 @@ contains
 
       ! === (1) direct state restore (default = last snapshot, t2) =============
       b%par = p; call solid_earth_init(b, z_bed_eq, h_ice_eq)
-      call fe_restart_read(b, file)
+      call vilma_restart_read(b, file)
       d_restore = max(maxval(abs(b%z_bed - a6_zbed)), maxval(abs(b%rsl - a6_rsl)))
       write(*,'(a,es11.2)') '   (1) state restore  max|B - A|     =', d_restore
       if (d_restore > 1.0e-9_wp) then
@@ -116,7 +116,7 @@ contains
 
       ! === (2) bit-for-bit continuation from the earlier snapshot (t1) =========
       c%par = p; call solid_earth_init(c, z_bed_eq, h_ice_eq)
-      call fe_restart_read(c, file, time=t1)                ! restore memory @ K1
+      call vilma_restart_read(c, file, time=t1)                ! restore memory @ K1
       do step = 1, K2
          call solid_earth_update(c, h_ice, dt_yr)     ! same load, K2 steps
       end do
@@ -136,7 +136,7 @@ contains
       !! exactly the toroidal state of a run that has only ever been spheroidal.
       character(len=*), intent(in)    :: file
       logical,          intent(inout) :: ok
-      type(fe_param_class) :: p
+      type(vilma_param_class) :: p
       type(solid_earth)    :: a, b
       real(wp) :: d_sph, d_tor
       integer  :: step
@@ -148,10 +148,10 @@ contains
       do step = 1, K1
          call solid_earth_update(a, h_ice, 1.0e3_wp)
       end do
-      call fe_restart_write(a, a%time, filename=file, init=.true.)
+      call vilma_restart_write(a, a%time, filename=file, init=.true.)
       p%l_toroidal = .true.
       b%par = p; call solid_earth_init(b, z_bed_eq, h_ice_eq)
-      call fe_restart_read(b, file)
+      call vilma_restart_read(b, file)
       d_sph = max(maxval(abs(b%resp%Are(1:4,:,:) - a%resp%Are)), maxval(abs(b%resp%Cim(1:4,:,:) - a%resp%Cim)))
       d_tor = max(maxval(abs(b%resp%Are(5:,:,:))), maxval(abs(b%resp%Cim(5:,:,:))))
       write(*,'(a,i0,a,i0,a,es9.2,a,es9.2)') ' restart [migration ', a%resp%nlam, ' -> ', &

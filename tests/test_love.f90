@@ -9,10 +9,10 @@ program test_love
    !!
    !! and the elastic benchmark model M3-L70-V01 must converge to physical
    !! values (printed for comparison against Spada et al. 2011 Test 2/1).
-   use fe_precision,       only: wp
-   use fe_earth_structure, only: earth_model, earth_layer, build_M3L70V01, &
+   use vilma_precision,       only: wp
+   use vilma_earth_structure, only: earth_model, earth_layer, build_M3L70V01, &
                                  RHEOL_ELASTIC, RHEOL_FLUID
-   use fe_radial_fe,       only: radial_operator_solve_vec, radial_operator_load_rhs, radial_operator_solve, radial_operator_assemble, radial_mesh_build, radial_mesh, radial_operator, loading_love, &
+   use vilma_radial_fe,       only: radial_operator_solve_vec, radial_operator_load_rhs, radial_operator_solve, radial_operator_assemble, radial_mesh_build, radial_mesh, radial_operator, loading_love, &
                                  radial_fe_finalize, build_dense_operator, &
                                  uniq_weight, idx_u, idx_v, idx_f, ndof_of
    implicit none

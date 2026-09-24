@@ -1,5 +1,5 @@
 program test_flotation_load
-   !! Locks in the grounded-ice LOAD masking in the SLE (fe_sle): floating ice
+   !! Locks in the grounded-ice LOAD masking in the SLE (vilma_sle): floating ice
    !! does not press its full weight on the bed -- it is borne by buoyancy and
    !! carried by the ocean term -- so the surface load uses rho_ice*d_ice*(1-C),
    !! NOT rho_ice*d_ice. Without the (1-C) mask, ice overhanging deep water
@@ -13,13 +13,13 @@ program test_flotation_load
    !! so the floating cap stays floating. The grounded cap must load and strongly
    !! subside the solid; the floating cap must not subside from its own weight.
    !! We assert |u_grounded| >> |u_floating|.
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, rho_ice, rho_water
-   use fe_earth_structure, only: earth_model, build_M3L70V01
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_response,        only: response_destroy, response, response_init_elastic, response_init_ve, response_init_null
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy
-   use fe_sle,             only: sle_solve, sle_solver, sle_result
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, rho_ice, rho_water
+   use vilma_earth_structure, only: earth_model, build_M3L70V01
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_response,        only: response_destroy, response, response_init_elastic, response_init_ve, response_init_null
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy
+   use vilma_sle,             only: sle_solve, sle_solver, sle_result
    implicit none
 
    integer, parameter :: LMAX = 24

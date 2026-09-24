@@ -1,12 +1,12 @@
-module fe_constants
-   !! Physical and reference constants for FastEarth3D.
+module vilma_constants
+   !! Physical and reference constants for VILMA.
    !!
    !! Values follow the GIA-community conventions used by the Spada et al. (2011)
    !! and Martinec et al. (2018) benchmarks, so that validation runs can be
    !! compared directly. Densities in particular differ from ice-sheet-model
    !! conventions and must be applied consistently (see doc/design.md, "conserve
    !! mass not volume").
-   use fe_precision, only: wp
+   use vilma_precision, only: wp
    implicit none
    public
 
@@ -34,4 +34,4 @@ module fe_constants
    real(wp), parameter :: sec_per_year = 31556926.0_wp  !! seconds in a Julian year
    real(wp), parameter :: kyr          = 1000.0_wp*sec_per_year
 
-end module fe_constants
+end module vilma_constants

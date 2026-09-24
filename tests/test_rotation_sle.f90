@@ -13,14 +13,14 @@ program test_rotation_sle
    !!   (4) FIXED POINT: the rotation ↔ SLE iteration converges; the ocean feedback on
    !!       m is a small correction to the ice-only polar motion.
    !!   (5) FINGERPRINT: s_rot is a degree-2 order-1, ~m-scale pattern.
-   use fe_precision,       only: wp
-   use fe_constants,       only: omega_earth
-   use fe_earth_structure, only: earth_model, build_M3L70V01
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_response,        only: response_destroy, response, response_init_elastic, response_init_ve, response_init_null
-   use fe_sle,             only: sle_solve, sle_solver, sle_result
-   use fe_rotation,        only: rotation_destroy, rotation_commit, rotation_s_rot, rotation_solve_m, rotation_begin_step, rotation_init, rotation_state
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: omega_earth
+   use vilma_earth_structure, only: earth_model, build_M3L70V01
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_response,        only: response_destroy, response, response_init_elastic, response_init_ve, response_init_null
+   use vilma_sle,             only: sle_solve, sle_solver, sle_result
+   use vilma_rotation,        only: rotation_destroy, rotation_commit, rotation_s_rot, rotation_solve_m, rotation_begin_step, rotation_init, rotation_state
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy
    implicit none
 
    real(wp), parameter :: deg = acos(-1.0_wp)/180.0_wp

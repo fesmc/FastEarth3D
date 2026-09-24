@@ -21,14 +21,14 @@ program test_benchmark_lvz
    !! we run with mmax=0 (Legendre-only transforms) which keeps the pseudo-spectral
    !! memory advance cheap and lets us push lmax high enough to resolve the 100 km
    !! disc. We drive ve_response directly (pure ice-load deformation, no SLE/ocean).
-   use fe_precision,       only: wp
-   use fe_constants,       only: kyr
-   use fe_earth_structure, only: earth_model, build_M3L70V01
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_response,        only: response, response_init_elastic, response_init_ve, response_init_null, &
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: kyr
+   use vilma_earth_structure, only: earth_model, build_M3L70V01
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_response,        only: response, response_init_elastic, response_init_ve, response_init_null, &
                                  response_apply, response_begin_step, response_commit_step, &
                                  response_enable_lateral_visc, response_destroy
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_eval_point, sht_grid_lmidx
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_destroy, sht_grid_eval_point, sht_grid_lmidx
    implicit none
 
    integer,  parameter :: LMAX  = 512       ! axisymmetric; ~0.7° ≈ 78 km at the edge
@@ -190,9 +190,9 @@ contains
 
 
    subroutine dump_cols(name, header, a)
-      !! Write a column table to $FE_BENCH_DUMP/<name> for the analysis scripts.
+      !! Write a column table to $VILMA_BENCH_DUMP/<name> for the analysis scripts.
       !!
-      !! No-op unless FE_BENCH_DUMP names a directory, so `make check` and any
+      !! No-op unless VILMA_BENCH_DUMP names a directory, so `make check` and any
       !! plain run behave exactly as before — the dump is opt-in and costs
       !! nothing when off. `header` names the columns and is written as a leading
       !! `#` comment line, so the file is self-describing and readable with any
@@ -201,7 +201,7 @@ contains
       real(wp),     intent(in) :: a(:,:)          ! (nrow, ncol)
       character(512) :: dir, path
       integer :: u, i, st
-      call get_environment_variable('FE_BENCH_DUMP', dir, status=st)
+      call get_environment_variable('VILMA_BENCH_DUMP', dir, status=st)
       if (st /= 0 .or. len_trim(dir) == 0) return
       path = trim(dir)//'/'//name
       open(newunit=u, file=trim(path), status='replace', action='write', iostat=st)

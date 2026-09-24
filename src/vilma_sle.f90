@@ -1,11 +1,11 @@
-module fe_sle
+module vilma_sle
    !! Sea-level equation: gravitationally self-consistent, mass-conserving
    !! redistribution of ocean water over a deforming solid Earth and geoid, with
    !! migrating coastlines (Kendall, Mitrovica & Milne 2005; Martinec et al.
    !! 2018 benchmark).
    !!
    !! Solved pseudo-spectrally: the load → (uplift, geoid) convolution is done in
-   !! spectral space (via a response_operator, fe_response), while the ocean
+   !! spectral space (via a response_operator, vilma_response), while the ocean
    !! function multiply C·S is a pointwise product on the spatial Gauss grid —
    !! this is what avoids Gibbs ringing at coastlines.
    !!
@@ -29,10 +29,10 @@ module fe_sle
    !! precision at every iteration. The inner loop iterates S (the water load
    !! feeds back through the response); the outer loop rebuilds the ocean
    !! function C from the migrated topography topo0 − S (moving shorelines).
-   use fe_precision, only: wp
-   use fe_constants, only: rho_ice, rho_water
-   use fe_sht,       only: sht_grid, sht_grid_surface_integral, sht_grid_analysis, sht_grid_synthesis
-   use fe_response,  only: response_finalize_step, response_endpoint_converged, response_advance_endpoint, response_apply, response_prepare_endpoint, response_begin_step, response, response_init_elastic, response_init_ve, response_init_null
+   use vilma_precision, only: wp
+   use vilma_constants, only: rho_ice, rho_water
+   use vilma_sht,       only: sht_grid, sht_grid_surface_integral, sht_grid_analysis, sht_grid_synthesis
+   use vilma_response,  only: response_finalize_step, response_endpoint_converged, response_advance_endpoint, response_apply, response_prepare_endpoint, response_begin_step, response, response_init_elastic, response_init_ve, response_init_null
    implicit none
    private
 
@@ -166,12 +166,12 @@ contains
       complex(wp),      optional, intent(out) :: sigma_lm(:)
       !! s_rot (optional, default 0): the rotational-feedback contribution to relative
       !! sea level, s_rot = N_rot − u_rot [m] (geoid minus uplift from the centrifugal
-      !! potential of polar motion; fe_rotation builds it). It is a degree-2 field HELD
+      !! potential of polar motion; vilma_rotation builds it). It is a degree-2 field HELD
       !! constant over this solve — the rotation ↔ SLE fixed point is iterated by the
       !! caller (the polar motion responds to the ice + ocean load). It enters the
       !! sea-surface geometry (Sraw) but NOT the surface mass load that drives the
       !! load response / Maxwell memory: the rotational potential forces the Earth
-      !! through fe_rotation's own tidal channel, not as a surface mass. Mass is still
+      !! through vilma_rotation's own tidal channel, not as a surface mass. Mass is still
       !! conserved — Δφ is recomputed from Sraw including s_rot. With s_rot absent the
       !! solve is bit-for-bit the no-rotation result.
       real(wp),         optional, intent(in)  :: s_rot(:,:)
@@ -424,4 +424,4 @@ contains
       end where
    end subroutine ocean_function
 
-end module fe_sle
+end module vilma_sle

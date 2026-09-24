@@ -19,9 +19,9 @@ program test_benchmark_love
    !!     (~50% too soft at j=2): a single transposed index in the self-gravity
    !!     potential-gradient force (eq 65/81, the U-F coupling i2) — now fixed.
    !!     See doc/formulation.md "Elastic low-degree discrepancy (FIXED)".
-   use fe_precision,       only: wp
-   use fe_earth_structure, only: earth_model, build_M3L70V01, RHEOL_FLUID
-   use fe_radial_fe,       only: radial_operator_solve, radial_operator_assemble, radial_mesh_build, radial_mesh, radial_operator, loading_love, &
+   use vilma_precision,       only: wp
+   use vilma_earth_structure, only: earth_model, build_M3L70V01, RHEOL_FLUID
+   use vilma_radial_fe,       only: radial_operator_solve, radial_operator_assemble, radial_mesh_build, radial_mesh, radial_operator, loading_love, &
                                  radial_fe_finalize
    implicit none
    character(*), parameter :: REF = 'data/benchmarks/love_M3-L70-V01/mod_M3-L70-V01'
@@ -184,9 +184,9 @@ contains
    end subroutine crossover
 
    subroutine dump_cols(name, header, a)
-      !! Write a column table to $FE_BENCH_DUMP/<name> for the analysis scripts.
+      !! Write a column table to $VILMA_BENCH_DUMP/<name> for the analysis scripts.
       !!
-      !! No-op unless FE_BENCH_DUMP names a directory, so `make check` and any
+      !! No-op unless VILMA_BENCH_DUMP names a directory, so `make check` and any
       !! plain run behave exactly as before — the dump is opt-in and costs
       !! nothing when off. `header` names the columns and is written as a leading
       !! `#` comment line, so the file is self-describing and readable with any
@@ -195,7 +195,7 @@ contains
       real(wp),     intent(in) :: a(:,:)          ! (nrow, ncol)
       character(512) :: dir, path
       integer :: u, i, st
-      call get_environment_variable('FE_BENCH_DUMP', dir, status=st)
+      call get_environment_variable('VILMA_BENCH_DUMP', dir, status=st)
       if (st /= 0 .or. len_trim(dir) == 0) return
       path = trim(dir)//'/'//name
       open(newunit=u, file=trim(path), status='replace', action='write', iostat=st)

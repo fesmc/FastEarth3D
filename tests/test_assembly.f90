@@ -1,21 +1,21 @@
 program test_assembly
    !! Structure / correctness checks for the per-degree saddle-point assembly
-   !! (Martinec 2000 eqs 80-84), built dense by fe_radial_fe%build_dense_operator.
+   !! (Martinec 2000 eqs 80-84), built dense by vilma_radial_fe%build_dense_operator.
    !! This is rung-2 step 2: verify the operator is built right *before* solving.
    !! The physics validation (Love numbers vs Spada 2011) is the next step.
    !! Section 3 does the same for the toroidal W operator (eq 80's W block),
    !! including its fluid-core pinning and the degree-1 rotation gauge.
-   use fe_precision,        only: wp
-   use fe_constants,        only: pi, grav_G
-   use fe_earth_structure,  only: earth_gravity_at, earth_model, earth_layer, build_M3L70V01, &
+   use vilma_precision,        only: wp
+   use vilma_constants,        only: pi, grav_G
+   use vilma_earth_structure,  only: earth_gravity_at, earth_model, earth_layer, build_M3L70V01, &
                                   RHEOL_ELASTIC, RHEOL_FLUID
-   use fe_radial_fe,        only: radial_mesh_build, radial_mesh, build_dense_operator, shell_Rk, &
+   use vilma_radial_fe,        only: radial_mesh_build, radial_mesh, build_dense_operator, shell_Rk, &
                                   idx_u, idx_v, idx_f, idx_p, ndof_of, &
                                   toroidal_operator, build_toroidal_operator, toroidal_dead_nodes, &
                                   rotation_weights, toroidal_operator_assemble, &
                                   toroidal_operator_solve_vec, toroidal_operator_destroy
-   use fe_radial_integrals, only: elem_k1, elem_k2
-   use fe_viscoelastic,     only: NLAM_TOR, ve_strain_constants_tor
+   use vilma_radial_integrals, only: elem_k1, elem_k2
+   use vilma_viscoelastic,     only: NLAM_TOR, ve_strain_constants_tor
    implicit none
 
    type(earth_model)     :: earth
@@ -181,7 +181,7 @@ program test_assembly
 contains
 
    function elem_mu(earth, mesh) result(mu)
-      !! Shear modulus per element, as fe_response stores it.
+      !! Shear modulus per element, as vilma_response stores it.
       type(earth_model), intent(in) :: earth
       type(radial_mesh), intent(in) :: mesh
       real(wp), allocatable :: mu(:)

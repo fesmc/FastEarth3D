@@ -13,9 +13,9 @@ z_bed_ref_file = "data/reference/rtopo_gauss_l128.nc"
 h_ice_ref_file = "data/reference/rtopo_gauss_l128.nc"
 ```
 
-`read_ref2d` (fe_drive) conservatively remaps it onto the run's own Gauss grid when
+`read_ref2d` (vilma_drive) conservatively remaps it onto the run's own Gauss grid when
 the resolutions differ, and reads it directly at lmax=128. The remap weights are
-cached on disk (`fe_remap` → coords, under `maps/`), so the build cost is paid once
+cached on disk (`vilma_remap` → coords, under `maps/`), so the build cost is paid once
 and reused on later runs and restarts — there is no longer any need for
 per-resolution reference files. Because all resolutions derive from the same source,
 their inputs stay directly comparable. (lmax≳128 is past the real structure in the
@@ -30,10 +30,10 @@ Source: `RTopo-2.0.1_0.125deg_DRThydrocorr.nc` (CLIMBER-X input; `bedrock_topogr
    (conservative on a regular grid; the 0.5° `topo_05x05.nc` in CLIMBER-X carries bed
    only, so the full RTopo is coarsened here to keep ice too). Kept as the master
    source.
-2. `rtopo_gauss_l128.nc` — generated from the 0.5° source by `fastearth_mkref`
-   (`bin/fastearth_mkref.x mkref_l128.nml fastearth.nml`), conservatively remapping
-   bed (as-is) and ice (mass-conserving) with the same `fe_remap` engine the online
+2. `rtopo_gauss_l128.nc` — generated from the 0.5° source by `vilma_mkref`
+   (`bin/vilma_mkref.x mkref_l128.nml vilma.nml`), conservatively remapping
+   bed (as-is) and ice (mass-conserving) with the same `vilma_remap` engine the online
    path uses.
 
 To regenerate (or produce a different ceiling resolution), edit `mkref_l128.nml` and
-run `make fastearth_mkref` then `bin/fastearth_mkref.x mkref_l128.nml fastearth.nml`.
+run `make vilma_mkref` then `bin/vilma_mkref.x mkref_l128.nml vilma.nml`.

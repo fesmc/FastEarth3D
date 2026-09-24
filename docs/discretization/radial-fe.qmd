@@ -3,7 +3,7 @@ title: "Radial finite elements and the per-degree operator"
 ---
 
 After the [spectral reduction](spectral.qmd), each spherical-harmonic degree $j$
-is an independent 1D radial boundary-value problem. FastEarth3D discretizes it
+is an independent 1D radial boundary-value problem. VILMA discretizes it
 with **finite elements in radius**, assembling the symmetric saddle-point
 operator that is the Hessian of the energy functional.
 
@@ -27,7 +27,7 @@ weakly through its coupling block.
 
 The element matrices are built from the closed-form radial integrals of
 Martinec's Appendix C (the $I_1\ldots I_7$, $K_1\ldots K_3$ families),
-implemented and unit-tested in `fe_radial_integrals`:
+implemented and unit-tested in `vilma_radial_integrals`:
 
 | Block | Equation | Integrals | Couples |
 |---|---|---|---|
@@ -106,9 +106,9 @@ interface, so the time stepper needs no degree-1 special case. The geocenter is
 thus the physical degree-1 signal, not a hard-coded $\{h_1,l_1,k_1\}$.
 
 ::: {.callout-tip title="Where this lives in the code"}
-`fe_radial_fe` assembles `build_dense_operator` (the reference dense operator,
+`vilma_radial_fe` assembles `build_dense_operator` (the reference dense operator,
 with the dense $E_{\text{uniq}}$ penalty for cross-checking) and the banded
-operator used in production; `fe_radial_integrals` holds the Appendix-C element
+operator used in production; `vilma_radial_integrals` holds the Appendix-C element
 integrals. Love numbers are extracted by `loading_love` — see
 [Love numbers](../benchmarks/love-numbers.qmd). Validated by `test_assembly`,
 `test_love`.

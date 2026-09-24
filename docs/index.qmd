@@ -1,13 +1,13 @@
 ---
-title: "FastEarth3D"
+title: "VILMA"
 subtitle: "A fast, open-source, time-domain spectral–finite-element solid-Earth model"
 toc: false
 ---
 
-**FastEarth3D** is a fast, open-source 3D solid-Earth model: a
+**VILMA** is a fast, open-source 3D solid-Earth model: a
 self-gravitating, incompressible, Maxwell-viscoelastic sphere coupled to a
 self-consistent **sea-level equation** with migrating coastlines. It is
-designed as an open-source replacement for VILMA inside the
+designed as an open-source replacement for VILMA-v1 inside the
 [CLIMBER-X](https://doi.org/10.5194/gmd-15-5905-2022) Earth system model
 [@Willeit2022], and more generally as a reusable glacial isostatic adjustment
 (GIA) engine for ice-sheet and sea-level work.
@@ -34,13 +34,13 @@ paths are therefore the same solver**.
 | Method family | Examples | 3D viscosity | Speed | Fit for purpose |
 |---|---|:---:|:---:|---|
 | Normal-mode + Love numbers + SLE | SELEN, TABOO, ALMA3 | no (1D only) | fast (1D) | dead end for 3D |
-| **Time-domain spectral–FE** | **VILMA** [@Martinec2000] | **yes** | **fast** | **chosen** |
+| **Time-domain spectral–FE** | **VILMA-v1** [@Martinec2000] | **yes** | **fast** | **chosen** |
 | Full 3D FE/FV | CitcomSVE, ASPECT, Elmer | yes | slow, heavy | too complex |
 
 ## What is in these docs
 
 - **[Install & run](getting-started.qmd)** — building with `configme`, the
-  `&fe3d` namelist, the drivers, and staging runs with `runme`.
+  `&vilma` namelist, the drivers, and staging runs with `runme`.
 - **[Physics](physics/governing-equations.qmd)** — the governing equations
   (momentum, Poisson, incompressibility), the Maxwell rheology and its memory
   stress, the sea-level equation, and rotational feedback.

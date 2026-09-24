@@ -9,7 +9,7 @@ program test_benchmark_disc
    !! This test confirms the per-degree response (validated to ~0.1% against the
    !! Love table in test_benchmark_love) SYNTHESIZES into the correct spatial
    !! field, and pins the degree-1 geoid frame decision (N_1 = 0, CM frame; see
-   !! fe_response): the geoid matches only once N_1 is dropped.
+   !! vilma_response): the geoid matches only once N_1 is dropped.
    !!
    !!   (1) ELASTIC profile: u(theta), N(theta) over the full grid vs column 1,
    !!       via the elastic_response per-degree gains + Legendre synthesis.
@@ -19,12 +19,12 @@ program test_benchmark_disc
    !!       slowest low-degree modes by 100 kyr, and the converged fluid-limit
    !!       disc sum itself sits ~2.6% below the reference, within GIA-benchmark
    !!       inter-code scatter; tracked as an open item.)
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, rho_ice, kyr
-   use fe_earth_structure, only: earth_gravity_at, earth_model, build_M3L70V01
-   use fe_radial_fe,       only: radial_mesh_build, radial_mesh, radial_fe_finalize
-   use fe_viscoelastic,    only: ve_destroy, ve_step, ve_init, ve_degree
-   use fe_response,        only: response_destroy, response, response_init_elastic, response_init_ve, response_init_null
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, rho_ice, kyr
+   use vilma_earth_structure, only: earth_gravity_at, earth_model, build_M3L70V01
+   use vilma_radial_fe,       only: radial_mesh_build, radial_mesh, radial_fe_finalize
+   use vilma_viscoelastic,    only: ve_destroy, ve_step, ve_init, ve_degree
+   use vilma_response,        only: response_destroy, response, response_init_elastic, response_init_ve, response_init_null
    implicit none
    character(*), parameter :: REF = 'data/benchmarks/disc_spada2011/'
    integer,  parameter :: NTH = 201, NT = 6
@@ -244,9 +244,9 @@ contains
 
 
    subroutine dump_cols(name, header, a)
-      !! Write a column table to $FE_BENCH_DUMP/<name> for the analysis scripts.
+      !! Write a column table to $VILMA_BENCH_DUMP/<name> for the analysis scripts.
       !!
-      !! No-op unless FE_BENCH_DUMP names a directory, so `make check` and any
+      !! No-op unless VILMA_BENCH_DUMP names a directory, so `make check` and any
       !! plain run behave exactly as before — the dump is opt-in and costs
       !! nothing when off. `header` names the columns and is written as a leading
       !! `#` comment line, so the file is self-describing and readable with any
@@ -255,7 +255,7 @@ contains
       real(wp),     intent(in) :: a(:,:)          ! (nrow, ncol)
       character(512) :: dir, path
       integer :: u, i, st
-      call get_environment_variable('FE_BENCH_DUMP', dir, status=st)
+      call get_environment_variable('VILMA_BENCH_DUMP', dir, status=st)
       if (st /= 0 .or. len_trim(dir) == 0) return
       path = trim(dir)//'/'//name
       open(newunit=u, file=trim(path), status='replace', action='write', iostat=st)

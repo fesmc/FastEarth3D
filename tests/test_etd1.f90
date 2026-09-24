@@ -1,6 +1,6 @@
 program test_etd1
    !! Characterization of the ETD1 exponential memory integrator vs forward-Euler
-   !! (fe_viscoelastic, the 1-D stepper). Same homogeneous Maxwell sphere + held
+   !! (vilma_viscoelastic, the 1-D stepper). Same homogeneous Maxwell sphere + held
    !! degree-2 load as test_relax. This documents a DELIBERATE NEGATIVE RESULT: ETD1
    !! was implemented and measured as a candidate larger-dt / adaptive-stepping core,
    !! and found NOT to help for this model class. Kept as the reproducible evidence
@@ -27,7 +27,7 @@ program test_etd1
    !!      is only 1st-order accurate -> the coupling, not the memory integrator, is
    !!      the order bottleneck. ETD1's higher-order memory treatment is wasted, and
    !!      its exponential under-relaxes per step (forcing weight 2mu*M*phi1 < 2mu*M),
-   !!      the SAME "wrong direction" that sank ETD0 (fastearth3d-exp-memory-finding).
+   !!      the SAME "wrong direction" that sank ETD0 (vilma-exp-memory-finding).
    !!  (2) FE is PRACTICALLY unconditionally stable for this model: it stays finite to
    !!      M~35 (the elastic/self-gravity feedback damps the naive M<2 scalar limit).
    !!      It produces garbage above M~2, but resolving the kyr relaxation needs M<1
@@ -46,11 +46,11 @@ program test_etd1
    !! and ETD1 stays bounded at every dt; it REPORTS the FE-vs-ETD1 accuracy ranking
    !! rather than asserting it, so an eventual coupling fix that lets ETD1 win shows
    !! up in the printout instead of breaking the build.
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, grav_G, sec_per_year
-   use fe_earth_structure, only: earth_model, earth_layer, RHEOL_MAXWELL
-   use fe_radial_fe,       only: radial_mesh_build, radial_mesh, radial_operator, radial_fe_finalize
-   use fe_viscoelastic,    only: ve_destroy, ve_step, ve_init, ve_degree, SCHEME_FE, SCHEME_ETD1
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, grav_G, sec_per_year
+   use vilma_earth_structure, only: earth_model, earth_layer, RHEOL_MAXWELL
+   use vilma_radial_fe,       only: radial_mesh_build, radial_mesh, radial_operator, radial_fe_finalize
+   use vilma_viscoelastic,    only: ve_destroy, ve_step, ve_init, ve_degree, SCHEME_FE, SCHEME_ETD1
    implicit none
 
    real(wp), parameter :: km = 1.0e3_wp, yr = sec_per_year

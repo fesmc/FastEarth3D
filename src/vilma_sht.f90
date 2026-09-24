@@ -1,4 +1,4 @@
-module fe_sht
+module vilma_sht
    !! Thin Fortran wrapper around the SHTns spherical-harmonic transform library.
    !!
    !! Horizontal transforms are the performance kernel of the spectral-finite-
@@ -6,7 +6,7 @@ module fe_sht
    !! Gauss-Legendre spatial grid (where lateral viscosity and the sea-level
    !! equation live) and the spectral coefficients (where the radial solves are
    !! per-degree and decoupled). This module isolates the SHTns C API behind a
-   !! small derived type so the rest of FastEarth3D never touches iso_c_binding.
+   !! small derived type so the rest of VILMA never touches iso_c_binding.
    !!
    !! Convention: fully-normalized real spherical harmonics, no Condon-Shortley
    !! phase (SHT_ORTHONORMAL + SHT_NO_CS_PHASE), on a Gauss grid with a
@@ -14,7 +14,7 @@ module fe_sht
    !! is real). See doc/design.md for the rationale and the degree-1 / frame
    !! caveats that the load Love numbers will later depend on.
    use, intrinsic :: iso_c_binding
-   use fe_precision, only: wp
+   use vilma_precision, only: wp
    implicit none
    private
 
@@ -230,7 +230,7 @@ contains
       !! of a scalar potential, return the surface-gradient field on the grid,
       !!   vth = ∂_θ(Σ slm Y_lm),   vph = (1/sinθ) ∂_φ(Σ slm Y_lm),
       !! i.e. the E_lm and F_lm tensor-harmonic building blocks (Martinec 2000 B11).
-      !! Used to bootstrap the tensor-SH dyadic basis (fe_tensor_sh).
+      !! Used to bootstrap the tensor-SH dyadic basis (vilma_tensor_sh).
       type(sht_grid), intent(in)  :: self
       complex(wp),     intent(in)  :: slm(:)      !! length nlm
       real(wp),        intent(out) :: vth(:,:), vph(:,:)  !! (nphi, nlat)
@@ -261,7 +261,7 @@ contains
       !!   (vth, vph) = e_r × ∇₁(Σ tlm Y_lm) = (−F, E),
       !! with E = ∂_θ, F = (1/sinθ)∂_φ as in sph_synthesis. This is Martinec's
       !! S⁽⁰⁾ direction, the one the toroidal displacement W multiplies, and the
-      !! building block of the toroidal tensor harmonics Z³, Z⁴ (fe_tensor_sh).
+      !! building block of the toroidal tensor harmonics Z³, Z⁴ (vilma_tensor_sh).
       !!
       !! SHTns' own toroidal field is ∇×(T e_r) = −e_r × ∇T = (F, −E), the
       !! opposite orientation, so its output is negated here. test_sht pins the
@@ -349,4 +349,4 @@ contains
       lm = shtns_lmidx(self%cfg, l, m)
    end function sht_grid_lmidx
 
-end module fe_sht
+end module vilma_sht

@@ -18,7 +18,7 @@ See the Install section of the top-level [README](../../README.md).
   reads it.
 
 Note that `config/Makefile`, `config/common.mk` and
-`config/Makefile_fastearth.mk` are **not** legacy — they are the live template
+`config/Makefile_vilma.mk` are **not** legacy — they are the live template
 and rule set that configme itself consumes.
 
 ## Still usable

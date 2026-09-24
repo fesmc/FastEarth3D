@@ -4,19 +4,19 @@ program test_couple_remap
    !! that the model: builds the remap, returns rsl/z_bed ON THE HOST GRID, conserves
    !! ocean mass through its internal (Gauss-grid) solve, and relaxes sensibly (bed
    !! subsides under the ice, ocean draws down). This exercises the conservative
-   !! host->Gauss (ice in) and bilinear Gauss->host (rsl out) legs of fe_remap end to end.
-   use fe_precision, only: wp
-   use fe_constants, only: pi, sec_per_year
-   use fe_params,    only: fe_param_class
-   use fe_radial_fe, only: radial_fe_finalize
-   use fe_coupling,  only: solid_earth, solid_earth_init, solid_earth_update, solid_earth_finalize
+   !! host->Gauss (ice in) and bilinear Gauss->host (rsl out) legs of vilma_remap end to end.
+   use vilma_precision, only: wp
+   use vilma_constants, only: pi, sec_per_year
+   use vilma_params,    only: vilma_param_class
+   use vilma_radial_fe, only: radial_fe_finalize
+   use vilma_coupling,  only: solid_earth, solid_earth_init, solid_earth_update, solid_earth_finalize
    use coords,       only: grid_class, grid_init
    implicit none
 
    integer, parameter :: LMAX = 16
    integer, parameter :: NLON = 96, NLAT = 48          ! host grid (regular lon-lat, != Gauss)
    integer, parameter :: NSTEP = 12
-   type(fe_param_class) :: p
+   type(vilma_param_class) :: p
    type(solid_earth)    :: se
    type(grid_class)     :: hgrid
    real(wp), allocatable :: lon(:), lat(:), z_bed_eq(:,:), h_ice_eq(:,:), h_ice(:,:)

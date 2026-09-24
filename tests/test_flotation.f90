@@ -17,11 +17,11 @@ program test_flotation
    !!   C  40..60     topo=-4000  ice=   0  ->  ocean   (C=1): ice-free   / deep
    !!   D  60..80     topo=-2000  ice=3000  ->  grounds (C=0): 3 km ice, shallow
    !!   E  colat>80   topo=-4000  ice=3000  ->  floats  (C=1): 3 km ice, deep
-   use fe_precision, only: wp
-   use fe_constants, only: rho_ice, rho_water, pi
-   use fe_response,  only: response, response_init_elastic, response_init_ve, response_init_null
-   use fe_sht,       only: sht_grid, sht_grid_init, sht_grid_destroy
-   use fe_sle,       only: sle_solve, sle_solver, sle_result
+   use vilma_precision, only: wp
+   use vilma_constants, only: rho_ice, rho_water, pi
+   use vilma_response,  only: response, response_init_elastic, response_init_ve, response_init_null
+   use vilma_sht,       only: sht_grid, sht_grid_init, sht_grid_destroy
+   use vilma_sle,       only: sle_solve, sle_solver, sle_result
    implicit none
 
    integer, parameter :: LMAX = 16

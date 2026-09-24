@@ -1,4 +1,4 @@
-# Shared dependency wiring for FastEarth3D.
+# Shared dependency wiring for VILMA.
 #
 # Loaded by config/Makefile *after* the compiler fragment, so it may reference
 # FFLAGS_BASE, MODFLAGS, CPPFLAGS_PP, INC_NC and LIB_NC defined there.
@@ -8,7 +8,7 @@
 #
 #     ln -s ../fesm-utils fesm-utils
 #
-# fe_remap (conservative lon-lat -> Gauss remapping for the standalone driver) uses
+# vilma_remap (conservative lon-lat -> Gauss remapping for the standalone driver) uses
 # the `coords` module, which lives on the fesm-utils `coords-dev` branch. Point the
 # symlink at a checkout on that branch and build its utils library:
 #     (in the fesm-utils checkout)  configme config && make fesmutils-static
@@ -40,7 +40,7 @@ INC_SHTNS = -I$(SHTNSROOT)/include
 LIB_SHTNS = -L$(SHTNSROOT)/lib -lshtns
 
 # --- (LIS removed) -----------------------------------------------------------
-# The per-degree solve is now a dependency-free pivoted banded LU (fe_band); LIS
+# The per-degree solve is now a dependency-free pivoted banded LU (vilma_band); LIS
 # is no longer linked. Keeping INC_LIS / LIB_LIS empty so the flag lists below
 # (and any external references) stay valid.
 INC_LIS =
@@ -53,8 +53,8 @@ LIB_LIS =
 #      and shtns-omp (libshtns_omp.a, i.e. -lshtns_omp).
 #   2. The compiler's OpenMP flag (-fopenmp / FFLAGS_OPENMP) is appended to
 #      FFLAGS by config/Makefile, which also threads the per-degree loop in
-#      fe_response (begin_step / commit_step) over independent per-degree systems,
-#      each solved by the re-entrant banded LU (fe_band).
+#      vilma_response (begin_step / commit_step) over independent per-degree systems,
+#      each solved by the re-entrant banded LU (vilma_band).
 # (There is no LIS variant to reconcile: the iterative solver was removed in
 # favour of the direct banded LU.)
 ifeq ($(openmp),1)
@@ -71,38 +71,38 @@ ifeq ($(openmp),1)
 	LIB_SHTNS = -L$(SHTNSROOT)/lib -lshtns_omp
 endif
 
-# --- VILMA backend (make vilma=1 VILMAROOT=...) -------------------------------
-# OPTIONAL and OFF by default. VILMA (Martinec/Klemann; the CLIMBER-X i_geo=2
+# --- VILMA-v1 backend (make vilma_v1=1 VILMA_V1_ROOT=...) -------------------------------
+# OPTIONAL and OFF by default. VILMA-v1 (Martinec/Klemann; the CLIMBER-X i_geo=2
 # backend) is a hand-installed, precompiled library: a `vega_pism.a` archive plus
 # a directory of `.mod` files. It is absent on most machines, so it must never
-# become a dependency of FastEarth3D.
+# become a dependency of VILMA.
 #
-# vilma=0 (the default): CPPFLAGS_VILMA / INC_VILMA / LIB_VILMA are all EMPTY, so
-#   the compile line carries no -DVILMA and no VILMAROOT include, and the link line
-#   no archive. src/fe_vilma.f90 then compiles to a pure-Fortran stub referencing
-#   no VILMA symbol, which aborts with an actionable message if solver="vilma" is
+# vilma_v1=0 (the default): CPPFLAGS_VILMA_V1 / INC_VILMA_V1 / LIB_VILMA_V1 are all EMPTY, so
+#   the compile line carries no -DVILMA_V1 and no VILMA_V1_ROOT include, and the link line
+#   no archive. src/vilma_v1.f90 then compiles to a pure-Fortran stub referencing
+#   no VILMA-v1 symbol, which aborts with an actionable message if solver="v1" is
 #   selected at runtime. The build is identical to a tree without this switch.
-# vilma=1: -DVILMA activates the real wrapper; VILMAROOT must point at an install
+# vilma_v1=1: -DVILMA_V1 activates the real wrapper; VILMA_V1_ROOT must point at an install
 #   containing include/*.mod and lib/vega_pism.a.
 #
 # Mirrors the vilma= / fastearth= toggles in CLIMBER-X's config/common.mk.
-VILMAROOT ?= vilma
-CPPFLAGS_VILMA =
-INC_VILMA =
-LIB_VILMA =
-ifeq ($(vilma),1)
-	CPPFLAGS_VILMA = -DVILMA
-	INC_VILMA      = -I$(VILMAROOT)/include
-	LIB_VILMA      = $(VILMAROOT)/lib/vega_pism.a
+VILMA_V1_ROOT ?= vilma
+CPPFLAGS_VILMA_V1 =
+INC_VILMA_V1 =
+LIB_VILMA_V1 =
+ifeq ($(vilma_v1),1)
+	CPPFLAGS_VILMA_V1 = -DVILMA_V1
+	INC_VILMA_V1      = -I$(VILMA_V1_ROOT)/include
+	LIB_VILMA_V1      = $(VILMA_V1_ROOT)/lib/vega_pism.a
 endif
 
 # --- Final flag sets ---------------------------------------------------------
 # MODFLAGS (-I/-J objdir) and FFLAGS_BASE come from the compiler fragment.
-# INC_SHTNS is what lets `include 'shtns.f03'` in src/fe_sht.f90 be found.
-CPPFLAGS_FE = $(CPPFLAGS_PP) $(CPPFLAGS_VILMA)
-FFLAGS_FE   = $(FFLAGS_BASE) $(MODFLAGS) $(INC_NC) $(INC_FESMUTILS) $(INC_FFTW) $(INC_SHTNS) $(INC_LIS) $(INC_VILMA)
+# INC_SHTNS is what lets `include 'shtns.f03'` in src/vilma_sht.f90 be found.
+CPPFLAGS_VILMA = $(CPPFLAGS_PP) $(CPPFLAGS_VILMA_V1)
+FFLAGS_VILMA   = $(FFLAGS_BASE) $(MODFLAGS) $(INC_NC) $(INC_FESMUTILS) $(INC_FFTW) $(INC_SHTNS) $(INC_LIS) $(INC_VILMA_V1)
 
 # Static archives resolve left-to-right, so a library must precede the libraries
 # it depends on: SHTns before FFTW (SHTns calls FFTW), fesm-utils before netCDF.
-# LIB_VILMA is empty unless vilma=1; VILMA calls netCDF, so it precedes LIB_NC.
-LFLAGS_FE   = $(LIB_FESMUTILS) $(LIB_SHTNS) $(LIB_FFTW) $(LIB_LIS) $(LIB_VILMA) $(LIB_NC) $(LFLAGS_EXTRA)
+# LIB_VILMA_V1 is empty unless vilma_v1=1; VILMA-v1 calls netCDF, so it precedes LIB_NC.
+LFLAGS_VILMA   = $(LIB_FESMUTILS) $(LIB_SHTNS) $(LIB_FFTW) $(LIB_LIS) $(LIB_VILMA_V1) $(LIB_NC) $(LFLAGS_EXTRA)

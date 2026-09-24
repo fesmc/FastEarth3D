@@ -1,20 +1,20 @@
-module fe_earth_structure
+module vilma_earth_structure
    !! Reference Earth structure: a radially layered, incompressible Maxwell Earth,
    !! plus an optional 3D (laterally varying) viscosity field.
    !!
    !! The layered description is the *physical* model (piecewise-constant density,
    !! shear modulus, and viscosity between interface radii) — e.g. the benchmark
    !! model M3-L70-V01. The radial finite-element mesh that the solver discretizes
-   !! onto is built from this by fe_radial_fe.
+   !! onto is built from this by vilma_radial_fe.
    !!
    !! 3D-ready (project goal): `visc_3d`, when allocated, carries absolute
    !! log10-viscosity on the Gauss-Legendre spatial grid per radial node — how
-   !! VILMA injects lateral heterogeneity (Albrecht et al. 2024). 1D runs leave it
+   !! VILMA-v1 injects lateral heterogeneity (Albrecht et al. 2024). 1D runs leave it
    !! unallocated; the same solver path reduces to the spherically symmetric case.
-   use fe_precision, only: wp
-   use fe_constants, only: pi, grav_G
-   use fe_params,    only: fe_param_class, MAX_LAYER
-   use fe_sht,       only: sht_grid
+   use vilma_precision, only: wp
+   use vilma_constants, only: pi, grav_G
+   use vilma_params,    only: vilma_param_class, MAX_LAYER
+   use vilma_sht,       only: sht_grid
    use ncio,         only: nc_read, nc_size
    implicit none
    private
@@ -28,7 +28,7 @@ module fe_earth_structure
    integer, parameter, public :: RHEOL_FLUID   = 2   !! inviscid fluid (mu = 0)
 
    public :: earth_layer, earth_model, build_M3L70V01, build_earth, prem_rho_mu
-   public :: fe_read_visc_3d, load_visc_3d
+   public :: vilma_read_visc_3d, load_visc_3d
    public :: earth_n_layers, earth_rho_at, earth_mu_at, earth_eta_at, earth_mass_below, earth_total_mass, earth_gravity_at, earth_moi, earth_is_3d
 
    type :: earth_layer
@@ -47,7 +47,7 @@ module fe_earth_structure
       real(wp) :: r_core  = 0.0_wp        !! core-mantle boundary radius [m]
       type(earth_layer), allocatable :: layers(:)   !! surface-first (index 1 = top)
       ! Optional lateral viscosity: ABSOLUTE log10(η [Pa·s]) on the Gauss grid ×
-      ! FE radial nodes, (nphi*nlat, nr). Populated by fe_read_visc_3d from a real
+      ! FE radial nodes, (nphi*nlat, nr). Populated by vilma_read_visc_3d from a real
       ! lon-lat-r field (rung 6c). The node→element bridge (ve_response) takes the
       ! log10-mean of the two bracketing nodes and forms the perturbation against
       ! the element's radial reference η — storing the absolute field here avoids a
@@ -64,7 +64,7 @@ contains
       !! assembled verbatim from the per-layer arrays (surface-first), or "PREM"
       !! — the same layer geometry/viscosity arrays, but with density and shear
       !! modulus auto-filled from the incompressible-PREM profile (see build_layered).
-      type(fe_param_class), intent(in) :: p
+      type(vilma_param_class), intent(in) :: p
       type(earth_model) :: em
 
       select case (trim(p%earth))
@@ -87,10 +87,10 @@ contains
       !! instead the r^2-weighted (mass-consistent) shell average of the
       !! incompressible-PREM profile over each layer (prem_shell_avg), so the rho/mu
       !! arrays are ignored; viscosity and rheology still come from the eta/rheology
-      !! arrays (PREM defines no viscosity — this mirrors VILMA, where PREM supplies
+      !! arrays (PREM defines no viscosity — this mirrors VILMA-v1, where PREM supplies
       !! the elastic+density structure and a separate profile/3-D field supplies η).
       !! Fluid layers keep mu = 0.
-      type(fe_param_class), intent(in) :: p
+      type(vilma_param_class), intent(in) :: p
       logical,              intent(in) :: use_prem
       type(earth_model) :: em
       integer  :: k, n
@@ -340,16 +340,16 @@ contains
       !! variable is named, else taken RELATIVE to the field, f_visc_rel*log10(eta)
       !! (so the perturbation tracks the viscosity structure rather than a constant
       !! floor). The clamp also imposes the viscosity floor on the raw field.
-      type(fe_param_class), intent(in)  :: p
+      type(vilma_param_class), intent(in)  :: p
       type(sht_grid),       intent(in)  :: sht
       real(wp),             intent(in)  :: r_node(:)
       real(wp), allocatable, intent(out) :: visc_node(:,:)
       real(wp), allocatable :: sd_node(:,:)
-      call fe_read_visc_3d(p%visc_3d_file, sht, r_node, visc_node, varname=p%name_visc, &
+      call vilma_read_visc_3d(p%visc_3d_file, sht, r_node, visc_node, varname=p%name_visc, &
            lonname=p%name_visc_lon, latname=p%name_visc_lat, rname=p%name_visc_r)
       if (p%f_visc_sd /= 0.0_wp) then
          if (len_trim(p%name_visc_sd) > 0) then
-            call fe_read_visc_3d(p%visc_3d_file, sht, r_node, sd_node, varname=p%name_visc_sd, &
+            call vilma_read_visc_3d(p%visc_3d_file, sht, r_node, sd_node, varname=p%name_visc_sd, &
                  lonname=p%name_visc_lon, latname=p%name_visc_lat, rname=p%name_visc_r)
          else
             allocate(sd_node, source=abs(visc_node)*p%f_visc_rel)   ! relative sigma [log10 dex]
@@ -359,7 +359,7 @@ contains
       visc_node = min(max(visc_node, p%visc_log10_min), p%visc_log10_max)
    end subroutine load_visc_3d
 
-   subroutine fe_read_visc_3d(filename, sht, r_node, visc_node, varname, &
+   subroutine vilma_read_visc_3d(filename, sht, r_node, visc_node, varname, &
                               lonname, latname, rname)
       !! Read a real 3D viscosity field (lon, lat, radius) from netCDF and
       !! interpolate it onto the Gauss-Legendre grid × the FE radial nodes,
@@ -467,7 +467,7 @@ contains
             end do
          end do
       end do
-   end subroutine fe_read_visc_3d
+   end subroutine vilma_read_visc_3d
 
    subroutine reverse_axis(a, dim)
       !! Reverse a 3-D field along one dimension through an explicit heap copy.
@@ -523,17 +523,17 @@ contains
       do i = 1, n-1
          if ((x(i+1) - x(i))*s <= 0.0_wp) exit
       end do
-      write(*,'(a)') ' fe_read_visc_3d: coordinate "'//trim(axisname)//'" of ' &
+      write(*,'(a)') ' vilma_read_visc_3d: coordinate "'//trim(axisname)//'" of ' &
            //trim(filename)//' is not strictly monotonic.'
       write(*,'(a,i0,a,es16.8,a,es16.8)') '   first offending step at index ', i, &
            ': ', x(i), ' -> ', x(i+1)
-      error stop 'fe_read_visc_3d: non-monotonic coordinate axis'
+      error stop 'vilma_read_visc_3d: non-monotonic coordinate axis'
    end subroutine require_monotonic
 
    pure subroutine locate_clamped(x, xt, i0, i1, w)
       !! Bracket xt in the ascending array x, clamping to the ends (w in [0,1]).
       !! The ascending precondition is enforced by require_monotonic plus the
-      !! orientation flip in fe_read_visc_3d; it is not checked here.
+      !! orientation flip in vilma_read_visc_3d; it is not checked here.
       real(wp), intent(in)  :: x(:), xt
       integer,  intent(out) :: i0, i1
       real(wp), intent(out) :: w
@@ -574,4 +574,4 @@ contains
       w  = (xt - x(i0)) / (x(i1) - x(i0))
    end subroutine locate_periodic
 
-end module fe_earth_structure
+end module vilma_earth_structure

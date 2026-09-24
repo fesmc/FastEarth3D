@@ -1,14 +1,14 @@
 ! ====================================================================
-! FastEarth3D run configuration — the file you edit / pass on the command line:
-!     bin/fastearth.x [this-file.nml]      (default: fastearth.nml)
-! It is overlaid on the physics defaults in input/fastearth3d_defaults.nml
+! VILMA run configuration — the file you edit / pass on the command line:
+!     bin/vilma.x [this-file.nml]      (default: vilma.nml)
+! It is overlaid on the physics defaults in input/vilma_defaults.nml
 ! (loaded automatically). Only the parameters here override the defaults, so
 ! anything present in this file is an ensemble knob you can sweep with `-p`.
 !
 ! &ctl  : standalone-run control (forcing/reference/output, window, i_eq, ...).
 !         The full group lives here — a host model (CLIMBER-X) does not use it.
-! &fe3d : the curated subset of physics/numerics parameters we tune in ensembles.
-!         Everything else falls through to input/fastearth3d_defaults.nml.
+! &vilma : the curated subset of physics/numerics parameters we tune in ensembles.
+!         Everything else falls through to input/vilma_defaults.nml.
 ! ====================================================================
 
 &ctl
@@ -23,7 +23,7 @@
     name_hice_ref = "h_ice_ref"
 
     ! --- step output --------------------------------------------------
-    file_out      = "fastearth_out.nc"
+    file_out      = "vilma_out.nc"
     file_hor      = ""     ! horizontal displacement (total + toroidal) to its own file; "" = off
     time_init     = -1.0e30            ! [years] (<= forcing start => full range)
     time_end      =  1.0e30            ! [years] (>= forcing end   => full range)
@@ -53,8 +53,8 @@
                              ! lower-res restart is interpolated up to the model grid
 /
 
-&fe3d
-    ! Curated physics/numerics knobs (override input/fastearth3d_defaults.nml).
+&vilma
+    ! Curated physics/numerics knobs (override input/vilma_defaults.nml).
     ! Values here match the defaults — edit / sweep what you need.
 
     ! --- resolution + scheme ------------------------------------------

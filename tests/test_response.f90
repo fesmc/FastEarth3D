@@ -11,13 +11,13 @@ program test_response
    !!
    !! plus a field-level check that apply() multiplies each (l,m) coefficient by
    !! its per-degree gain and that the surface load drives subsidence (u<0).
-   use fe_precision,       only: wp
-   use fe_constants,       only: pi, grav_G
-   use fe_earth_structure, only: earth_model, earth_layer, build_M3L70V01, &
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: pi, grav_G
+   use vilma_earth_structure, only: earth_model, earth_layer, build_M3L70V01, &
                                  RHEOL_ELASTIC
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_response,        only: response_apply, response_destroy, response, response_init_elastic, response_init_ve, response_init_null
-   use fe_sht,             only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_destroy
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_response,        only: response_apply, response_destroy, response, response_init_elastic, response_init_ve, response_init_null
+   use vilma_sht,             only: sht_grid, sht_grid_init, sht_grid_lmidx, sht_grid_destroy
    implicit none
 
    real(wp), parameter :: km = 1.0e3_wp

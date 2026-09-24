@@ -31,8 +31,8 @@ $n$, and uplift rate $\mathrm{d}u/\mathrm{d}t$.
 
 The reference uses a **mixed reference frame**: displacement in a CE-like
 gauge ($h_1\approx 0$, geocenter), geoid in the CM frame ($N_1 = 0$).
-FastEarth3D reproduces both by referencing the degree-1 geoid to CM
-(`fe_response`).
+VILMA reproduces both by referencing the degree-1 geoid to CM
+(`vilma_response`).
 
 All three reference files in this repository (`u_*`, `n_*`, `dudt_*`) are
 stored in ascending $\theta$ order and match the ordering used by the
@@ -53,7 +53,7 @@ model, so they can be paired with the $\theta$ grid directly.
 ## Figures
 
 *Figures to be added: $u(\theta)$ at $t=0,1,2,5,10,100$ kyr; geoid $n(\theta)$;
-centre uplift time series; FastEarth3D vs. Spada disc reference.*
+centre uplift time series; VILMA vs. Spada disc reference.*
 
 <!--
 ![Disc uplift profiles](figures/disc_uplift.png)

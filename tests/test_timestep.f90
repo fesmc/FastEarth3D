@@ -14,15 +14,15 @@ program test_timestep
    !!      amortizes the ~6× trapezoidal per-step cost).
    !!
    !! Same homogeneous Maxwell sphere + fixed ocean as test_sle_couple_order.
-   use fe_precision,       only: wp
-   use fe_constants,       only: kyr, pi, rho_ice, rho_water, sec_per_year
-   use fe_earth_structure, only: earth_model, earth_layer, RHEOL_MAXWELL
-   use fe_radial_fe,       only: radial_fe_finalize
-   use fe_response,        only: response_destroy, response_coarse_fine_error, response_restore_state, response_stash_coarse, response_set_dt, response_save_state, response_prime_sigma, response, response_init_elastic, response_init_ve, response_init_null
-   use fe_viscoelastic,    only: SCHEME_TRAP
-   use fe_sht,             only: sht_grid_destroy, sht_grid_init, sht_grid
-   use fe_sle,             only: sle_solve, sle_solver, sle_result
-   use fe_timestep,        only: stepper_advance, adaptive_stepper
+   use vilma_precision,       only: wp
+   use vilma_constants,       only: kyr, pi, rho_ice, rho_water, sec_per_year
+   use vilma_earth_structure, only: earth_model, earth_layer, RHEOL_MAXWELL
+   use vilma_radial_fe,       only: radial_fe_finalize
+   use vilma_response,        only: response_destroy, response_coarse_fine_error, response_restore_state, response_stash_coarse, response_set_dt, response_save_state, response_prime_sigma, response, response_init_elastic, response_init_ve, response_init_null
+   use vilma_viscoelastic,    only: SCHEME_TRAP
+   use vilma_sht,             only: sht_grid_destroy, sht_grid_init, sht_grid
+   use vilma_sle,             only: sle_solve, sle_solver, sle_result
+   use vilma_timestep,        only: stepper_advance, adaptive_stepper
    implicit none
 
    real(wp), parameter :: km = 1.0e3_wp, yr = sec_per_year
