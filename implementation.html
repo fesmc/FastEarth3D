@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Implementation and attribution – VILMA</title>
+<title>Implementation and attribution – VILMA v2</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -272,7 +272,7 @@ div.csl-indent {
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">VILMA</span>
+    <span class="navbar-title">VILMA v2</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -350,7 +350,7 @@ div.csl-indent {
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
-    <a class="nav-link" href="https://github.com/fesmc/VILMA"> <i class="bi bi-github" role="img" aria-label="GitHub">
+    <a class="nav-link" href="https://github.com/fesmc/vilma"> <i class="bi bi-github" role="img" aria-label="GitHub">
 </i> 
 <span class="menu-text"></span></a>
   </li>  
@@ -390,7 +390,7 @@ div.csl-indent {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">VILMA</span></a>
+ <span class="menu-text">VILMA v2</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -534,7 +534,7 @@ div.csl-indent {
   <li><a href="#build-and-host-coupling" id="toc-build-and-host-coupling" class="nav-link" data-scroll-target="#build-and-host-coupling">Build and host coupling</a></li>
   <li><a href="#license-and-citation" id="toc-license-and-citation" class="nav-link" data-scroll-target="#license-and-citation">License and citation</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/VILMA/blob/main/implementation.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/VILMA/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/vilma/blob/main/implementation.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/vilma/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -559,10 +559,10 @@ div.csl-indent {
 </header>
 
 
-<p>VILMA is a modern-Fortran implementation of published GIA physics, built on a small set of well-established numerical libraries. This page records what the model is built on, and what informed its development and validation.</p>
+<p>VILMA v2 is a modern-Fortran implementation of published GIA physics, built on a small set of well-established numerical libraries. This page records what the model is built on, and what informed its development and validation.</p>
 <section id="physics-and-references" class="level2">
 <h2 class="anchored" data-anchor-id="physics-and-references">Physics and references</h2>
-<p>VILMA reproduces the physics of <strong>VILMA-v1</strong>: an incompressible, self-gravitating, Maxwell-viscoelastic sphere with rotational feedback and a full migrating-coastline sea-level equation. VILMA-v1’s character is documented in <span class="citation" data-cites="Albrecht2024">Albrecht et al. (<a href="#ref-Albrecht2024" role="doc-biblioref">2024</a>)</span> and <span class="citation" data-cites="Bagge2021">Bagge et al. (<a href="#ref-Bagge2021" role="doc-biblioref">2021</a>)</span>. The numerical method follows <span class="citation" data-cites="Martinec2000">Martinec (<a href="#ref-Martinec2000" role="doc-biblioref">2000</a>)</span>, with rotation from <span class="citation" data-cites="MartinecHagedoorn2014">Martinec and Hagedoorn (<a href="#ref-MartinecHagedoorn2014" role="doc-biblioref">2014</a>)</span> and the sea-level equation from <span class="citation" data-cites="KMM2005">Kendall et al. (<a href="#ref-KMM2005" role="doc-biblioref">2005</a>)</span> and <span class="citation" data-cites="Martinec2018">Martinec et al. (<a href="#ref-Martinec2018" role="doc-biblioref">2018</a>)</span>.</p>
+<p>VILMA v2 reproduces the physics of <strong>VILMA-v1</strong>: an incompressible, self-gravitating, Maxwell-viscoelastic sphere with rotational feedback and a full migrating-coastline sea-level equation. VILMA-v1’s character is documented in <span class="citation" data-cites="Albrecht2024">Albrecht et al. (<a href="#ref-Albrecht2024" role="doc-biblioref">2024</a>)</span> and <span class="citation" data-cites="Bagge2021">Bagge et al. (<a href="#ref-Bagge2021" role="doc-biblioref">2021</a>)</span>. The numerical method follows <span class="citation" data-cites="Martinec2000">Martinec (<a href="#ref-Martinec2000" role="doc-biblioref">2000</a>)</span>, with rotation from <span class="citation" data-cites="MartinecHagedoorn2014">Martinec and Hagedoorn (<a href="#ref-MartinecHagedoorn2014" role="doc-biblioref">2014</a>)</span> and the sea-level equation from <span class="citation" data-cites="KMM2005">Kendall et al. (<a href="#ref-KMM2005" role="doc-biblioref">2005</a>)</span> and <span class="citation" data-cites="Martinec2018">Martinec et al. (<a href="#ref-Martinec2018" role="doc-biblioref">2018</a>)</span>.</p>
 <p>The implementation is modern and minimal: a small, dependency-light Fortran codebase organized as single-purpose modules (<code>vilma_*</code>), validated rung-by-rung against the community benchmarks. It is 3D-ready from the start — laterally varying viscosity costs nothing extra in the solver — while validated first in 1D.</p>
 </section>
 <section id="libraries-we-build-on" class="level2">
@@ -1083,4 +1083,4 @@ Spada, G., V. R. Barletta, V. Klemann, et al. 2011. <span>“A Benchmark Study f
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/VILMA/blob/main/implementation.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/VILMA/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/vilma/blob/main/implementation.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/vilma/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Installation and running – VILMA</title>
+<title>Installation and running – VILMA v2</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -288,7 +288,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">VILMA</span>
+    <span class="navbar-title">VILMA v2</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -366,7 +366,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
-    <a class="nav-link" href="https://github.com/fesmc/VILMA"> <i class="bi bi-github" role="img" aria-label="GitHub">
+    <a class="nav-link" href="https://github.com/fesmc/vilma"> <i class="bi bi-github" role="img" aria-label="GitHub">
 </i> 
 <span class="menu-text"></span></a>
   </li>  
@@ -406,7 +406,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">VILMA</span></a>
+ <span class="menu-text">VILMA v2</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -552,7 +552,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#running-with-runme" id="toc-running-with-runme" class="nav-link" data-scroll-target="#running-with-runme">Running with runme</a></li>
   <li><a href="#embedding-in-a-host-model" id="toc-embedding-in-a-host-model" class="nav-link" data-scroll-target="#embedding-in-a-host-model">Embedding in a host model</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/VILMA/blob/main/getting-started.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/VILMA/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/fesmc/vilma/blob/main/getting-started.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/vilma/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -577,7 +577,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>This page covers getting VILMA built and running a forced simulation. The build is driven by <strong>configme</strong> (one source of machine/compiler truth) and runs are staged by <strong>runme</strong> (single simulations and ensembles, locally or on SLURM).</p>
+<div class="callout callout-style-default callout-warning callout-titled" title="Under heavy development">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>Under heavy development
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>VILMA v2 is not yet ready for use in a scientific production capacity. If you want to use VILMA for now, please contact Volker Klemann at GFZ.</p>
+</div>
+</div>
+<p>This page covers getting VILMA v2 built and running a forced simulation. The build is driven by <strong>configme</strong> (one source of machine/compiler truth) and runs are staged by <strong>runme</strong> (single simulations and ensembles, locally or on SLURM).</p>
 <section id="dependencies" class="level2">
 <h2 class="anchored" data-anchor-id="dependencies">Dependencies</h2>
 <p>VILMA needs only a small, well-established stack:</p>
@@ -607,14 +620,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="install-with-configme" class="level2">
 <h2 class="anchored" data-anchor-id="install-with-configme">Install with configme</h2>
 <p><code>configme</code> clones (or reuses) the dependencies, generates the machine/compiler Makefile fragment, and links everything together:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">configme</span> install FastEarth3D</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">configme</span> install vilma</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>It resolves the machine and compiler from flags, your <code>~/.configme/config.toml</code>, hostname detection, or a prompt. To be explicit, or to reuse an existing fesm-utils checkout instead of cloning:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># pick machine + compiler explicitly</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">configme</span> install FastEarth3D <span class="at">-m</span> macbook <span class="at">-c</span> gfortran</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">configme</span> install vilma <span class="at">-m</span> macbook <span class="at">-c</span> gfortran</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># symlink an on-disk fesm-utils rather than cloning it</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">configme</span> install FastEarth3D <span class="at">--link</span> fesm-utils=/abs/path/to/fesm-utils</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Supported machines include <code>awi_albedo</code>, <code>chinook</code>, <code>dkrz_levante</code>, <code>linux</code>, <code>macbook</code>, <code>pik_hpc2024</code>; compilers <code>gfortran</code>, <code>ifort</code>, <code>ifx</code>. Run <code>configme list</code> for the current set and <code>configme status</code> to see what is present versus pending. If you only need to (re)generate the Makefile for an already-present checkout, <code>configme config FastEarth3D</code> does that without cloning.</p>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">configme</span> install vilma <span class="at">--link</span> fesm-utils=/abs/path/to/fesm-utils</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Supported machines include <code>awi_albedo</code>, <code>chinook</code>, <code>dkrz_levante</code>, <code>linux</code>, <code>macbook</code>, <code>pik_hpc2024</code>; compilers <code>gfortran</code>, <code>ifort</code>, <code>ifx</code>. Run <code>configme list</code> for the current set and <code>configme status</code> to see what is present versus pending. If you only need to (re)generate the Makefile for an already-present checkout, <code>configme config vilma</code> does that without cloning.</p>
 </section>
 <section id="build" class="level2">
 <h2 class="anchored" data-anchor-id="build">Build</h2>
@@ -627,7 +640,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="configuration-the-vilma-namelist" class="level2">
 <h2 class="anchored" data-anchor-id="configuration-the-vilma-namelist">Configuration: the <code>&amp;vilma</code> namelist</h2>
-<p>All runtime parameters live in a single namelist group <strong><code>&amp;vilma</code></strong>. <a href="https://github.com/fesmc/VILMA/blob/main/vilma.nml"><code>vilma.nml</code></a> is the canonical, fully documented defaults set — <em>every</em> parameter is present. A run can pass a <strong>sparse overlay</strong> that sets only what it overrides (the yelmo <code>defaults_file</code> convention):</p>
+<p>All runtime parameters live in a single namelist group <strong><code>&amp;vilma</code></strong>. <a href="https://github.com/fesmc/vilma/blob/main/vilma.nml"><code>vilma.nml</code></a> is the canonical, fully documented defaults set — <em>every</em> parameter is present. A run can pass a <strong>sparse overlay</strong> that sets only what it overrides (the yelmo <code>defaults_file</code> convention):</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./bin/vilma.x</span> examples/deglac_lgm.nml vilma.nml</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#                 ^ sparse overlay        ^ complete defaults</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>A few conventions worth knowing:</p>
@@ -668,7 +681,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 </tbody>
 </table>
-<p>A complete worked configuration — an LGM → present-day deglaciation forced by the Tarasov ice/bed reconstruction — is in <a href="https://github.com/fesmc/VILMA/blob/main/examples/deglac_lgm.nml"><code>examples/deglac_lgm.nml</code></a>.</p>
+<p>A complete worked configuration — an LGM → present-day deglaciation forced by the Tarasov ice/bed reconstruction — is in <a href="https://github.com/fesmc/vilma/blob/main/examples/deglac_lgm.nml"><code>examples/deglac_lgm.nml</code></a>.</p>
 </section>
 <section id="running-with-runme" class="level2">
 <h2 class="anchored" data-anchor-id="running-with-runme">Running with runme</h2>
@@ -1118,8 +1131,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="./index.html" class="pagination-link" aria-label="VILMA">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">VILMA</span>
+      <a href="./index.html" class="pagination-link" aria-label="VILMA v2">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">VILMA v2</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
@@ -1133,4 +1146,4 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/VILMA/blob/main/getting-started.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/VILMA/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/fesmc/vilma/blob/main/getting-started.qmd" class="toc-action"><i class="bi bi-github"></i>View source</a></li><li><a href="https://github.com/fesmc/vilma/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
