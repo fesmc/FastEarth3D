@@ -1,0 +1,231 @@
+---
+title: "Toroidal flow under lateral viscosity"
+---
+
+A surface load on a radially symmetric Earth drives only **spheroidal**
+deformation: radial and consoidal displacement, $U$ and $V$. Once viscosity
+varies laterally this is no longer true. The Maxwell relaxation then also
+drives **toroidal** flow $W$: horizontal, divergence-free motion with no
+radial component. That flow feeds back into the spheroidal field. VILMA
+carries this toroidal degree of freedom in its 3D path, as VILMA-v1 does.
+
+::: {.callout-note title="Status: implemented, off by default"}
+The toroidal treatment is implemented and unit-tested (see
+[Validation](#validation)). It is switched **off by default**
+(`l_toroidal = .false.`): it makes the 3D memory advance more expensive, and
+its effect on a realistic deglaciation has not yet been quantified against
+VILMA-v1. With `l_toroidal = .false.` the model is the spheroidal-only 3D
+model. Radially symmetric and laterally uniform runs are unaffected either way.
+:::
+
+## Why lateral viscosity drives toroidal flow
+
+The displacement is expanded in vector spherical harmonics (see
+[Spectral reduction](../discretization/spectral.qmd)),
+
+$$
+\mathbf{u} = \sum_{jm}\Bigl[\,U_{jm}(r)\,\mathbf{S}^{(-1)}_{jm}
+ + V_{jm}(r)\,\mathbf{S}^{(1)}_{jm}
+ + W_{jm}(r)\,\mathbf{S}^{(0)}_{jm}\,\Bigr],
+\qquad
+\mathbf{S}^{(0)}_{jm} = \mathbf{e}_r\times\nabla_1 Y_{jm},
+$$
+
+and the strain and memory stress are expanded in the six tensor spherical
+harmonics $Z^{(\lambda)}_{jm}$, $\lambda = 1,\dots,6$ (Martinec 2000,
+App. B). The spheroidal field lives in $\lambda\in\{1,2,5,6\}$ and the
+toroidal field in $\lambda\in\{3,4\}$.
+
+On a radially symmetric Earth the two families are **decoupled**:
+
+- the left-hand-side operator has no term coupling $W$ to $U$, $V$, $F$ or
+  $\Pi$ (no pressure, self-gravity or mixed shear contribution);
+- the surface forcing has no $\delta W$ term (Martinec 2000, eq. 84), so a
+  load never forces $W$ directly;
+- with $M = \mu\Delta t/\eta(r)$ the memory update is diagonal in $\lambda$, so a
+  spheroidal memory stays spheroidal.
+
+$W$ is therefore identically zero, and the solver needs only the four
+spheroidal channels. With a laterally varying $\eta(\theta,\varphi)$ the third
+point fails. The memory update $\boldsymbol{\tau}^{+} = (1-M)\,\boldsymbol{\tau} -
+2\mu M\,\boldsymbol{\varepsilon}$ multiplies the stress by a field
+$M(\theta,\varphi)$ pointwise. That product mixes all six tensor components.
+As @Martinec2000 notes after eq. (110), lateral viscosity removes both the
+decoupling and the degeneracy of the spheroidal and toroidal displacements.
+The loop closes in three steps:
+
+1. The spheroidal memory, multiplied by $M(\theta,\varphi)$, acquires
+   $\lambda = 3,4$ components.
+2. These force $W$ through the dissipative right-hand side.
+3. The toroidal strain of $W$, multiplied again by $M(\theta,\varphi)$, feeds
+   back into $\lambda \in \{1,2,5,6\}$ and hence into uplift and geoid.
+
+Perturbation reasoning predicts $W$ at first order in the lateral viscosity
+contrast and its feedback on uplift at second order, which the tests confirm.
+
+::: {.callout-tip title="When is W exactly zero?"}
+Toroidal flow vanishes for **axisymmetric** configurations (load and
+viscosity symmetric about a common axis), not for every configuration with a
+shared mirror plane. Under a reflection the toroidal potential is odd. A
+$Y_{20}$ load over a $\cos 2\varphi$ viscosity pattern is mirror-symmetric,
+yet drives $W \propto \sin 2\varphi$.
+:::
+
+## Toroidal strain and memory
+
+For $\mathbf{u} = W(r)\,\mathbf{e}_r\times\nabla_1 Y_{jm}$ the strain is
+
+$$
+\boldsymbol{\varepsilon} =
+\Bigl(W' - \frac{W}{r}\Bigr) Z^{(3)}_{jm} + \frac{W}{r}\,Z^{(4)}_{jm},
+$$
+
+with the dyadic forms (Martinec 2000, B10–B11, in terms of the angular
+functions $E,F,G,H$)
+
+$$
+Z^{(3)} = -F\,\mathbf{e}_{r\theta} + E\,\mathbf{e}_{r\varphi},
+\qquad
+Z^{(4)} = G\,\mathbf{e}_{\theta\varphi} - H\,(\mathbf{e}_{\theta\theta} - \mathbf{e}_{\varphi\varphi}),
+$$
+
+the toroidal companions of $Z^{(2)}$ and $Z^{(6)}$. Their norms (B13) are
+
+$$
+\lVert Z^{(3)}\rVert^2 = \tfrac{J}{2},
+\qquad
+\lVert Z^{(4)}\rVert^2 = \tfrac{1}{2}J(J-2),
+\qquad J = j(j+1).
+$$
+
+On the P1 radial elements, with $W = W^k\psi_k + W^{k+1}\psi_{k+1}$ and
+$\varepsilon = a/h + b\,\psi_k/r + c\,\psi_{k+1}/r$ (Martinec 2000, eqs. 87–88),
+the two strain rows the spheroidal kernel omits are
+
+| $\lambda$ | $a$ | $b$ | $c$ |
+|:-:|:-:|:-:|:-:|
+| 3 | $W^{k+1} - W^k$ | $-W^k$ | $-W^{k+1}$ |
+| 4 | $0$ | $W^k$ | $W^{k+1}$ |
+
+The strain map is **block-diagonal**: $\lambda = 3,4$ depend only on $W$ and
+$\lambda \in \{1,2,5,6\}$ only on $U,V$. The toroidal memory is therefore
+carried as two extra channels of the same memory arrays (channels 5 and 6),
+and the spheroidal and toroidal kernels are independent. At degree 1,
+$Z^{(4)}_{1m}\equiv 0$ ($J = 2$), so the $\lambda = 4$ slot carries no memory
+there, as for $\lambda = 6$.
+
+## The toroidal operator
+
+The toroidal part of the shear energy (Martinec 2000, eq. 80) is
+
+$$
+2\!\int\!\mu\,\Bigl[\lVert Z^{(3)}\rVert^2\,\varepsilon^{3}\,\delta\varepsilon^{3}
+ + \lVert Z^{(4)}\rVert^2\,\varepsilon^{4}\,\delta\varepsilon^{4}\Bigr] r^2\,\mathrm{d}r,
+$$
+
+which per element $k$ discretizes to
+
+$$
+\mu_k\Bigl\{ J\bigl[I^1_{\alpha\beta} - I^3_{\beta\alpha} - I^3_{\alpha\beta} + I^6_{\alpha\beta}\bigr]
+ + J(J-2)\,I^6_{\alpha\beta}\Bigr\}\,W^\alpha\,\delta W^\beta,
+$$
+
+using the same Appendix-C integrals as the spheroidal block. No density,
+gravity or pressure enters. Rather than adding $W$ as a fifth interleaved
+field to the spheroidal system, VILMA gives it **its own per-degree
+operator**. That operator is symmetric and tridiagonal, and it is factored
+once per degree and reused for all orders, loads and steps, like the
+spheroidal one (see [Solver](../discretization/solver.qmd)). The spheroidal
+operator is untouched.
+
+Two conditions make it non-singular:
+
+- **Fluid regions.** Where $\mu = 0$ (the inviscid core) there is no shear
+  energy and $W$ has no stiffness. These nodes are pinned, $W = 0$. This is a
+  Dirichlet condition on a degree of freedom the fluid does not have.
+- **Degree 1.** At $j = 1$ a rigid rotation, $W \propto r$, has no strain
+  and is a null mode. It is removed by one KKT border row per solid shell,
+  $\sum_k W^k\!\int\!\psi_k\,r^3\,\mathrm{d}r = 0$, which states
+  $\int\mathbf{x}\times\mathbf{u}\,\mathrm{d}V = 0$ (no net rotation) for
+  that shell. A structure with a solid inner core has two such shells. This
+  is a gauge: a rigid rotation moves no output.
+
+## Coupling into the time step
+
+Because the surface load never forces $W$, the toroidal field has **no elastic
+gain**. It is pure relaxation drift. Within the
+[field driver](../discretization/time-stepping.qmd#the-viscoelastic-field-driver)
+a step proceeds as follows:
+
+1. **`begin_step`** solves, for every $(j,m)$, the spheroidal drift and the
+   toroidal drift $W$ from the dissipative forcing of the current memory, the
+   latter with the toroidal operator.
+2. The SLE fixed point calls `apply()` as usual. $W$ does not enter uplift or
+   geoid directly, so the affine structure is unchanged.
+3. **`commit_step`** advances the memory. In each genuinely 3-D element all
+   six dyadic components of memory and strain, spheroidal and toroidal, are
+   synthesized on the Gauss grid and multiplied pointwise by
+   $M(\theta,\varphi)$. The increment is analysed back into all six channels.
+   This is where the two families exchange stress. Laterally uniform elements
+   advance their toroidal channels on the per-degree spectral path, where they
+   simply relax.
+
+The toroidal channels are switched on only when some element is genuinely 3-D
+(its lateral $\log_{10}\eta$ spread exceeds `visc3d_tol`) and
+`l_toroidal = .true.`. The memory arrays then widen from four to six channels
+(about 50 % more memory state). A radially symmetric or laterally uniform run
+keeps four channels and pays nothing. Once on, the channels stay on for the
+rest of the run: a later laterally uniform field no longer drives $W$, but
+existing toroidal memory must still relax.
+
+Restart files record the channel count. A spheroidal (four-channel) restart
+can be read into a toroidal run, with the toroidal memory starting at zero.
+Reading a toroidal restart into a spheroidal run is an error, since it would
+discard memory.
+
+## Configuration and output
+
+| Parameter | Group | Default | Effect |
+|---|---|---|---|
+| `l_toroidal` | `&vilma` | `.false.` | carry $W$ and $\lambda = 3,4$ once a 3-D element exists |
+| `l_visc_3d` | `&vilma` | `.false.` | load a lateral viscosity field (required for any toroidal flow) |
+| `visc3d_tol` | `&vilma` | $10^{-3}$ dex | lateral spread above which an element is 3-D |
+| `file_hor` | `&ctl` | `""` | write the surface horizontal displacement |
+
+The horizontal-displacement file holds east/north components on the Gauss
+grid of `file_out`: the total (`u_east`, `u_north`, spheroidal plus toroidal)
+and the toroidal part alone (`u_east_tor`, `u_north_tor`). The toroidal part is
+exactly zero whenever no toroidal field is carried.
+
+## Validation
+
+No community benchmark exercises toroidal flow: all of them are radially
+symmetric or axisymmetric. The implementation is instead checked by internal
+consistency, symmetry and scaling tests:
+
+| Test | Check | Result |
+|---|---|---|
+| `test_assembly` | $W$ stiffness equals the energy rebuilt from the strain rows and norms | $2\times10^{-16}$ |
+| `test_tensor_sh` | six channels reproduce an arbitrary symmetric tensor field; channel cross-talk at `nlat` $= 2\ell_{\max}+2$ | $9\times10^{-15}$ (four channels miss 35 %); $\le 8\times10^{-13}$ |
+| `test_sht` | toroidal synthesis is $\mathbf{e}_r\times\nabla_1 T$ (SHTns' native field is its negative) | round-off |
+| `test_toroidal` | $W = 0$ for an axisymmetric configuration | round-off |
+| `test_toroidal` | $W$ driven by a $\cos 2\varphi$ viscosity pattern; reflection selection rule | rule holds to $4\times10^{-16}$ |
+| `test_toroidal` | scaling with contrast $\delta$: $W \propto \delta$, uplift feedback $\propto \delta^2$ | slopes 0.987 and 1.986 |
+| `test_rotinv` | coaxial cap and low-viscosity zone: $W = 0$ on the pole; off the pole $W/U$ at discretization level, falling with resolution | $2.6\times10^{-4}\to1.5\times10^{-6}$ ($\ell_{\max}$ 16 $\to$ 32) |
+| `test_restart` | restart with toroidal channels; four-channel file into a toroidal run | bit-for-bit continuation; spheroidal memory exact, toroidal zero |
+
+Every existing 1D and benchmark result is unchanged (bit-identical). The
+remaining steps are a cross-check of a toroidal-carrying configuration against
+VILMA-v1 through `solver = "v1"`, and a measurement of what the toroidal
+coupling changes in a 3D deglaciation. Until then it stays off by default.
+
+::: {.callout-tip title="Where this lives in the code"}
+`vilma_radial_fe` (`toroidal_operator`: assembly, fluid-node pinning,
+degree-1 rotation borders), `vilma_viscoelastic` (`strain_coeffs_tor`,
+`ve_strain_constants_tor`, `dissipative_rhs_tor`, `advance_memory_tor`),
+`vilma_tensor_sh` ($Z^{(3)}$, $Z^{(4)}$ as channels 5 and 6), `vilma_sht`
+(toroidal vector transforms), `vilma_response` (the $W$ drift, `enable_toroidal`,
+the six-channel 3-D advance), and `vilma_io` (restart channel count,
+`file_hor`). The design notes and derivation are in the repository's
+`doc/design-toroidal.md`.
+:::

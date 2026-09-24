@@ -28,12 +28,12 @@ from the physics:
 
 - **No degree 0 in $\mathbf{u}$** — incompressibility forbids the radial
   breathing mode.
-- **The toroidal block decouples** — $W$ couples to nothing on the left-hand
+- **The toroidal block decouples**: $W$ couples to nothing on the left-hand
   side (no pressure, self-gravity or $U,V$ shear terms), so a surface load on a
   radially symmetric Earth never excites it. Laterally varying viscosity does,
   through the memory stress (Martinec 2000, after eq. 110); $W$ is then solved by
-  its own tridiagonal per-degree system alongside the spheroidal one. The
-  divergence reduces to
+  its own tridiagonal per-degree system alongside the spheroidal one (see
+  [Toroidal flow](../physics/toroidal.qmd)). The divergence reduces to
   $\operatorname{div}\mathbf{u} = \sum (U' + 2U/r - J\,V/r)\,Y_{jm}$, $J=j(j+1)$
   (eq. 58).
 
@@ -69,7 +69,11 @@ VILMA wraps SHTns in a thin Fortran module (`vilma_sht`) that exposes:
   $(\partial_\theta,\ (\sin\theta)^{-1}\partial_\phi)$ — used for the horizontal
   displacement output. SHTns' spheroidal synthesis *is* the direct surface
   gradient (no $\ell(\ell+1)$ factor), which matches the analytic case-A
-  horizontal response.
+  horizontal response;
+- **toroidal synthesis and joint spheroidal–toroidal analysis**, the
+  $\mathbf{e}_r\times\nabla_1$ field used for $W$ and the toroidal part of the
+  horizontal displacement. SHTns' native toroidal field has the opposite sign;
+  the wrapper returns $\mathbf{e}_r\times\nabla_1 T$, pinned in `test_sht`.
 
 The round-trip transform, quadrature, normalization, and point/gradient
 evaluation are validated to $\sim 10^{-15}$ in `test_sht` and `test_field`.

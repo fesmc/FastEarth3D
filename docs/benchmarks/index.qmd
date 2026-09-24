@@ -23,7 +23,7 @@ reference data, so the validation tests are self-contained.
 | 3 | [Disc-load response](disc.qmd) | deformation + geoid, time relaxation | Spada disc test [@Spada2011] | ✅ | $u$ $\sim 1\%$ near-field; geoid $\sim 1\%$ ($\ell\ge2$) |
 | 4 | [Sea-level equation](sea-level.qmd) | migrating-coastline SLE, flotation, sub-grid | Martinec 2018 cases A/C2/D3/E2/F1 [@Martinec2018] | ✅ | within inter-code scatter (esl $\lesssim 5$ m; D3 $\sim 0.2$ m) |
 | 5 | [Rotation / polar motion](../physics/rotation.qmd) | rotational feedback (TPW) | Spada test 3/2 [@Spada2011] | ✅ | polar motion vs Spada 3/2; on by default |
-| 6 | 3D (lateral viscosity) | laterally varying $\eta$ | `RESP_VE` tensor-SH path | 🔧 | code path implemented + tested; cross-code validation ongoing |
+| 6 | 3D (lateral viscosity) | laterally varying $\eta$, [toroidal flow](../physics/toroidal.qmd) | `RESP_VE` tensor-SH path | 🔧 | code path implemented + tested; cross-code validation ongoing |
 
 Legend: ✅ implemented and validated · 🔧 implemented, validation ongoing ·
 ⏳ planned. "Agreement" quotes the representative relative error against the
@@ -48,7 +48,9 @@ reference; see each page for the full breakdown.
   default for real-Earth runs (off for the non-rotating benchmarks).
   **Rung 6** (laterally varying viscosity) is implemented in the full
   viscoelastic solver and exercised by unit tests, with cross-code validation
-  ongoing.
+  ongoing. No community benchmark exercises the toroidal field; it is checked
+  by internal consistency, symmetry and scaling tests (see
+  [Toroidal flow](../physics/toroidal.qmd#validation)).
 
 ::: {.callout-note title="Analytic vs. inter-code benchmarks"}
 Rungs 2–3 are effectively *analytic* (normal-mode Love numbers and their spatial

@@ -102,9 +102,10 @@ with the component norms $\{1,\ J/2,\ 2J^2,\ 2J(J-2)\}$, $J = \ell(\ell+1)$
 (eqs. 110, B13).
 
 With laterally varying viscosity the pointwise product $M(\theta,\varphi)\,\tau$
-mixes spheroidal and toroidal stress, so the toroidal components
-$\lambda\in\{3,4\}$ (norms $J/2$, $J(J-2)/2$) are carried as well, and the
-toroidal displacement $W$ they force feeds back into the spheroidal field.
+mixes spheroidal and toroidal stress. The toroidal components
+$\lambda\in\{3,4\}$ (norms $J/2$, $J(J-2)/2$) can then be carried as well
+(`l_toroidal`), and the toroidal displacement $W$ they force feeds back into
+the spheroidal field. See [Toroidal flow](toroidal.qmd).
 
 In the **3D** (laterally varying viscosity) case the operator, the strain
 coefficients and the dissipative right-hand side are unchanged; only the

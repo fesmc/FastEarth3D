@@ -25,6 +25,7 @@ website:
         menu:
           - physics/governing-equations.qmd
           - physics/rheology.qmd
+          - physics/toroidal.qmd
           - physics/sea-level.qmd
           - physics/rotation.qmd
       - text: "Discretization"
@@ -56,6 +57,7 @@ website:
         contents:
           - physics/governing-equations.qmd
           - physics/rheology.qmd
+          - physics/toroidal.qmd
           - physics/sea-level.qmd
           - physics/rotation.qmd
       - section: "Discretization"

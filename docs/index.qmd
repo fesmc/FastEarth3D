@@ -48,7 +48,8 @@ paths are therefore the same solver**.
   `&vilma` namelist, the drivers, and staging runs with `runme`.
 - **[Physics](physics/governing-equations.qmd)** — the governing equations
   (momentum, Poisson, incompressibility), the Maxwell rheology and its memory
-  stress, the sea-level equation, and rotational feedback.
+  stress, toroidal flow under lateral viscosity, the sea-level equation, and
+  rotational feedback.
 - **[Discretization](discretization/spectral.qmd)** — the spectral reduction,
   the P1/P0 radial finite-element operator, the explicit time scheme, and the
   banded direct solver.
@@ -64,7 +65,8 @@ VILMA v2 is under heavy development and not yet ready for scientific
 production use. The core implemented so far includes the spectral–finite-element
 solver, the viscoelastic time stepping and response operator, the
 self-consistent migrating-coastline sea-level equation, rotational feedback
-(polar motion), and laterally varying (3D) viscosity. It also supports
+(polar motion), and laterally varying (3D) viscosity, including the toroidal
+flow it drives (optional, off by default). It also supports
 restart and spin-up, online remapping of lon-lat forcing, and a host-coupling
 API.
 

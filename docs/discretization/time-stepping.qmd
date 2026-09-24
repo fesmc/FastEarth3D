@@ -80,8 +80,9 @@ The per-$(\ell,m)$ memory and drift are stored in **degree-grouped slot order**
 (an $\ell m \leftrightarrow k$ map), so the inner loop is contiguous *and*
 per-degree, allowing operator reuse without scattering the (large) memory arrays.
 The **only prognostic state** carried across a restart is the viscoelastic
-memory — the Maxwell stress $\boldsymbol{\tau}$ — plus the integrator state
-and the model time. Reference fields (equilibrium bedrock, reference
+memory (the Maxwell stress $\boldsymbol{\tau}$, four spheroidal channels or
+six with the [toroidal field](../physics/toroidal.qmd)) plus the integrator
+state and the model time. Reference fields (equilibrium bedrock, reference
 ice/topo) are static and
 validated on read. `test_restart` confirms a checkpoint-restart reproduces an
 uninterrupted run **bit-for-bit**. A lower-resolution restart is interpolated up

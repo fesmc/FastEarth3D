@@ -111,6 +111,16 @@ degree-1 potential vanish, $F_1(a) = 0$, puts the state in the **CM frame**
 physical degree-1 signal, not a hard-coded $\{h_1,l_1,k_1\}$. See
 [Sea-level equation](../physics/sea-level.qmd#reference-frame-and-degree-1).
 
+## The toroidal operator
+
+When the toroidal field is carried, $W$ has its own per-degree operator
+rather than a fifth interleaved field: $W$ couples to nothing else on the
+left-hand side, so the spheroidal band is untouched. It is the $W$ part of the
+shear energy (eq. 80), assembled from the same $I_1,I_3,I_6$ integrals. It is
+tridiagonal and symmetric, with fluid-core nodes pinned to $W = 0$ and, at
+degree 1, one KKT border per solid shell removing the rigid rotation. See
+[Toroidal flow](../physics/toroidal.qmd#the-toroidal-operator).
+
 ::: {.callout-tip title="Where this lives in the code"}
 `vilma_radial_fe` assembles `build_dense_operator` (the reference dense operator,
 with the dense $E_{\text{uniq}}$ penalty for cross-checking) and the banded
