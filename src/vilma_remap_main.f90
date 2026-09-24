@@ -1,4 +1,4 @@
-program vilma_remap
+program vilma_remap_main
    !! Offline lon-lat -> Gauss-Legendre remapper. Reads a &vilma config (the grid
    !! knobs lmax/nlat/nphi, the source file_forcing + name_ice/name_lon/name_lat/
    !! name_time, and file_out), conservatively remaps the ice variable over every
@@ -79,4 +79,4 @@ program vilma_remap
 
    call sht_grid_destroy(sht)
    write(*,'(a,a)') ' vilma_remap: wrote ', trim(c%file_out)
-end program vilma_remap
+end program vilma_remap_main
