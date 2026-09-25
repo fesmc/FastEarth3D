@@ -8,8 +8,8 @@ program bench_visc3d
    !!
    !!   ./bench_visc3d.x bench_visc3d.nml      (runme: -e visc3d -n examples/bench_visc3d.nml)
    !!
-   !! The run config carries the &benchv3d group (test, forcing, time_end [years])
-   !! and &vilma overrides of input/vilma_defaults.nml. Only lmax, l_toroidal and
+   !! The run config carries the &benchv3d group (test, forcing, time_end [years],
+   !! restart_in, restart_out) and &vilma overrides of input/vilma_defaults.nml. Only lmax, l_toroidal and
    !! visc3d_tol are read from &vilma: the earth model, memory scheme, degree-1
    !! frame, grid and the absence of ocean and rotation are fixed by the benchmark.
    !!
@@ -39,6 +39,13 @@ program bench_visc3d
    !! Cross-section: from the structure centre to its antipode through the load
    !! centre, every 0.1°. For A/B (both at the pole) this is the λ = 0 meridian.
    !! A/B are axisymmetric and run with mmax = 0.
+   !!
+   !! Restart, for runs longer than one job (C-i at lmax 128 is ~10-19 h): a run
+   !! goes from the step in restart_in ("" = t = 0) to time_end, and with
+   !! restart_out it saves the memory state at time_end. Time is kept as a global
+   !! step count, so a chain of segments takes exactly the steps (and the ramp
+   !! loads) of one uninterrupted run. A resumed run appends to the protocol files
+   !! and skips the epochs already written.
    use vilma_precision,       only: wp
    use vilma_constants,       only: pi, rho_ice, kyr, sec_per_year
    use vilma_earth_structure, only: earth_model, earth_layer, build_M3L70V01, RHEOL_MAXWELL
@@ -51,6 +58,8 @@ program bench_visc3d
    use vilma_params,          only: vilma_param_class, vilma_par_load
    use vilma_control,         only: DEFAULTS_FILE
    use nml,                   only: nml_read, nml_set_verbose
+   use ncio,                  only: nc_create, nc_write_dim, nc_write, nc_read, nc_size, &
+                                    nc_write_attr, nc_read_attr
    implicit none
 
    character(*), parameter :: CODE   = 'VILMA2'
@@ -68,9 +77,9 @@ program bench_visc3d
    real(wp), parameter :: T_OUT_KYR(NOUT) = [0.1_wp, 0.2_wp, 0.5_wp, 1.0_wp, 2.0_wp, 5.0_wp, &
                                              10.0_wp, 11.0_wp, 12.0_wp, 15.0_wp, 20.0_wp, 50.0_wp, 100.0_wp]
 
-   character(len=512) :: cfg, fdisp, fgcm
+   character(len=512) :: cfg, fdisp, fgcm, restart_in = '', restart_out = ''
    character(len=16)  :: test = 'A', forcing = 'heav', tname
-   integer  :: lmax, mmax, nsub, nstep, i, iout, npt, ud, ug
+   integer  :: lmax, mmax, nsub, nstep, i, i0, iout, npt, ud, ug
    real(wp) :: t_end, dt, t, colat_s, lon_s, colat_l, lon_l, dlog_s
    real(wp) :: gcm(3), mu_max
    real(wp), allocatable :: pcol(:), plon(:), pdist(:)
@@ -90,6 +99,8 @@ program bench_visc3d
    call nml_read(trim(cfg), 'benchv3d', 'test',     test)
    call nml_read(trim(cfg), 'benchv3d', 'forcing',  forcing)
    call nml_read(trim(cfg), 'benchv3d', 'time_end', t_end)
+   call nml_read(trim(cfg), 'benchv3d', 'restart_in',  restart_in)
+   call nml_read(trim(cfg), 'benchv3d', 'restart_out', restart_out)
    t_end = t_end*sec_per_year
    lmax  = par%lmax
    if (forcing /= 'heav' .and. forcing /= 'ramp') error stop 'benchv3d: forcing must be heav or ramp'
@@ -119,15 +130,18 @@ program bench_visc3d
    nsub = ceiling(100.0_wp*YR / (CFL*10.0_wp**LOG_ETA_C/mu_max))
    dt   = 100.0_wp*YR/real(nsub, wp)
    call response_set_dt(ve, dt)
-   nstep = nint(t_end/dt)
+   nstep = nint(t_end/dt)                            ! global index of the last step
+   i0 = 0
+   if (len_trim(restart_in) > 0) call read_restart(trim(restart_in), i0)
+   if (i0 >= nstep) error stop 'benchv3d: time_end is not after the restart time'
 
    allocate(load_lm(sht%nlm), slm(sht%nlm), ulm(sht%nlm), nlm(sht%nlm), vlm(sht%nlm), tlm(sht%nlm))
    call cap_load(colat_l, lon_l, load_lm)
    call section_points(colat_s, lon_s, colat_l, lon_l, pcol, plon, pdist)
    npt = size(pcol)
 
-   write(*,'(3a,i0,a,i0,a,f6.3,a,i0,a)') ' 3D viscosity benchmark ', trim(tname)//' '//trim(forcing), &
-        ': lmax=', lmax, ' mmax=', mmax, ' dt=', dt/YR, ' yr, ', nstep, ' steps'
+   write(*,'(3a,i0,a,i0,a,f6.3,a,i0,a,i0,a)') ' 3D viscosity benchmark ', trim(tname)//' '//trim(forcing), &
+        ': lmax=', lmax, ' mmax=', mmax, ' dt=', dt/YR, ' yr, steps ', i0, ' -> ', nstep, ''
    write(*,'(a,i0,a,i0,a,l1)') '   radial elements: ', ve%ne, ', genuinely 3-D: ', ve%ne3d, &
         ', toroidal: ', ve%toroidal
    ! Load mass from the degree-0 coefficient vs the closed form (2π/3)ρh(1−cosα)·2a².
@@ -138,18 +152,29 @@ program bench_visc3d
    ! --- output files ---------------------------------------------------------------
    fdisp = 'disp_'//CODE//'_'//trim(tname)//'_'//trim(forcing)//'.txt'
    fgcm  = 'gcm_'//CODE//'_'//trim(tname)//'_'//trim(forcing)//'.txt'
-   open(newunit=ud, file=trim(fdisp), status='replace', action='write')
-   open(newunit=ug, file=trim(fgcm),  status='replace', action='write')
-   call write_header(ud, 'longitude, latitude, distance on cross section, time, '// &
-                     'u_r, u_\vartheta, u_\varphi, \delta_\phi')
-   call write_header(ug, 'time, u_x, u_y, u_z')
-   write(ud,'(a)') '# units: deg, deg, deg, kyr, m, m, m, m^2 s^-2'
-   write(ug,'(a)') '# units: kyr, m, m, m'
+   if (i0 == 0) then
+      open(newunit=ud, file=trim(fdisp), status='replace', action='write')
+      open(newunit=ug, file=trim(fgcm),  status='replace', action='write')
+      call write_header(ud, 'longitude, latitude, distance on cross section, time, '// &
+                        'u_r, u_\vartheta, u_\varphi, \delta_\phi')
+      call write_header(ug, 'time, u_x, u_y, u_z')
+      write(ud,'(a)') '# units: deg, deg, deg, kyr, m, m, m, m^2 s^-2'
+      write(ug,'(a)') '# units: kyr, m, m, m'
+   else                                              ! resumed: the earlier segments wrote the rest
+      open(newunit=ud, file=trim(fdisp), status='old', position='append', action='write')
+      open(newunit=ug, file=trim(fgcm),  status='old', position='append', action='write')
+   end if
 
    ! --- time loop: output at t_i uses σ(t_i) and memory τ(t_i); commit → τ(t_{i+1}) --
    call system_clock(c0, crate)
    iout = 1
-   do i = 0, nstep
+   if (i0 > 0) then                                  ! a previous segment wrote every epoch up to
+      do while (iout <= NOUT)                        ! and including its last step, i0
+         if (T_OUT_KYR(iout)*kyr > (real(i0, wp) + 0.5_wp)*dt) exit
+         iout = iout + 1
+      end do
+   end if
+   do i = i0, nstep
       t = real(i, wp)*dt
       slm = load_factor(t)*load_lm
       call response_begin_step(ve, sht)
@@ -171,6 +196,12 @@ program bench_visc3d
    end do
    close(ud);  close(ug)
    write(*,'(4a)') '   wrote ', trim(fdisp), ', ', trim(fgcm)
+   ! The memory is τ(t_end): the last step was evaluated but not committed, so a
+   ! resumed run begins with exactly the step an uninterrupted one takes next.
+   if (len_trim(restart_out) > 0) then
+      call write_restart(trim(restart_out), nstep)
+      write(*,'(3a,f8.2,a)') '   wrote restart ', trim(restart_out), ' at t=', real(nstep,wp)*dt/kyr, ' kyr'
+   end if
 
    call response_destroy(ve);  call sht_grid_destroy(sht);  call radial_fe_finalize()
 
@@ -417,5 +448,52 @@ contains
       v = sqrt(3.0_wp/(4.0_wp*pi))*[sqrt(2.0_wp)*real(f11), -sqrt(2.0_wp)*aimag(f11), &
                                     real(f(sht_grid_lmidx(sht, 1, 0)))]
    end function cart1
+
+   subroutine write_restart(fname, istep)
+      !! Save the Maxwell memory (the only prognostic state of the explicit
+      !! scheme: begin_step re-derives the drift from it) and the step index, with
+      !! the case identity and Δt so a mismatched resume is refused.
+      character(*), intent(in) :: fname
+      integer,      intent(in) :: istep
+      call nc_create(fname, overwrite=.true.)
+      call nc_write_dim(fname, 'nlam', x=1, dx=1, nx=ve%nlam, units='1')
+      call nc_write_dim(fname, 'ne',   x=1, dx=1, nx=ve%ne,   units='1')
+      call nc_write_dim(fname, 'nk',   x=1, dx=1, nx=ve%nk,   units='1')
+      call nc_write(fname, 'tau_a_re', ve%Are, dim1='nlam', dim2='ne', dim3='nk')
+      call nc_write(fname, 'tau_a_im', ve%Aim, dim1='nlam', dim2='ne', dim3='nk')
+      call nc_write(fname, 'tau_b_re', ve%Bre, dim1='nlam', dim2='ne', dim3='nk')
+      call nc_write(fname, 'tau_b_im', ve%Bim, dim1='nlam', dim2='ne', dim3='nk')
+      call nc_write(fname, 'tau_c_re', ve%Cre, dim1='nlam', dim2='ne', dim3='nk')
+      call nc_write(fname, 'tau_c_im', ve%Cim, dim1='nlam', dim2='ne', dim3='nk')
+      call nc_write_attr(fname, 'step', istep)
+      call nc_write_attr(fname, 'dt_s', dt)
+      call nc_write_attr(fname, 'lmax', lmax)
+      call nc_write_attr(fname, 'case', trim(tname)//'_'//trim(forcing))
+   end subroutine write_restart
+
+   subroutine read_restart(fname, istep)
+      !! Restore the memory saved by write_restart into the freshly built response
+      !! (same test, forcing, lmax, Δt and channel count, or stop) and return the
+      !! global step index to resume from.
+      character(*), intent(in)  :: fname
+      integer,      intent(out) :: istep
+      character(len=64) :: cs
+      integer  :: lm
+      real(wp) :: dts
+      call nc_read_attr(fname, 'case', cs)
+      call nc_read_attr(fname, 'lmax', lm)
+      call nc_read_attr(fname, 'dt_s', dts)
+      call nc_read_attr(fname, 'step', istep)
+      if (trim(cs) /= trim(tname)//'_'//trim(forcing)) error stop 'benchv3d: restart is from another case'
+      if (lm /= lmax)  error stop 'benchv3d: restart lmax differs'
+      if (dts /= dt)   error stop 'benchv3d: restart dt differs'
+      if (nc_size(fname, 'nlam') /= ve%nlam .or. nc_size(fname, 'ne') /= ve%ne .or. &
+          nc_size(fname, 'nk') /= ve%nk) error stop 'benchv3d: restart memory shape differs'
+      call nc_read(fname, 'tau_a_re', ve%Are);  call nc_read(fname, 'tau_a_im', ve%Aim)
+      call nc_read(fname, 'tau_b_re', ve%Bre);  call nc_read(fname, 'tau_b_im', ve%Bim)
+      call nc_read(fname, 'tau_c_re', ve%Cre);  call nc_read(fname, 'tau_c_im', ve%Cim)
+      write(*,'(3a,i0,a,f8.2,a)') '   restart ', fname, ': step ', istep, ' (t=', &
+           real(istep,wp)*dt/kyr, ' kyr)'
+   end subroutine read_restart
 
 end program bench_visc3d
