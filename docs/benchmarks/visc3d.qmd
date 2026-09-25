@@ -138,6 +138,16 @@ the cross-sections and the geocentre motion from the ensemble directory:
 julia --project=analysis analysis/plot_bench_visc3d.jl runs/bench_visc3d heav
 ```
 
+**Restart.** A run longer than one job is split into segments. `restart_out`
+saves the memory state at `time_end`, and `restart_in` resumes from it. Time is
+counted in global steps, so a chain of segments reproduces one uninterrupted run
+byte for byte; each segment appends to the protocol files. For 20-kyr segments:
+
+```fortran
+&benchv3d  test = "C"  forcing = "heav"  time_end = 40.0e3
+           restart_in = "restart_20kyr.nc"  restart_out = "restart_40kyr.nc" /
+```
+
 The step count is set by $\eta_c$: 223 000 steps to 100 kyr. At
 $\ell_\max = 64$ with 8 threads (laptop), a C run costs about 53 ms per step,
 or about 3.3 h. A and B, with $m_\max = 0$, take minutes. The target

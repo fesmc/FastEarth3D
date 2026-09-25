@@ -12,6 +12,8 @@
     test     = "A"         ! A | B | C
     forcing  = "heav"      ! heav (load on at t = 0) | ramp (linear over 0-10 kyr)
     time_end = 100.0e3     ! [years]
+    restart_in  = ""       ! resume from this restart ("" = start at t = 0)
+    restart_out = ""       ! save the state at time_end here ("" = none)
 /
 
 &vilma
