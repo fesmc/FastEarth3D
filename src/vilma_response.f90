@@ -1117,7 +1117,8 @@ contains
       self%edWn_re = 0.0_wp;  self%edWn_im = 0.0_wp;  self%dWa_prev = (0.0_wp,0.0_wp)
    end subroutine ensure_commit_scratch_tor
 
-   subroutine response_enable_lateral_visc_from_nodes(self, sht, visc_node)
+   subroutine response_enable_lateral_visc_from_nodes(self, sht, visc_node, lid_depth, lid_log10max, &
+                                                      log10_cap)
       !! Rung 6c — enable laterally-varying viscosity from a NODE-based ABSOLUTE
       !! log10(η) field on the Gauss grid, visc_node(nphi*nlat, nr) (as produced by
       !! vilma_read_visc_3d). Bridges node→element by the log10-mean of the two
@@ -1125,22 +1126,40 @@ contains
       !! perturbation against the element's radial reference viscosity
       !! η_radial(e) = μ(e)/MkPerDt(e), and calls enable_lateral_visc. Elastic/
       !! fluid elements (MkPerDt=0) keep pert=0 — irrelevant, they stay memory-free.
+      !!
+      !! Lid rule (optional, all three arguments together): a Maxwell element lying
+      !! wholly above lid_depth [m] below the surface whose log10 η exceeds
+      !! lid_log10max is set to log10_cap. It acts per ELEMENT, after the node→element
+      !! bridging: a node-level cap would change the node at the lid base, which the
+      !! element below shares, and leave intermediate (slow) elements on both sides.
       type(response), intent(inout) :: self
       type(sht_grid),     intent(in)    :: sht
       real(wp),           intent(in)    :: visc_node(:,:)   !! (nphi*nlat, nr) log10(η)
+      real(wp), optional, intent(in)    :: lid_depth, lid_log10max, log10_cap
       real(wp), allocatable :: pert(:,:,:)
-      real(wp) :: elem_abs, logeta_ref
+      real(wp) :: elem_abs, logeta_ref, r_lid
+      logical  :: in_lid
       integer  :: e, i, j, sp
       if (size(visc_node,1) /= sht%nphi*sht%nlat .or. size(visc_node,2) /= self%nr) &
          error stop 'enable_lateral_visc_from_nodes: visc_node must be (nphi*nlat, nr)'
+      if (present(lid_depth) .neqv. (present(lid_log10max) .and. present(log10_cap))) &
+         error stop 'enable_lateral_visc_from_nodes: lid_depth, lid_log10max, log10_cap go together'
+      r_lid = huge(1.0_wp)                                   ! no element is above it: rule off
+      if (present(lid_depth)) then
+         if (lid_depth > 0.0_wp) r_lid = self%r(self%nr) - lid_depth
+      end if
       allocate(pert(sht%nphi, sht%nlat, self%ne));  pert = 0.0_wp
       do e = 1, self%ne
          if (self%MkPerDt(e) == 0.0_wp) cycle             ! elastic/fluid: stay as-is
          logeta_ref = log10(self%mu(e)/self%MkPerDt(e))    ! log10 η_radial(e) (μ/MkPerDt)
+         in_lid = self%r(e) >= r_lid - 1.0e-6_wp*self%r(self%nr)   ! element wholly above the lid base
          do j = 1, sht%nlat
             do i = 1, sht%nphi
                sp = i + (j-1)*sht%nphi
                elem_abs = 0.5_wp*(visc_node(sp,e) + visc_node(sp,e+1))   ! log10-mean of nodes
+               if (in_lid) then
+                  if (elem_abs > lid_log10max) elem_abs = log10_cap
+               end if
                pert(i,j,e) = elem_abs - logeta_ref
             end do
          end do

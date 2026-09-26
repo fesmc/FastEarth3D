@@ -328,7 +328,9 @@ contains
       call load_visc_3d(self%par, sht, self%resp%r, visc_node)
       if (self%resp%kind /= RESP_VE) &
          error stop 'solid_earth_enable_visc_3d: lateral viscosity needs earth_response=ve'
-      call response_enable_lateral_visc_from_nodes(self%resp, sht, visc_node)
+      call response_enable_lateral_visc_from_nodes(self%resp, sht, visc_node, &
+           lid_depth=self%par%visc3d_lid_depth, lid_log10max=self%par%visc3d_lid_log10max, &
+           log10_cap=self%par%visc_log10_max)
    end subroutine solid_earth_enable_visc_3d
 
    subroutine solid_earth_update(self, h_ice, dt_yr)
@@ -503,7 +505,9 @@ contains
             do r = 1, size(visc_node, 2)
                visc_unif(:, r) = sum(visc_node(:, r)) / real(nh, wp)   ! lateral mean of log10(eta)
             end do
-            call response_enable_lateral_visc_from_nodes(self%resp, self%sht, visc_unif)
+            call response_enable_lateral_visc_from_nodes(self%resp, self%sht, visc_unif, &
+                 lid_depth=self%par%visc3d_lid_depth, lid_log10max=self%par%visc3d_lid_log10max, &
+                 log10_cap=self%par%visc_log10_max)
          end if
          call relax_hold(self, h_ice_lgm, -1.0_wp, "1-D ")    ! converge; internal pass cap only
          if (self%par%l_visc_3d) call solid_earth_enable_visc_3d(self, self%sht)  ! restore the real 3-D field
