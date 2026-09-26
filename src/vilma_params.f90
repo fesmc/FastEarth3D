@@ -144,6 +144,11 @@ module vilma_params
       real(wp) :: f_visc_rel     = 0.1_wp   !! relative sigma = f_visc_rel*log10(eta) when no sd var
       real(wp) :: visc_log10_min = 19.5_wp  !! floor on log10(eta) after read + perturbation [dex]
       real(wp) :: visc_log10_max = 30.0_wp  !! ceiling on log10(eta) after read + perturbation [dex]
+      real(wp) :: visc3d_lid_depth    = 0.0_wp  !! [m] lid rule off at 0; see visc3d_lid_log10max
+      real(wp) :: visc3d_lid_log10max = 22.0_wp !! Maxwell elements lying wholly above visc3d_lid_depth
+         !! whose log10(eta) exceeds this are set to visc_log10_max (effectively elastic). Such
+         !! elements relax over Myr, so a held-load spin-up never equilibrates them; the rule
+         !! splits the lid into elements that relax within kyr and ones that do not.
       real(wp) :: visc3d_tol     = 1.0e-3_wp !! lateral log10(eta) spread [dex] above which a radial
          !! element is treated as genuinely 3-D (pays the dyadic SHT round-trip); below it the
          !! element collapses to its lateral-mean scalar rate (cheap degree-diagonal path). Raising
@@ -295,6 +300,8 @@ contains
       call nml_read(filename, g, "visc_3d_file",   p%visc_3d_file,   defaults_file=df)
       p%visc_3d_file = expand_path(p%visc_3d_file)
       call nml_read(filename, g, "visc3d_tol",     p%visc3d_tol,     defaults_file=df)
+      call nml_read(filename, g, "visc3d_lid_depth",    p%visc3d_lid_depth,    defaults_file=df)
+      call nml_read(filename, g, "visc3d_lid_log10max", p%visc3d_lid_log10max, defaults_file=df)
       call nml_read(filename, g, "l_toroidal",     p%l_toroidal,     defaults_file=df)
       call nml_read(filename, g, "name_visc",      p%name_visc,      defaults_file=df)
       call nml_read(filename, g, "name_visc_lon",  p%name_visc_lon,  defaults_file=df)
@@ -387,6 +394,10 @@ contains
               '            f_visc_sd=', p%f_visc_sd, '  f_visc_rel=', p%f_visc_rel, &
               '  clamp=[', p%visc_log10_min, ',', p%visc_log10_max, ']'
          write(u,'(a,es9.2,a)') '            visc3d_tol=', p%visc3d_tol, ' dex (3-D split)'
+         if (p%visc3d_lid_depth > 0.0_wp) &
+            write(u,'(a,f6.1,a,f5.2,a)') '            lid rule: elements above ', &
+                 p%visc3d_lid_depth*1.0e-3_wp, ' km with log10(eta) > ', p%visc3d_lid_log10max, &
+                 ' -> clamp ceiling'
          write(u,'(a,l1)')      '            l_toroidal=', p%l_toroidal
       end if
       if (trim(p%solver) == "v1") then
